@@ -1,0 +1,11 @@
+{
+  "name": "korean-genealogy",
+  "version": "0.1.0",
+  "private": true,
+  "description": "한국 역사 인물 가계도와 친족 호칭·촌수 계산 (목업)",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/kinship.test.mjs",
+    "start": "python3 -m http.server 8000"
+  }
+}
