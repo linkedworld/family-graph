@@ -191,6 +191,30 @@
       return [...kids].sort((a, b) => (val.get(a) - val.get(b)) || (pos.get(a) - pos.get(b)));
     }
 
+    // 대를 잇는 아들(종통 계승자). 그 집에 들어온 양자가 있으면 양자, 없으면 정실·계실 소생 맏아들,
+    // 적자가 없으면 서자(첩 소생) 맏아들. 아들이 없으면 null.
+    heir(id) {
+      const p = this.get(id);
+      if (!p || p.gender !== 'M') return null;
+      const sons = this.orderedChildren(id).filter((c) => this.get(c).gender === 'M');
+      if (!sons.length) return null;
+      const adopted = sons.find((c) => this.isAdopted(c));
+      if (adopted) return adopted;
+      const legit = sons.find((c) => this.unions.get(this.parentUnionOf(c))?.type !== '첩');
+      return legit || sons[0];
+    }
+
+    // id에서 시작해 대를 잇는 아들을 따라 내려간 사람들(id 포함)
+    heirLine(id) {
+      const line = [];
+      const seen = new Set();
+      for (let cur = id; cur && !seen.has(cur); cur = this.heir(cur)) {
+        seen.add(cur);
+        line.push(cur);
+      }
+      return line;
+    }
+
     // 출생 순서를 '7남 1녀 중 여덟째'처럼 나타낸다.
     //   첫째·둘째 아들/딸은 장남·차남·장녀·차녀, 그 밖에는 전체 형제 중 몇째(셋째, 넷째…).
     //   자녀가 하나뿐이면 외아들·외동딸. 부모가 없거나 성별을 모르면 null.

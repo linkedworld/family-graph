@@ -4,6 +4,7 @@
     "id": "yi-i",
     "title": "율곡 이이(栗谷 李珥) 가계도",
     "subject": "yi_i",
+    "notable": ["yi_i", "shin_saimdang", "yi_gi", "yi_haeng", "yi_maechang", "yi_u", "kim_jangsaeng", "kim_jip", "yi_annul", "yi_sik", "choi_manri", "sin_sukju", "nam_i", "yun_hoe"],
     "clan": "덕수 이씨(德水李氏)",
     "description": "율곡 이이를 중심으로 강평공 이명신·이추의 후손(이의무·이기·이행 계열, 10촌 이내), 형제·조카, 외손(김집 계열), 외가(평산 신씨·용인 이씨·강릉 최씨), 진외가(남양 홍씨·해주 최씨·무송 윤씨)·처가·사돈까지 정리한 데이터.",
     "updated": "2026-10-07",

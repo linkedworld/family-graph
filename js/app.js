@@ -22,6 +22,7 @@ const state = {
   // 접기·펴기: 기본은 기준 인물의 직계와 그 배우자만 보이고, 나머지 자녀는 접혀 있다.
   expanded: new Set(), // 자녀를 펼친 사람
   expandAll: false,
+  showLine: true, // 정통 표시: 종통(대를 잇는 맏아들) 줄기, 맏아들·맏딸, 이름난 인물
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   lay: null, view: null,
   t: { k: 1, x: 0, y: 0 },
@@ -80,6 +81,17 @@ function computeShown() {
     if (id === state.ego || (r.kind === 'blood' && r.path && (r.path.up === 0 || r.path.down === 0))) shown.add(id);
   }
   const lineal = new Set(shown);
+  // 정통: 종통 줄기와 이름난 인물은 접혀 있어도 보이고, 그 사람에게 이어지는 조상 길도 함께 보인다.
+  const heir = computeHeirLines();
+  if (state.showLine) {
+    const must = [...heir.members, ...state.notable];
+    const addPath = (id) => {
+      if (shown.has(id) || !model.get(id)) return;
+      shown.add(id);
+      for (const p of model.parents(id, 'legal')) addPath(p);
+    };
+    for (const id of must) addPath(id);
+  }
   const queue = [...shown];
   while (queue.length) {
     const id = queue.pop();
@@ -87,7 +99,25 @@ function computeShown() {
     for (const c of model.children(id, 'all')) if (!shown.has(c)) { shown.add(c); queue.push(c); }
   }
   for (const id of [...shown]) for (const s of model.spouses(id)) shown.add(s.id);
-  return { shown, lineal, rels };
+  return { shown, lineal, rels, heir };
+}
+
+// 종통 줄기: 시조 쪽 맨 윗대 조상과 이름난 남자 인물마다, 대를 잇는 아들을 따라 내려간 흐름.
+// members: 줄기에 든 사람, edges: '아버지>아들' 연결
+function computeHeirLines() {
+  const { model } = state;
+  const members = new Set();
+  const edges = new Set();
+  const starts = [state.root, ...state.notable.filter((id) => model.get(id)?.gender === 'M')];
+  for (const s of starts) {
+    const line = model.heirLine(s);
+    if (line.length < 2) continue;
+    line.forEach((id, i) => {
+      members.add(id);
+      if (i > 0) edges.add(`${line[i - 1]}>${id}`);
+    });
+  }
+  return { members, edges };
 }
 
 // 접혀 있는 사람이 보이도록 그 사람의 조상을 따라 펼친다.
@@ -126,7 +156,8 @@ function toggleExpand(id) {
 
 function render({ refit = false } = {}) {
   const { model, kin } = state;
-  const { shown, lineal: linealAll, rels: allRels } = computeShown();
+  const { shown, lineal: linealAll, rels: allRels, heir } = computeShown();
+  state.heir = heir;
   state.shown = shown;
   state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core, keep: shown });
   state.view.fold = state.fold;
@@ -158,6 +189,9 @@ function render({ refit = false } = {}) {
   const lineal = { has: (id) => line.has(id) };
   // 직계 줄기는 다른 선 위에 보이도록 따로 모았다가 마지막에 붙인다.
   const gLineal = el('g', {});
+  // 종통 줄기(겹선)는 일반 선 위, 직계 줄기 아래에 그린다.
+  const gHeir = el('g', {});
+  const fatherOf = (un) => un.u.husband;
 
   for (const un of state.lay.unions) {
     const cls = ['edge', 'marriage'];
@@ -196,6 +230,10 @@ function render({ refit = false } = {}) {
       const d = c.spineX != null
         ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
         : `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}`;
+      if (state.showLine && state.heir.edges.has(`${fatherOf(un)}>${c.id}`)) {
+        el('path', { class: 'heir-outer', d }, gHeir);
+        el('path', { class: 'heir-inner', d }, gHeir);
+      }
       el('path', { class: ecls.join(' '), d }, linealEdge ? gLineal : gEdges);
       if (c.adopt || c.adoptedOut) {
         // 같은 카드로 양자선과 출계선이 함께 들어오므로 '양자'는 왼쪽, '출계'는 오른쪽에 둔다.
@@ -216,6 +254,7 @@ function render({ refit = false } = {}) {
     }
   }
 
+  gEdges.appendChild(gHeir);
   gEdges.appendChild(gLineal);
 
   // 접기·펴기 단추: 숨은 자녀 수(+N), 펼친 자녀가 있으면 접기(−)
@@ -291,10 +330,11 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
     const t = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
     t.textContent = `${person.gen}世`;
   }
-  // 넷째 줄: 출생 순서 ('7남 1녀 중 여덟째', '2남 1녀 중 장남' …)
+  // 넷째 줄: 출생 순서 ('7남 1녀 중 여덟째', '2남 1녀 중 장남' …). 정통 표시에서는 맏아들·맏딸을 강조한다.
   const order = birthOrderShown(id);
   if (order) {
-    const t = el('text', { class: 'order', x: 12, y: 81 }, g);
+    const first = state.showLine && order.k === 1 && order.sons + order.daughters > 1;
+    const t = el('text', { class: first ? 'order firstborn' : 'order', x: 12, y: 81 }, g);
     t.textContent = fitText(order.full, CARD.w - 22, 11);
     t.style.fontSize = `${fontFor(order.full, CARD.w - 22, 11)}px`;
   }
@@ -313,6 +353,22 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
     btn.addEventListener('click', (ev) => { stop(ev); if (!state.suppressClick) toggleExpand(id); });
     btn.addEventListener('dblclick', stop);
     btn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { stop(ev); ev.preventDefault(); toggleExpand(id); } });
+  }
+
+  // 정통 표시: 宗(종통 줄기), 名(이름난 인물). 오른쪽 위에서 왼쪽으로 차례로 붙인다.
+  if (state.showLine) {
+    const marks = [];
+    if (state.heir.members.has(id)) marks.push(['宗', 'mark-heir', '종통을 이은 사람']);
+    if (state.notable.includes(id)) marks.push(['名', 'mark-notable', '이름난 인물']);
+    let mx = CARD.w - 22 - (id === state.ego ? 19 : 0);
+    for (const [ch, cls, title] of marks) {
+      const mg = el('g', { class: cls }, g);
+      el('rect', { x: mx, y: 7, width: 15, height: 15, rx: 1.5 }, mg);
+      const mt = el('text', { x: mx + 7.5, y: 18.5, 'text-anchor': 'middle' }, mg);
+      mt.textContent = ch;
+      el('title', {}, mg).textContent = title;
+      mx -= 19;
+    }
   }
 
   if (id === state.ego) {
@@ -591,6 +647,8 @@ function loadDataset(data) {
   let root = data.meta.subject;
   while (model.father(root)) root = model.father(root);
   state.core = coreSet(model, root);
+  state.root = root;
+  state.notable = (data.meta.notable || []).filter((id) => model.get(id));
   // 시조의 혈통(배우자 제외). 다른 집에서 들어온 사람은 친정 형제가 일부만 조사되어 있다.
   state.lineage = new Set();
   for (const stack = [root]; stack.length;) {
@@ -664,6 +722,10 @@ function main() {
   $('hideUnknown').addEventListener('change', (ev) => {
     state.hideUnknown = ev.target.checked;
     render(); centerOn(state.ego); renderRelations();
+  });
+  $('showLine').addEventListener('change', (ev) => {
+    state.showLine = ev.target.checked;
+    render(); renderRelations();
   });
   $('expandAll').addEventListener('click', () => {
     state.expandAll = true;
