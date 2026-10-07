@@ -100,6 +100,15 @@
     return v;
   }
 
+  // 1 → 첫째, 8 → 여덟째, 11 → 열한째 …
+  function ordinalKo(n) {
+    const ones = ['', '첫', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉'];
+    if (n < 10) return `${ones[n]}째`;
+    if (n === 10) return '열째';
+    if (n < 20) return `열${n === 11 ? '한' : n === 12 ? '두' : ones[n - 10]}째`;
+    return `${n}째`;
+  }
+
   class Model {
     constructor(meta, persons, unions) {
       this.meta = meta;
@@ -182,15 +191,28 @@
       return [...kids].sort((a, b) => (val.get(a) - val.get(b)) || (pos.get(a) - pos.get(b)));
     }
 
-    // '1남', '2녀'처럼 아들·딸을 따로 센 출생 순서. 부모가 없거나 성별을 모르면 null.
+    // 출생 순서를 '7남 1녀 중 여덟째'처럼 나타낸다.
+    //   첫째·둘째 아들/딸은 장남·차남·장녀·차녀, 그 밖에는 전체 형제 중 몇째(셋째, 넷째…).
+    //   자녀가 하나뿐이면 외아들·외동딸. 부모가 없거나 성별을 모르면 null.
+    //   label: 짧은 호칭(장남, 여덟째…), full: '7남 1녀 중 여덟째'
     birthOrder(id) {
       const parent = this.father(id) || this.mother(id);
       const g = this.get(id).gender;
       if (!parent || (g !== 'M' && g !== 'F')) return null;
-      const same = this.orderedChildren(parent).filter((c) => this.get(c).gender === g);
-      const n = same.indexOf(id) + 1;
-      if (n < 1) return null;
-      return { n, total: same.length, label: `${n}${g === 'M' ? '남' : '녀'}` };
+      const all = this.orderedChildren(parent);
+      const nth = all.indexOf(id) + 1;
+      if (nth < 1) return null;
+      const sons = all.filter((c) => this.get(c).gender === 'M');
+      const daughters = all.filter((c) => this.get(c).gender === 'F');
+      const k = (g === 'M' ? sons : daughters).indexOf(id) + 1;
+      const counts = [sons.length ? `${sons.length}남` : '', daughters.length ? `${daughters.length}녀` : ''].filter(Boolean).join(' ');
+      let label;
+      if (all.length === 1) label = g === 'M' ? '외아들' : '외동딸';
+      else if (k === 1) label = g === 'M' ? '장남' : '장녀';
+      else if (k === 2) label = g === 'M' ? '차남' : '차녀';
+      else label = ordinalKo(nth);
+      const full = all.length === 1 ? label : `${counts} 중 ${label}`;
+      return { nth, k, sons: sons.length, daughters: daughters.length, label, full };
     }
 
     spouses(id) {

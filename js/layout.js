@@ -15,7 +15,7 @@
 (function (G) {
   'use strict';
 
-  const CARD = { w: 156, h: 74 };
+  const CARD = { w: 156, h: 90 };
   const COUPLE_GAP = 18;   // 부부 묶음 안 카드 사이 간격
   const LEVEL_STEP = 10;   // 결혼선 층 사이 간격
   const RANK_SEP = 64;     // dagre에 주는 세대 간격(최종 세대 간격은 아래에서 다시 계산)

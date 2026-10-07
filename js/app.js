@@ -151,6 +151,14 @@ function render({ refit = false } = {}) {
   if (refit) fit();
 }
 
+// 친정 형제가 한 명만 기록된 사람(다른 집에서 들어온 배우자 등)은 외아들·외동딸로 단정하지 않는다.
+function birthOrderShown(id) {
+  const order = state.model.birthOrder(id);
+  if (!order) return null;
+  if (order.sons + order.daughters === 1 && !state.lineage.has(id)) return null;
+  return order;
+}
+
 function drawCard(parent, id, p, rel, isLineal) {
   const { model } = state;
   const person = model.get(id);
@@ -187,12 +195,16 @@ function drawCard(parent, id, p, rel, isLineal) {
 
   const yr = el('text', { class: 'years', x: 12, y: 63 }, g);
   yr.textContent = years(person);
-  // 오른쪽 아래: 출생 순서(1남·2녀…)와 세(世)
-  const order = state.model.birthOrder(id);
-  const tail = [order?.label, person.gen != null ? `${person.gen}世` : null].filter(Boolean).join(' · ');
-  if (tail) {
+  if (person.gen != null) {
     const t = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
-    t.textContent = tail;
+    t.textContent = `${person.gen}世`;
+  }
+  // 넷째 줄: 출생 순서 ('7남 1녀 중 여덟째', '2남 1녀 중 장남' …)
+  const order = birthOrderShown(id);
+  if (order) {
+    const t = el('text', { class: 'order', x: 12, y: 81 }, g);
+    t.textContent = fitText(order.full, CARD.w - 22, 11);
+    t.style.fontSize = `${fontFor(order.full, CARD.w - 22, 11)}px`;
   }
 
   if (id === state.ego) {
@@ -379,10 +391,10 @@ function renderDetail() {
   const add = (k, v) => { if (v) rows.push(h('dt', {}, k), h('dd', {}, v)); };
   add('본관', p.clan && (p.clanHanja ? `${p.clan}(${p.clanHanja})` : p.clan));
   add('세(世)', p.gen != null ? `${p.gen}세` : null);
-  const order = model.birthOrder(id);
+  const order = birthOrderShown(id);
   if (order) {
     const parent = model.father(id) || model.mother(id);
-    add('출생 순서', `${personLabel(parent)}의 ${order.label} (${order.total}${p.gender === 'M' ? '남' : '녀'} 중)`);
+    add('출생 순서', `${personLabel(parent)}의 ${order.full}`);
   }
   add('생몰', years(p));
   add('자', p.courtesy);
@@ -400,7 +412,7 @@ function renderDetail() {
     return extra ? `${personLabel(s.id)} – ${extra}` : personLabel(s.id);
   });
   add('배우자', spouses.join(' / '));
-  // 자녀는 태어난 순서대로, 출생 순서(1남·1녀…)를 붙여 보여 준다.
+  // 자녀는 태어난 순서대로, 출생 순서(장남·차녀·셋째…)를 붙여 보여 준다.
   const kids = model.orderedChildren(id, 'all').map((c) => {
     const ch = model.get(c);
     const order = model.birthOrder(c);
@@ -465,6 +477,14 @@ function loadDataset(data) {
   let root = data.meta.subject;
   while (model.father(root)) root = model.father(root);
   state.core = coreSet(model, root);
+  // 시조의 혈통(배우자 제외). 다른 집에서 들어온 사람은 친정 형제가 일부만 조사되어 있다.
+  state.lineage = new Set();
+  for (const stack = [root]; stack.length;) {
+    const id = stack.pop();
+    if (state.lineage.has(id)) continue;
+    state.lineage.add(id);
+    stack.push(...model.children(id, 'all'));
+  }
   state.ego = data.meta.subject;
   state.selected = data.meta.subject;
 

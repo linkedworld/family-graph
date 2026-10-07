@@ -205,21 +205,24 @@ test('양자 데이터 검사: 잘못된 입양은 오류', () => {
   assert.throws(() => buildModel(twice), /adopted twice/);
 });
 
-test('출생 순서: 아들·딸을 따로 세고 부인이 여럿이어도 아버지 기준으로 이어 셈', () => {
+test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)', () => {
   const m = buildModel(yiHwang);
-  assert.equal(m.birthOrder('yi_hwang').label, '7남');   // 이식의 7남(전처 소생 포함)
-  assert.equal(m.birthOrder('yi_jam').label, '1남');
-  assert.equal(m.birthOrder('yi_hae').label, '5남');
-  assert.equal(m.birthOrder('yi_daughter_sik').label, '1녀');
-  assert.equal(m.birthOrder('yi_u').label, '2남');      // 이계양의 2남
+  // 이식의 자녀: 이잠, 이하, 딸, 이서린, 이의, 이해, 이징, 이황 (7남 1녀)
+  assert.equal(m.birthOrder('yi_jam').full, '7남 1녀 중 장남');
+  assert.equal(m.birthOrder('yi_ha').full, '7남 1녀 중 차남');
+  assert.equal(m.birthOrder('yi_daughter_sik').full, '7남 1녀 중 장녀');
+  assert.equal(m.birthOrder('yi_hae').full, '7남 1녀 중 여섯째');
+  assert.equal(m.birthOrder('yi_hwang').full, '7남 1녀 중 여덟째');
+  assert.equal(m.birthOrder('yi_hwang').label, '여덟째');
   assert.deepEqual([...m.orderedChildren('yi_sik').slice(-2)], ['yi_jing', 'yi_hwang']);
   const s = buildModel(dataset('yi-sunsin'));
-  assert.equal(s.birthOrder('yi_sunsin').label, '3남');
-  assert.equal(s.birthOrder('yi_ye').label, '2남');     // 이회 1567, 이예 1571, 이훈 1574(서자) 순
-  assert.equal(s.birthOrder('yi_hun').label, '3남');
-  assert.equal(s.birthOrder('yi_myeon').label, '5남');
+  assert.equal(s.birthOrder('yi_sunsin').full, '4남 중 셋째');
+  assert.equal(s.birthOrder('yi_ye').label, '차남');     // 이회 1567, 이예 1571, 이훈 1574(서자) 순
   assert.deepEqual([...s.orderedChildren('yi_sunsin').filter((c) => s.get(c).gender === 'M')],
     ['yi_hoe', 'yi_ye', 'yi_hun', 'yi_sin', 'yi_myeon']);
+  // 자녀가 하나뿐이면 외아들·외동딸
+  const only = [...m.persons.keys()].find((id) => { const o = m.birthOrder(id); return o && o.sons + o.daughters === 1; });
+  assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
 });
 
 test('index.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
