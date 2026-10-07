@@ -104,6 +104,8 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); -
 .dot.spouse { background: var(--spouse); box-shadow: 0 0 6px var(--spouse); }
 .dot.unknown { background: var(--unknown); opacity: 0.7; }
 .ring-sample { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--notable); box-shadow: 0 0 6px var(--notable); flex: none; }
+.axis-sample { width: 3px; height: 14px; margin: 0 5px 0 4px; border-radius: 2px; flex: none;
+  background: linear-gradient(transparent, var(--lineal), transparent); box-shadow: 0 0 6px var(--lineal); }
 .shell-sample { width: 13px; height: 13px; border-radius: 50%; flex: none; margin-left: -1px;
   background: radial-gradient(circle, transparent 52%, rgba(111, 230, 255, 0.55) 72%, transparent 76%); }
 
