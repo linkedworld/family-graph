@@ -63,47 +63,49 @@ function render({ refit = false } = {}) {
   const gLabels = el('g', {}, vp);
   const gNodes = el('g', {}, vp);
 
-  for (const e of state.view.edges) {
-    const a = pos.get(e.from), b = pos.get(e.to);
-    if (e.kind === 'partner') {
-      const cls = ['edge'];
-      if (e.union.type === '첩' && e.partner === e.union.wife) cls.push('concubine');
-      el('path', { class: cls.join(' '), d: `M${a.x} ${a.y + a.h / 2} V${b.y} H${b.x}` }, gEdges);
-    } else {
+  // 결혼선: 두 사람 카드 아래를 잇는 ㄷ자 선. 가운데 점(drop)에서 자녀선이 내려간다.
+  for (const un of state.lay.unions) {
+    const cls = ['edge', 'marriage'];
+    if (un.u.type === '첩') cls.push('concubine');
+    const { bottom, drop } = un;
+    const d = un.xs.length === 2
+      ? `M${un.xs[0]} ${bottom} V${drop.y} H${un.xs[1]} V${bottom}`
+      : `M${un.xs[0]} ${bottom} V${drop.y}`;
+    el('path', { class: cls.join(' '), d }, gEdges);
+    if (un.children.length) el('circle', { class: 'union-dot', cx: drop.x, cy: drop.y, r: 2.6 }, gNodes);
+
+    for (const c of un.children) {
+      const b = pos.get(c.id);
+      if (!b) continue;
       const top = b.y - b.h / 2;
-      const mid = a.y + Math.min(14, (top - a.y) / 2);
-      const cls = ['edge'];
-      if (e.skipped) cls.push('skipped');
-      if (e.gap) cls.push('gap');
-      if (e.adopt) cls.push('adopt');
-      if (e.adoptedOut) cls.push('adopted-out');
-      el('path', { class: cls.join(' '), d: `M${a.x} ${a.y} V${mid} H${b.x} V${top}` }, gEdges);
-      if (e.adopt || e.adoptedOut) {
+      const bus = top - 12 - (un.level - 1) * 4;
+      const ecls = ['edge'];
+      if (c.skipped) ecls.push('skipped');
+      if (c.gap) ecls.push('gap');
+      if (c.adopt) ecls.push('adopt');
+      if (c.adoptedOut) ecls.push('adopted-out');
+      el('path', { class: ecls.join(' '), d: `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}` }, gEdges);
+      if (c.adopt || c.adoptedOut) {
         // 같은 카드로 양자선과 출계선이 함께 들어오므로 '양자'는 왼쪽, '출계'는 오른쪽에 둔다.
-        const text = e.adopt ? '양자' : '출계';
-        const ly = top - 6;
-        const lx = e.adopt ? b.x - 31 : b.x + 3;
-        el('rect', { class: 'skip-label-bg', x: lx, y: ly - 10, width: 28, height: 14, rx: 3 }, gLabels);
-        const t = el('text', { class: e.adopt ? 'adopt-label' : 'skip-label', x: lx + 3, y: ly + 1 }, gLabels);
+        const text = c.adopt ? '양자' : '출계';
+        const ly = top - 4;
+        const lx = c.adopt ? b.x - 31 : b.x + 3;
+        el('rect', { class: 'skip-label-bg', x: lx, y: ly - 10, width: 28, height: 13, rx: 3 }, gLabels);
+        const t = el('text', { class: c.adopt ? 'adopt-label' : 'skip-label', x: lx + 3, y: ly }, gLabels);
         t.textContent = text;
       }
-      if (e.skipped) {
-        const text = `${e.skipped}대 미상`;
-        const ly = (mid + top) / 2;
-        el('rect', { class: 'skip-label-bg', x: b.x + 4, y: ly - 9, width: text.length * 9 + 6, height: 16, rx: 3 }, gLabels);
-        const t = el('text', { class: 'skip-label', x: b.x + 7, y: ly + 3 }, gLabels);
+      if (c.skipped) {
+        const text = `${c.skipped}대 미상`;
+        const ly = (drop.y + bus) / 2;
+        el('rect', { class: 'skip-label-bg', x: drop.x + 4, y: ly - 9, width: text.length * 9 + 6, height: 16, rx: 3 }, gLabels);
+        const t = el('text', { class: 'skip-label', x: drop.x + 7, y: ly + 3 }, gLabels);
         t.textContent = text;
       }
     }
   }
 
-  for (const n of state.view.nodes) {
-    const p = pos.get(n.id);
-    if (n.kind === 'union') {
-      el('circle', { class: 'union-dot', cx: p.x, cy: p.y, r: 2.6 }, gNodes);
-      continue;
-    }
-    drawCard(gNodes, n.id, p, kin.relation(state.ego, n.id));
+  for (const id of state.view.persons) {
+    drawCard(gNodes, id, pos.get(id), kin.relation(state.ego, id));
   }
 
   applyTransform();
