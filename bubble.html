@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
+<title>버블 가계도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/bubble.css?v=20261007-9">
+<link rel="stylesheet" href="css/nav.css?v=20261007-9">
+</head>
+<body>
+<main class="space" id="space" aria-label="버블 가계도 3D 화면">
+  <canvas id="gl" aria-label="3D 구슬 가계도. 구슬을 누르면 자손을 펼치거나 접습니다."></canvas>
+  <div id="labels" class="labels" aria-hidden="true"></div>
+  <div id="tip" class="tip" hidden></div>
+
+  <header class="hud-top">
+    <div class="brand">
+      <p class="eyebrow">BUBBLE GENEALOGY · 3D</p>
+      <h1 id="title">버블 가계도</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button type="button" id="toggleControls" class="glass-btn only-narrow" aria-expanded="false" aria-controls="controls">설정</button>
+    <div class="controls" id="controls">
+      <label class="field" for="dataset"><span>가계도</span><select id="dataset"></select></label>
+      <label class="field" for="ego"><span>기준 인물</span><select id="ego"></select></label>
+      <label class="field" for="find"><span>인물 찾기</span>
+        <input id="find" type="search" list="people" placeholder="이름 입력" autocomplete="off">
+        <datalist id="people"></datalist>
+      </label>
+      <div class="chips" role="group" aria-label="표시">
+        <label class="chip"><input type="checkbox" id="showSpouses" checked><span>배우자</span></label>
+        <label class="chip"><input type="checkbox" id="hideUnknown"><span>미상 숨기기</span></label>
+        <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
+      </div>
+      <div class="chips" role="group" aria-label="펼치기">
+        <button type="button" class="glass-btn" id="expandAll">모두 펼치기</button>
+        <button type="button" class="glass-btn" id="collapseAll">직계만</button>
+      </div>
+    </div>
+  </header>
+
+  <ul class="legend" aria-label="보는 법">
+    <li><i class="dot ego"></i>기준 인물</li>
+    <li><i class="dot lineal"></i>직계</li>
+    <li><i class="dot near"></i><i class="dot far"></i>방계 (가까움→멂)</li>
+    <li><i class="dot spouse"></i>배우자</li>
+    <li><i class="dot unknown"></i>미상</li>
+    <li><i class="ring-sample"></i>이름난 인물</li>
+    <li><i class="shell-sample"></i>접힌 자손 (+N)</li>
+  </ul>
+
+  <aside id="info" class="info" aria-live="polite" hidden></aside>
+
+  <div id="fallback" class="fallback" hidden>
+    <p>이 브라우저에서는 3D(WebGL)를 쓸 수 없습니다.</p>
+    <a href="index.html">카드 가계도로 보기</a>
+  </div>
+
+  <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
+  <div class="stagebar" role="toolbar" aria-label="버블 가계도 도구">
+    <nav class="navmenu sb-left" data-page="bubble" aria-label="페이지"></nav>
+    <div class="sb-mid"><p class="hint">끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기</p></div>
+    <div class="zoom sb-right" role="group" aria-label="확대·축소">
+      <button type="button" id="zoomIn" aria-label="확대">＋</button>
+      <button type="button" id="zoomOut" aria-label="축소">－</button>
+      <button type="button" id="zoomFit">맞춤</button>
+    </div>
+  </div>
+</main>
+<!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 index.html과 같은 캐시 무효화 버전(테스트가 확인). -->
+<script src="vendor/three.min.js?v=20261007-9"></script>
+<script src="data/yi-hwang.js?v=20261007-9"></script>
+<script src="data/yi-i.js?v=20261007-9"></script>
+<script src="data/yi-sunsin.js?v=20261007-9"></script>
+<script src="data/jeong-yakyong.js?v=20261007-9"></script>
+<script src="js/nav.js?v=20261007-9"></script>
+<script src="js/model.js?v=20261007-9"></script>
+<script src="js/kinship.js?v=20261007-9"></script>
+<script src="js/bubble.js?v=20261007-9"></script>
+</body>
+</html>

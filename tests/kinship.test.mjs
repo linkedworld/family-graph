@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
@@ -225,14 +225,19 @@ test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)',
   assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
 });
 
-test('index.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
-  assert.ok(refs.length >= 8, `로컬 자원 ${refs.length}개`);
-  const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
-  assert.ok(!versions.has(undefined), `버전이 빠진 자원: ${refs.filter((r) => !r.includes('?v=')).join(', ')}`);
-  assert.equal(versions.size, 1, `버전이 서로 다름: ${[...versions].join(', ')}`);
-  for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 index.html에 없음`);
+test('index.html·bubble.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+  const all = new Set();
+  for (const page of ['index.html', 'bubble.html']) {
+    const html = readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
+    const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
+    assert.ok(refs.length >= 8, `${page}: 로컬 자원 ${refs.length}개`);
+    const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
+    assert.ok(!versions.has(undefined), `${page}: 버전이 빠진 자원: ${refs.filter((r) => !r.includes('?v=')).join(', ')}`);
+    for (const v of versions) all.add(v);
+    for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 ${page}에 없음`);
+    for (const r of refs) assert.ok(existsSync(new URL(`../${r.split('?')[0]}`, import.meta.url)), `${page}: 없는 파일 ${r}`);
+  }
+  assert.equal(all.size, 1, `버전이 서로 다름: ${[...all].join(', ')}`);
 });
 
 // ── 가상의 가족으로 일반 호칭 검증 ─────────────────────────────
