@@ -17,6 +17,7 @@
   --spouse: #ff8fbf;
   --unknown: #8796ad;
   --notable: #7dffd8;
+  --heir: #2fe0c0;
   --f-display: "Noto Serif KR", "Nanum Myeongjo", "Batang", serif;
   --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
@@ -106,6 +107,8 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); -
 .ring-sample { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--notable); box-shadow: 0 0 6px var(--notable); flex: none; }
 .axis-sample { width: 3px; height: 14px; margin: 0 5px 0 4px; border-radius: 2px; flex: none;
   background: linear-gradient(transparent, var(--lineal), transparent); box-shadow: 0 0 6px var(--lineal); }
+.heir-sample { width: 14px; height: 6px; flex: none; margin-left: -2px; border-radius: 3px;
+  border-top: 1.5px solid var(--heir); border-bottom: 1.5px solid var(--heir); box-shadow: 0 0 6px var(--heir); }
 .shell-sample { width: 13px; height: 13px; border-radius: 50%; flex: none; margin-left: -1px;
   background: radial-gradient(circle, transparent 52%, rgba(111, 230, 255, 0.55) 72%, transparent 76%); }
 
@@ -122,6 +125,10 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); -
 .lbl b { font: 700 13px/1.25 var(--f-display); color: var(--ink); letter-spacing: 0.01em; }
 .lbl b small { font: 500 10px var(--f-display); color: var(--ink-2); margin-left: 4px; }
 .lbl span { font: 500 10.5px/1.3 var(--f-body); color: var(--c, var(--ink-2)); }
+.lbl b i.heir {
+  display: inline-grid; place-items: center; width: 15px; height: 15px; margin-right: 4px; border-radius: 3px; vertical-align: 1px;
+  font: 700 9.5px var(--f-display); font-style: normal; color: #04110e; background: var(--heir); box-shadow: 0 0 8px rgba(47, 224, 192, 0.6);
+}
 .lbl em { font: 600 10px/1.2 var(--f-mono); font-style: normal; color: var(--accent); }
 .lbl.ego { border-color: rgba(255, 106, 85, 0.6); background: rgba(40, 10, 10, 0.6); }
 .lbl.sel { border-color: var(--edge-hi); box-shadow: 0 0 18px rgba(111, 230, 255, 0.25); }
@@ -169,6 +176,9 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); -
 .info .rel { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 12px; }
 .info .rel b { font: 700 1.1rem var(--f-display); color: var(--c, var(--accent)); }
 .info .rel span { font: 500 0.8rem var(--f-mono); color: var(--ink-2); }
+.info .heir-tag { display: flex; align-items: center; gap: 7px; margin: -4px 0 12px; font-size: 0.78rem; color: var(--heir); }
+.info .heir-tag i { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; font: 700 11px var(--f-display);
+  font-style: normal; color: #04110e; background: var(--heir); box-shadow: 0 0 10px rgba(47, 224, 192, 0.5); }
 .info dl { display: grid; grid-template-columns: auto 1fr; gap: 5px 12px; margin: 0 0 12px; font-size: 0.82rem; }
 .info dt { color: var(--ink-3); }
 .info dd { margin: 0; color: var(--ink); }

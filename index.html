@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/bubble.css?v=20261007-12">
-<link rel="stylesheet" href="css/nav.css?v=20261007-12">
+<link rel="stylesheet" href="css/bubble.css?v=20261007-13">
+<link rel="stylesheet" href="css/nav.css?v=20261007-13">
 </head>
 <body>
 <main class="space" id="space" aria-label="버블 가계도 3D 화면">
@@ -34,6 +34,7 @@
       <div class="chips" role="group" aria-label="표시">
         <label class="chip"><input type="checkbox" id="showSpouses" checked><span>배우자</span></label>
         <label class="chip"><input type="checkbox" id="hideUnknown"><span>미상 숨기기</span></label>
+        <label class="chip" title="대를 잇는 맏아들의 흐름(종통)을 청록 겹선과 宗 표시로 보여 줍니다"><input type="checkbox" id="showHeir" checked><span>종통 표시</span></label>
         <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
         <label class="chip" title="기준 인물 아래로 대를 잇는 직계 자손(종통 계승자, 없으면 맏이)도 가운데 축에 세웁니다"><input type="checkbox" id="descAxis"><span>직계 자손 축</span></label>
       </div>
@@ -50,6 +51,7 @@
     <li><i class="dot near"></i><i class="dot far"></i>방계 (가까움→멂)</li>
     <li><i class="dot spouse"></i>배우자</li>
     <li><i class="dot unknown"></i>미상</li>
+    <li><i class="heir-sample"></i>종통 줄기 (宗)</li>
     <li><i class="ring-sample"></i>이름난 인물</li>
     <li><i class="shell-sample"></i>접힌 자손 (+N)</li>
     <li><i class="axis-sample"></i>가운데 축 (직계 자손 축 켬)</li>
@@ -74,14 +76,14 @@
   </div>
 </main>
 <!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 tree.html과 같은 캐시 무효화 버전(테스트가 확인). -->
-<script src="vendor/three.min.js?v=20261007-12"></script>
-<script src="data/yi-hwang.js?v=20261007-12"></script>
-<script src="data/yi-i.js?v=20261007-12"></script>
-<script src="data/yi-sunsin.js?v=20261007-12"></script>
-<script src="data/jeong-yakyong.js?v=20261007-12"></script>
-<script src="js/nav.js?v=20261007-12"></script>
-<script src="js/model.js?v=20261007-12"></script>
-<script src="js/kinship.js?v=20261007-12"></script>
-<script src="js/bubble.js?v=20261007-12"></script>
+<script src="vendor/three.min.js?v=20261007-13"></script>
+<script src="data/yi-hwang.js?v=20261007-13"></script>
+<script src="data/yi-i.js?v=20261007-13"></script>
+<script src="data/yi-sunsin.js?v=20261007-13"></script>
+<script src="data/jeong-yakyong.js?v=20261007-13"></script>
+<script src="js/nav.js?v=20261007-13"></script>
+<script src="js/model.js?v=20261007-13"></script>
+<script src="js/kinship.js?v=20261007-13"></script>
+<script src="js/bubble.js?v=20261007-13"></script>
 </body>
 </html>

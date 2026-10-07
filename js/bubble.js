@@ -24,10 +24,11 @@ const SEG = 14;           // 연결선 한 줄을 이루는 토막 수(곡선)
 const MAX_EDGE_INST = 16000;
 const COLORS = {
   ego: '#ff6a55', lineal: '#ffc95c', near: '#5fe3ff', far: '#8a7dff',
-  spouse: '#ff8fbf', unknown: '#8796ad', other: '#a9c4dc', notable: '#7dffd8',
+  spouse: '#ff8fbf', unknown: '#8796ad', other: '#a9c4dc', notable: '#7dffd8', heir: '#2fe0c0',
 };
 const col = (hex) => new T.Color(hex); // ColorManagement: sRGB → 선형으로 바뀐다
 
+const HEIR_COLOR = new T.Color(COLORS.heir);
 const isNarrow = () => window.matchMedia('(max-width: 820px)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -36,6 +37,8 @@ const state = {
   lineage: new Set(), expanded: new Set(), notable: new Set(),
   showSpouses: true, hideUnknown: false, autoRotate: !reduceMotion,
   descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
+  showHeir: true,  // 종통 줄기 표시
+  heir: { members: new Set(), edges: new Set() },
   axisLine: [],
   rels: new Map(), trunk: new Set(),
 };
@@ -113,6 +116,25 @@ function expandDescLine() {
   state.expanded.add(a);
   const line = descLine(a);
   line.slice(0, -1).forEach((id) => state.expanded.add(id));
+}
+
+// 종통 줄기: 시조와 이름난 남자 인물마다, 대를 잇는 아들(양자 우선, 없으면 적자 맏아들, 그다음 서자)을
+// 따라 내려간 흐름. 카드 가계도(tree.html)의 '정통 표시'와 같은 규칙이다.
+function computeHeir() {
+  const { model } = state;
+  const members = new Set(), edges = new Set();
+  const starts = [state.root, ...[...state.notable].filter((id) => model.get(id)?.gender === 'M')];
+  for (const s of starts) {
+    const line = model.heirLine(s).filter((id) => state.lineage.has(id));
+    if (line.length < 2) continue;
+    line.forEach((id, i) => { members.add(id); if (i) edges.add(`${line[i - 1]}>${id}`); });
+  }
+  state.heir = { members, edges };
+}
+// 종통 표시를 켜면 줄기가 끝까지 보이도록 줄기 위의 사람들을 펼친다.
+function expandHeir() {
+  if (!state.showHeir) return;
+  for (const e of state.heir.edges) state.expanded.add(e.split('>')[0]);
 }
 
 function relOf(id) {
@@ -829,24 +851,36 @@ function writeInstances() {
       P2.copy(P3); P2.y += hgt * 0.5;
     }
     const segs = marriage ? 3 : SEG;
-    const w = (marriage ? 0.05 : lineal ? 0.13 : 0.06) * (hot ? 1.5 : 1) * vis;
-    for (let k = 0; k < segs; k++) {
-      const t0 = k / segs, t1 = (k + 1) / segs;
-      bez(t0, A); bez(t1, B);
-      _v.subVectors(B, A);
-      const len = _v.length();
-      if (len < 1e-4) continue;
-      _q.setFromUnitVectors(_up, _v.divideScalar(len));
-      _m.compose(A.add(B).multiplyScalar(0.5), _q, _s.set(w, len * 1.02, w));
-      edges.setMatrixAt(e, _m);
-      ca[e * 3] = a.color.r; ca[e * 3 + 1] = a.color.g; ca[e * 3 + 2] = a.color.b;
-      cb[e * 3] = b.color.r; cb[e * 3 + 1] = b.color.g; cb[e * 3 + 2] = b.color.b;
-      sg[e * 2] = t0; sg[e * 2 + 1] = t1;
-      ep[e * 4] = marriage ? 0.5 : lineal ? 1.0 : 0.55;
-      ep[e * 4 + 1] = marriage ? 0.15 : lineal ? 0.55 : 0.3;
-      ep[e * 4 + 2] = lineal ? 1 : hot ? 0.7 : 0.15;
-      ep[e * 4 + 3] = vis * (marriage && b.concubine ? 0.5 : 1) * (hot ? 1.3 : 1);
-      e++;
+    // 종통 줄기: 청록 겹선(바깥의 넓고 옅은 빛 + 안쪽 심)으로 그리고 빛 마디가 빠르게 흐른다.
+    const heir = !marriage && state.showHeir && state.heir.edges.has(`${a.id}>${b.id}`);
+    const base = (marriage ? 0.05 : lineal ? 0.13 : 0.06) * (hot ? 1.5 : 1) * vis;
+    const passes = heir
+      ? [{ w: base * 2.9 + 0.12 * vis, mix: 1, int: 0.55, speed: 0.5, z: 0.25, a: 0.32 },
+         { w: Math.max(base, 0.1 * vis), mix: 0.55, int: 1.1, speed: 0.6, z: 1, a: 1 }]
+      : [{ w: base, mix: 0, int: marriage ? 0.5 : lineal ? 1.0 : 0.55, speed: marriage ? 0.15 : lineal ? 0.55 : 0.3,
+           z: lineal ? 1 : hot ? 0.7 : 0.15, a: 1 }];
+    if (e + segs * passes.length > MAX_EDGE_INST) continue;
+    for (const ps of passes) {
+      _c.copy(a.color).lerp(HEIR_COLOR, ps.mix); const cA = [_c.r, _c.g, _c.b];
+      _c.copy(b.color).lerp(HEIR_COLOR, ps.mix); const cB = [_c.r, _c.g, _c.b];
+      for (let k = 0; k < segs; k++) {
+        const t0 = k / segs, t1 = (k + 1) / segs;
+        bez(t0, A); bez(t1, B);
+        _v.subVectors(B, A);
+        const len = _v.length();
+        if (len < 1e-4) continue;
+        _q.setFromUnitVectors(_up, _v.divideScalar(len));
+        _m.compose(A.add(B).multiplyScalar(0.5), _q, _s.set(ps.w, len * 1.02, ps.w));
+        edges.setMatrixAt(e, _m);
+        ca[e * 3] = cA[0]; ca[e * 3 + 1] = cA[1]; ca[e * 3 + 2] = cA[2];
+        cb[e * 3] = cB[0]; cb[e * 3 + 1] = cB[1]; cb[e * 3 + 2] = cB[2];
+        sg[e * 2] = t0; sg[e * 2 + 1] = t1;
+        ep[e * 4] = ps.int;
+        ep[e * 4 + 1] = ps.speed;
+        ep[e * 4 + 2] = ps.z;
+        ep[e * 4 + 3] = vis * ps.a * (marriage && b.concubine ? 0.5 : 1) * (hot ? 1.3 : 1);
+        e++;
+      }
     }
   }
   edges.count = e;
@@ -1076,7 +1110,7 @@ function showTip(n, x, y) {
   tip.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
   tip.innerHTML = `<b>${esc(model.displayName(n.id))}${p.hanja ? ` <small>${esc(p.hanja)}</small>` : ''}</b>` +
     `<span class="t">${esc(n.id === state.ego ? '기준 인물' : r.term)}</span> ${esc(n.id === state.ego ? '' : chonText(r))}` +
-    `<div>${esc(years(p))}${p.gen != null ? ` · ${p.gen}世` : ''}</div>` + (action ? `<div class="k">${esc(action)}</div>` : '');
+    `<div>${esc(years(p))}${p.gen != null ? ` · ${p.gen}世` : ''}${state.showHeir && state.heir.members.has(n.id) ? ' · 宗 종통' : ''}</div>` + (action ? `<div class="k">${esc(action)}</div>` : '');
   tip.hidden = false;
   const W = window.innerWidth, H = window.innerHeight;
   const tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1104,10 +1138,11 @@ function updateLabelsContent() {
     const term = n.id === state.ego ? '기준 인물' : r.term;
     const short = term.length > 14 ? term.slice(0, 13) + '…' : term;
     const c = '#' + n.color.getHexString(T.SRGBColorSpace);
-    const key = `${n.id}|${short}|${n.hidden}|${c}`;
+    const heirMark = state.showHeir && n.kind === 'person' && state.heir.members.has(n.id);
+    const key = `${n.id}|${short}|${n.hidden}|${c}|${heirMark}`;
     if (el.dataset.key !== key) {
       el.dataset.key = key;
-      el.innerHTML = `<b>${esc(model.displayName(n.id))}${p.hanja ? `<small>${esc(p.hanja)}</small>` : ''}</b>` +
+      el.innerHTML = `<b>${heirMark ? '<i class="heir" title="종통">宗</i>' : ''}${esc(model.displayName(n.id))}${p.hanja ? `<small>${esc(p.hanja)}</small>` : ''}</b>` +
         `<span>${esc(short)}${n.id !== state.ego && chonText(r) ? ` · ${esc(chonText(r))}` : ''}</span>` +
         (n.hidden ? `<em>+${n.hidden}</em>` : '');
       el.style.setProperty('--c', c);
@@ -1215,6 +1250,7 @@ function renderInfo() {
     <p class="kicker">${esc(kicker)}</p>
     <h2>${esc(model.displayName(id))}${p.hanja ? `<small>${esc(p.hanja)}</small>` : ''}</h2>
     <div class="rel"><b>${esc(id === state.ego ? '기준 인물' : r.term)}</b><span>${esc(id === state.ego ? '' : chonText(r))}</span></div>
+    ${state.showHeir && state.heir.members.has(id) ? '<p class="heir-tag"><i>宗</i>종통 줄기 · 대를 이은 사람</p>' : ''}
     <div class="stats">
       <div class="stat"><b>${kidsN}</b><span>자녀</span></div>
       <div class="stat"><b>${desc}</b><span>자손</span></div>
@@ -1274,6 +1310,7 @@ function loadDataset(data) {
     stack.push(...model.children(id, 'legal'));
   }
   state.notable = new Set((data.meta.notable || []).filter((id) => model.get(id)));
+  computeHeir();
   const kept = G.nav?.loadEgo(data.meta.id);
   state.ego = kept && model.get(kept) && !model.isUnknown(kept) ? kept : data.meta.subject;
   // 휴대폰은 화면이 좁아 처음에는 상세 패널을 닫아 둔다.
@@ -1283,6 +1320,7 @@ function loadDataset(data) {
   const a = anchorOf(state.ego);
   if (a) state.expanded.add(a);
   expandDescLine();
+  expandHeir();
 
   for (const n of nodes.values()) removeLabel(n);
   nodes.clear();
@@ -1337,6 +1375,7 @@ function frame(now) {
 
 function main() {
   try { state.descAxis = localStorage.getItem('genealogy.descAxis') === '1'; } catch (err) { /* 저장 불가: 기본값 */ }
+  try { state.showHeir = localStorage.getItem('genealogy.showHeir') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
   const datasets = window.GENEALOGY_DATASETS || [];
   if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
   if (!initGL()) return;
@@ -1365,6 +1404,13 @@ function main() {
   $('hideUnknown').addEventListener('change', (e) => { state.hideUnknown = e.target.checked; rebuild(); });
   $('autoRotate').checked = state.autoRotate;
   $('autoRotate').addEventListener('change', (e) => { state.autoRotate = e.target.checked; });
+  $('showHeir').checked = state.showHeir;
+  $('showHeir').addEventListener('change', (e) => {
+    state.showHeir = e.target.checked;
+    try { localStorage.setItem('genealogy.showHeir', state.showHeir ? '1' : '0'); } catch (err) { /* 저장 불가: 무시 */ }
+    expandHeir();
+    rebuild();
+  });
   $('descAxis').checked = state.descAxis;
   $('descAxis').addEventListener('change', (e) => {
     state.descAxis = e.target.checked;
@@ -1382,6 +1428,7 @@ function main() {
     state.expanded = new Set([state.root]);
     reveal(state.ego);
     expandDescLine();
+    expandHeir();
     rebuild();
     setTimeout(() => fit(), 600);
   });
