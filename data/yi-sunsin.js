@@ -4,6 +4,7 @@
     "id": "yi-sunsin",
     "title": "충무공 이순신(李舜臣) 가계도",
     "subject": "yi_sunsin",
+    "notable": ["yi_sunsin", "yi_wan", "yi_bun", "yi_bongsang", "yi_byeon", "hong_gasin"],
     "clan": "덕수 이씨(德水李氏)",
     "description": "충무공 이순신을 중심으로 덕수 이씨 시조 이돈수부터 5대손 이봉상의 아들 대까지, 10촌 이내 방계(이윤운·이효종·이백복·이현·이귀 등), 형제·조카·종손 계통, 외가(초계 변씨)·진외가·처가(상주/온양 방씨)·사돈을 정리한 목업 데이터.",
     "updated": "2026-10-07",

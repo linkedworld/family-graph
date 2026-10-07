@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261007-4">
+<link rel="stylesheet" href="css/style.css?v=20261007-5">
 </head>
 <body>
 <div class="app">
@@ -45,6 +45,10 @@
         <button type="button" id="expandAll">모두 펼치기</button>
         <button type="button" id="collapseAll">직계만 보기</button>
       </div>
+      <label class="toggle" for="showLine">
+        <input type="checkbox" id="showLine" checked>
+        <span>정통 표시</span>
+      </label>
       <label class="toggle" for="fold">
         <input type="checkbox" id="fold" checked>
         <span>형제 접기</span>
@@ -96,6 +100,8 @@
           <li><span class="sw sw-male"></span>남자</li>
           <li><span class="sw sw-female"></span>여자</li>
           <li><span class="sw sw-ego"></span>기준 인물</li>
+          <li><span class="mk mk-heir">宗</span><span class="ln ln-heir"></span>정통(종통): 대를 잇는 맏아들의 흐름. 그 집 양자가 있으면 양자, 적자가 없으면 서자 맏아들이 잇습니다. 시조와 이름난 인물에서 시작합니다.</li>
+          <li><span class="mk mk-notable">名</span>역사적으로 이름난 인물 · <b class="firstborn-sample">장남</b>·<b class="firstborn-sample">장녀</b> 맏아들·맏딸 강조</li>
           <li><span class="fold-sample">+3</span>숨은 자녀 펼치기 · <span class="fold-sample open">−</span>펼친 자녀 접기 (처음에는 직계만 보임)</li>
           <li><span class="sw sw-lineal"></span><span class="ln ln-lineal"></span>부계 직계: 아버지·할아버지로 이어지는 조상과 그 부인, 아들 계통 자손 (기본 표시)</li>
           <li><span class="sw sw-maternal"></span><span class="ln ln-maternal"></span>모계 직계: 외조부 등 어머니 쪽 조상, 외손 등 딸을 거친 자손 (설정의 '직계 표시'에서 켜기)</li>
@@ -119,15 +125,15 @@
 </div>
 <!-- 서버 없이 index.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다.
      ?v=는 캐시 무효화용 버전: CSS·JS·데이터를 바꿔 배포할 때 모두 같은 값으로 올린다(테스트가 확인). -->
-<script src="vendor/dagre.min.js?v=20261007-4"></script>
+<script src="vendor/dagre.min.js?v=20261007-5"></script>
 <!-- 가계도 데이터: 파일 하나가 window.GENEALOGY_DATASETS에 가계도 하나를 추가한다. 순서대로 선택 목록에 나온다. -->
-<script src="data/yi-hwang.js?v=20261007-4"></script>
-<script src="data/yi-i.js?v=20261007-4"></script>
-<script src="data/yi-sunsin.js?v=20261007-4"></script>
-<script src="data/jeong-yakyong.js?v=20261007-4"></script>
-<script src="js/model.js?v=20261007-4"></script>
-<script src="js/kinship.js?v=20261007-4"></script>
-<script src="js/layout.js?v=20261007-4"></script>
-<script src="js/app.js?v=20261007-4"></script>
+<script src="data/yi-hwang.js?v=20261007-5"></script>
+<script src="data/yi-i.js?v=20261007-5"></script>
+<script src="data/yi-sunsin.js?v=20261007-5"></script>
+<script src="data/jeong-yakyong.js?v=20261007-5"></script>
+<script src="js/model.js?v=20261007-5"></script>
+<script src="js/kinship.js?v=20261007-5"></script>
+<script src="js/layout.js?v=20261007-5"></script>
+<script src="js/app.js?v=20261007-5"></script>
 </body>
 </html>

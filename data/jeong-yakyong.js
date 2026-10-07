@@ -5,6 +5,7 @@
     "id": "jeong-yakyong",
     "title": "다산 정약용(茶山 丁若鏞) 가계도",
     "subject": "jeong_yakyong",
+    "notable": ["jeong_yakyong", "jeong_yakjeon", "jeong_yakjong", "jeong_hasang", "jeong_nanju", "hwang_sayeong", "yi_seunghun", "yi_byeok", "yun_seondo", "yun_duseo", "yun_jichung", "jeong_hakyu"],
     "clan": "나주 정씨(羅州丁氏)",
     "description": "다산 정약용을 중심으로 나주 정씨 시조 정윤종부터 '9대 옥당'과 5대조 정시윤을 거쳐 6세손까지의 직계, 숙부·사촌·조카 계열(10촌 이내), 외가(해남 윤씨, 윤선도·윤두서·윤지충), 처가(풍산 홍씨), 매부 이승훈과 이벽 집안까지 다산의 묘지명·채제공의 묘갈명·족보 해제 등에서 확인한 인물을 정리했다.",
     "updated": "2026-10-07",
