@@ -72,6 +72,14 @@
         if (visible(c)) children.push({ id: c, adopt, adoptedOut, gap: !!u.gap });
         else for (const d of descendThrough(c, 1, [])) children.push({ id: d.id, skipped: d.skipped });
       }
+      // 형제 배치 순서: 그 혼인의 아버지(없으면 어머니)의 자녀 전체에서 태어난 순서
+      const parent = u.husband && model.get(u.husband) ? u.husband : u.wife;
+      const order = parent ? model.orderedChildren(parent, 'all') : [];
+      for (const c of children) {
+        const r = order.indexOf(c.id);
+        c.rank = r < 0 ? 999 : r;
+      }
+      children.sort((a, b) => a.rank - b.rank);
       unions.push({ u, partners, children });
     }
     // nodes: 관계표 등에서 쓰는 보이는 인물 목록
@@ -277,7 +285,7 @@
       un.children.forEach((c, childIndex) => {
         const to = blockOf.get(c.id);
         if (!to || to === from) return;
-        links.push({ from, rel, to, off: memberOffset(to, c.id), w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex });
+        links.push({ from, rel, to, off: memberOffset(to, c.id), w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex, rank: c.rank ?? childIndex });
       });
     }
     const down = new Map(), up = new Map();
@@ -336,9 +344,12 @@
         const ls = down.get(b) || [];
         const want = wantFromParents(b);
         const main = ls.reduce((best, l) => (!best || l.w > best.w ? l : best), null);
-        return { b, i, key: want ? want.x : b.x, union: main ? main.union : '', child: main ? main.childIndex : 0 };
+        // 자녀는 부모 묶음의 가운데를 같은 키로 삼아 한데 모으고, 그 안에서는 태어난 순서대로 놓는다
+        // (아버지의 부인이 여럿이어도 형제 전체를 출생 순서로).
+        const key = main ? main.from.x : (want ? want.x : b.x);
+        return { b, i, key, from: main ? main.from.id : '', rank: main ? main.rank : 0 };
       });
-      keyed.sort((p, q) => (p.key - q.key) || (p.union < q.union ? -1 : p.union > q.union ? 1 : 0) || (p.child - q.child) || (p.i - q.i));
+      keyed.sort((p, q) => (p.key - q.key) || (p.from < q.from ? -1 : p.from > q.from ? 1 : 0) || (p.rank - q.rank) || (p.i - q.i));
       list.splice(0, list.length, ...keyed.map((k) => k.b));
     };
     // 같은 부부의 자녀는 부모 결혼선 아래에 같은 키로 모이므로, 정렬하면 서로 붙게 된다.

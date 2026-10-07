@@ -187,9 +187,12 @@ function drawCard(parent, id, p, rel, isLineal) {
 
   const yr = el('text', { class: 'years', x: 12, y: 63 }, g);
   yr.textContent = years(person);
-  if (person.gen != null) {
-    const gen = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
-    gen.textContent = `${person.gen}世`;
+  // 오른쪽 아래: 출생 순서(1남·2녀…)와 세(世)
+  const order = state.model.birthOrder(id);
+  const tail = [order?.label, person.gen != null ? `${person.gen}世` : null].filter(Boolean).join(' · ');
+  if (tail) {
+    const t = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
+    t.textContent = tail;
   }
 
   if (id === state.ego) {
@@ -376,6 +379,11 @@ function renderDetail() {
   const add = (k, v) => { if (v) rows.push(h('dt', {}, k), h('dd', {}, v)); };
   add('본관', p.clan && (p.clanHanja ? `${p.clan}(${p.clanHanja})` : p.clan));
   add('세(世)', p.gen != null ? `${p.gen}세` : null);
+  const order = model.birthOrder(id);
+  if (order) {
+    const parent = model.father(id) || model.mother(id);
+    add('출생 순서', `${personLabel(parent)}의 ${order.label} (${order.total}${p.gender === 'M' ? '남' : '녀'} 중)`);
+  }
   add('생몰', years(p));
   add('자', p.courtesy);
   add('호', p.pen);
@@ -392,10 +400,14 @@ function renderDetail() {
     return extra ? `${personLabel(s.id)} – ${extra}` : personLabel(s.id);
   });
   add('배우자', spouses.join(' / '));
-  const kids = model.children(id, 'all').map((c) => {
+  // 자녀는 태어난 순서대로, 출생 순서(1남·1녀…)를 붙여 보여 준다.
+  const kids = model.orderedChildren(id, 'all').map((c) => {
     const ch = model.get(c);
-    if (!ch.adoptiveUnion) return personLabel(c);
-    return model.parents(c).includes(id) ? `${personLabel(c)} (양자)` : `${personLabel(c)} (출계)`;
+    const order = model.birthOrder(c);
+    const notes = [order && model.parents(c).includes(id) ? order.label : null];
+    if (ch.adoptiveUnion) notes.push(model.parents(c).includes(id) ? '양자' : '출계');
+    const extra = notes.filter(Boolean).join(', ');
+    return extra ? `${personLabel(c)} (${extra})` : personLabel(c);
   });
   add('자녀', kids.join(', '));
 
