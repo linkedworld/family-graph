@@ -90,7 +90,7 @@ function render({ refit = false } = {}) {
       const b = pos.get(c.id);
       if (!b) continue;
       const top = b.y - b.h / 2;
-      const bus = top - 12 - (un.level - 1) * 4;
+      const bus = c.busY ?? top - 12;
       const ecls = ['edge'];
       if (c.skipped) ecls.push('skipped');
       if (c.gap) ecls.push('gap');
