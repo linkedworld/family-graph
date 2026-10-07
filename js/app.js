@@ -17,7 +17,7 @@ const svg = $('tree');
 const state = {
   model: null, kin: null, core: null,
   ego: null, selected: null,
-  hideUnknown: false, showInlaws: false, // 외가·처가는 기본으로 숨긴다
+  hideUnknown: false, showInlaws: true, // 외가·처가는 기본으로 보인다
   fold: true, // 자손이 이어지지 않는 형제가 많으면 여러 줄로 접는다
   // 접기·펴기: 기본은 기준 인물의 직계와 그 배우자만 보이고, 나머지 자녀는 접혀 있다.
   expanded: new Set(), // 자녀를 펼친 사람
