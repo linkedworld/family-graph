@@ -1,4 +1,4 @@
-// 퇴계 이황 가계 데이터 목업. 형식은 README의 '데이터 형식' 참고.
+// 퇴계 이황 가계 데이터. 형식은 README의 '데이터 형식' 참고.
 // 서버 없이 file://로 열 수 있도록 JSON 대신 전역 목록에 넣는다.
 (window.GENEALOGY_DATASETS = window.GENEALOGY_DATASETS || []).push({
   "meta": {
@@ -6,7 +6,7 @@
     "title": "퇴계 이황(退溪 李滉) 가계도",
     "subject": "yi_hwang",
     "clan": "진성 이씨(眞城李氏, 진보 이씨 眞寶李氏)",
-    "description": "퇴계 이황을 중심으로 시조 이석의 윗대부터 손자 대, 외가·처가까지 정리한 목업 데이터. 이름이 전하지 않는 인물은 name을 null로 두며, 자료가 전혀 없지만 반드시 존재해야 하는 인물(어머니, 중간 세대 등)은 엔진이 '미상' 인물로 자동 생성한다.",
+    "description": "퇴계 이황을 중심으로 시조 이석의 윗대부터 후손, 10촌 이내 방계(종형제·재종·삼종·사종 계열), 외가·처가까지 정리한 데이터. 퇴계집의 묘갈·묘지(이식·이우·이해·이정·허찬·금재 등), 고봉집, 동명집(이준 묘지명), 입재집(이영도 행장), 번암집(이해 신도비명)과 한국민족문화대백과사전·디지털안동문화대전을 근거로 했다. 이름이 전하지 않는 인물은 name을 null로 두며, 자료가 전혀 없지만 반드시 존재해야 하는 인물(어머니, 중간 세대 등)은 엔진이 '미상' 인물로 자동 생성한다.",
     "updated": "2026-10-07",
     "sources": {
       "wiki_yihwang": {
@@ -36,346 +36,534 @@
       "asiae_jucheon": {
         "title": "아시아경제 – 진성이씨 주촌 종택(이운후·이정)",
         "url": "https://view.asiae.co.kr/article/2024072210205802217"
+      },
+      "ek_yiu": {
+        "title": "한국민족문화대백과사전 「이우(李堣)」",
+        "url": "https://encykorea.aks.ac.kr/Article/E0045282"
+      },
+      "ek_gyeyang": {
+        "title": "한국민족문화대백과사전 「이계양(李繼陽)」",
+        "url": "https://encykorea.aks.ac.kr/Article/E0043610"
+      },
+      "ek_hae": {
+        "title": "한국민족문화대백과사전 「이해(李瀣)」",
+        "url": "https://encykorea.aks.ac.kr/Article/E0046436"
+      },
+      "ek_sik": {
+        "title": "한국민족문화대백과사전 「이식(李埴)」",
+        "url": "https://encykorea.aks.ac.kr/Article/E0045006"
+      },
+      "gc_clan": {
+        "title": "디지털안동문화대전 「진성이씨」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401126"
+      },
+      "gc_yiu": {
+        "title": "디지털안동문화대전 「이우」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401456"
+      },
+      "gc_hae": {
+        "title": "디지털안동문화대전 「이해」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401471"
+      },
+      "gc_hwang": {
+        "title": "디지털안동문화대전 「이황」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401477"
+      },
+      "gc_ando": {
+        "title": "디지털안동문화대전 「이안도」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401451"
+      },
+      "gc_yeongdo": {
+        "title": "디지털안동문화대전 「이영도」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401453"
+      },
+      "gc_sujoldang": {
+        "title": "디지털안동문화대전 「수졸당및재사」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02400824"
+      },
+      "gc_juchon": {
+        "title": "디지털안동문화대전 「안동 진성이씨 종택」(주촌 종택)",
+        "url": "https://andong.grandculture.net/andong/toc/GC02400893"
+      },
+      "gc_maae": {
+        "title": "디지털안동문화대전 「마애리 진성이씨 집성촌」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401156"
+      },
+      "gc_sansujeong": {
+        "title": "디지털안동문화대전 「산수정」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02400811"
+      },
+      "gc_jeonghoe": {
+        "title": "디지털안동문화대전 「이정회」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401462"
+      },
+      "gc_bongchun": {
+        "title": "디지털안동문화대전 「이봉춘」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401437"
+      },
+      "gc_yasun": {
+        "title": "디지털안동문화대전 「이야순」",
+        "url": "https://andong.grandculture.net/andong/toc/GC02401452"
+      },
+      "tg_sik": {
+        "title": "이황, 「선고 증 가선대부 이조참판 … 성균진사 갈음기사」(퇴계집 권46, 1544)",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0010"
+      },
+      "tg_kim": {
+        "title": "이황, 「선비 증 정부인 김씨 묘갈지」(퇴계집 권46, 1556)",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0020"
+      },
+      "tg_park": {
+        "title": "이황, 「선비 증 정부인 박씨 묘갈지」(퇴계집 권46, 1556)",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0030"
+      },
+      "tg_u": {
+        "title": "이황, 「숙부 호조참판 부군 묘갈지」(퇴계집 권46)",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0040"
+      },
+      "tg_heochan": {
+        "title": "이황, 「진사 허공 묘갈명」(퇴계집 권46) – 장인 허찬",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0080"
+      },
+      "tg_gwonryuk": {
+        "title": "이황, 「안주교수 권공 묘갈명」(퇴계집 권46) – 권륙",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0100"
+      },
+      "tg_kimhyoro": {
+        "title": "이황, 「성균생원 김공 묘갈명」(퇴계집 권46) – 김효로",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0120"
+      },
+      "tg_kimsu": {
+        "title": "이황, 「성균생원 김공 묘지명」(퇴계집 권46) – 김수",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0460_010_0230"
+      },
+      "tg_jeong": {
+        "title": "이황, 「증조고비 묘갈지」(퇴계집 권47) – 이정 부부",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0010"
+      },
+      "tg_geumjae": {
+        "title": "이황, 「통사랑 행 예안훈도 금공 묘지」(퇴계집 권47) – 금재",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0030"
+      },
+      "tg_hae_ji": {
+        "title": "이황, 「가선대부 예조참판 … 이공 묘지명」(퇴계집 권47) – 이해",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0100"
+      },
+      "tg_hae_gal": {
+        "title": "이황, 「가선대부 예조참판 … 이공 묘갈명」(퇴계집 권47) – 이해",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0110"
+      },
+      "tg_hae_wife": {
+        "title": "이황, 「정부인 김씨 묘지명」(퇴계집 권47) – 이해의 처",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0120"
+      },
+      "tg_sin": {
+        "title": "이황, 「영월 신공 묘갈명」(퇴계집 권47) – 생질 신홍조 언급",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0144A_0470_010_0160"
+      },
+      "gb_sik": {
+        "title": "기대승, 「증 숭정대부 의정부좌찬성 … 이공 묘갈명」(고봉집 권3, 1569) – 이식",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0185A_0050_000_0030"
+      },
+      "gb_hwang": {
+        "title": "기대승, 「퇴계선생 묘갈명」(고봉집 권3)",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0185A_0050_000_0010"
+      },
+      "uc_geumjae": {
+        "title": "김용, 「통사랑 예안훈도 금공 묘갈명」(운천집 권4) – 금재",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0262A_0050_020_0010"
+      },
+      "dm_jun": {
+        "title": "김세렴, 「군기시첨정 이공 묘지명」(동명집 권8) – 이준",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0340A_0090_060_0070"
+      },
+      "ij_yeongdo": {
+        "title": "정종로, 「원주목사 동암 이공 행장」(입재집 권44) – 이영도",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0571A_0440_010_0020"
+      },
+      "ba_hae": {
+        "title": "채제공, 「온계 이공 신도비명」(번암집 권45) – 이해",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0543A_0490_010_0020"
+      },
+      "bd_bae": {
+        "title": "구봉령, 「병절교위 … 배공 의인 정씨 묘갈」(백담집 권9) – 배천석",
+        "url": "https://db.itkc.or.kr/dir/node?dataId=ITKC_MO_0181A_0120_050_0030"
       }
     }
   },
 
   "persons": [
-    {
-      "id": "yi_songju", "name": "이송주", "hanja": "李松柱", "gender": "M",
-      "clan": "진성 이씨", "title": "호장(戶長)",
-      "note": "시조 이석의 조부. 송안군 이자수의 정안(政案)에 따름.",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_yeongchan", "name": "이영찬", "hanja": "李英贊", "gender": "M",
-      "clan": "진성 이씨", "title": "호장(戶長)",
-      "note": "시조 이석의 부친.",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_seok", "name": "이석", "hanja": "李碩", "gender": "M",
-      "clan": "진성 이씨", "gen": 1, "title": "시조(始祖), 증 봉익대부 밀직사",
-      "note": "고려 충렬왕 때 진보현 아전으로 생원시 합격. 아들 이자수가 귀하게 되어 추봉.",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_jasu", "name": "이자수", "hanja": "李子脩", "gender": "M",
-      "clan": "진성 이씨", "gen": 2, "sibIndex": 1, "title": "송안군(松安君)",
-      "note": "1330년 문과 급제, 홍건적 평정으로 안사공신. 만년에 안동 주촌으로 이거.",
-      "sources": ["wiki_clan", "asiae_jucheon"]
-    },
-    {
-      "id": "yi_jabang", "name": "이자방", "hanja": "李子芳", "gender": "M",
-      "clan": "진성 이씨", "gen": 2, "sibIndex": 2,
-      "note": "진보현에 그대로 거주(후평파).",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_ungu", "name": "이운구", "hanja": "李云具", "gender": "M",
-      "clan": "진성 이씨", "gen": 3, "sibIndex": 1, "title": "공조참의",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_unhu", "name": "이운후", "hanja": "李云侯", "gender": "M",
-      "clan": "진성 이씨", "gen": 3, "sibIndex": 2, "title": "군기시부정",
-      "note": "진성 이씨 안동(주촌) 입향조.",
-      "sources": ["wiki_clan", "asiae_jucheon"]
-    },
-    {
-      "id": "yi_jeong", "name": "이정", "hanja": "李禎", "gender": "M",
-      "clan": "진성 이씨", "gen": 4, "title": "선산부사",
-      "note": "이운후의 외동아들. 영변판관 시절 영변진을 쌓아 여진을 막음. 이황의 증조부.",
-      "sources": ["wiki_clan", "asiae_jucheon"]
-    },
-    {
-      "id": "yi_uyang", "name": "이우양", "hanja": "李遇陽", "gender": "M",
-      "clan": "진성 이씨", "gen": 5, "sibIndex": 1,
-      "note": "주촌파 파조.",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_heungyang", "name": "이흥양", "hanja": "李興陽", "gender": "M",
-      "clan": "진성 이씨", "gen": 5, "sibIndex": 2,
-      "note": "망천파 파조.",
-      "sources": ["wiki_clan"]
-    },
-    {
-      "id": "yi_gyeyang", "name": "이계양", "hanja": "李繼陽", "gender": "M",
-      "clan": "진성 이씨", "gen": 5, "sibIndex": 3, "birth": "1424", "death": "1488",
-      "pen": "노송정(老松亭)", "courtesy": "달부(達父)",
-      "title": "진사, 봉화현교도, 증 이조판서, 진성군",
-      "note": "이정의 3남. 온혜파 파조. 단종 폐위 후 예안으로 낙향.",
-      "sources": ["wiki_gyeyang", "wiki_clan", "wiki_yihwang"]
-    },
-    {
-      "id": "kim_youyong", "name": "김유용", "hanja": "金有庸", "gender": "M",
-      "clan": "영양 김씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yeongyang_kim", "name": null, "gender": "F",
-      "clan": "영양 김씨", "clanHanja": "英陽金氏",
-      "note": "이계양의 처, 김유용의 딸. 이름은 전하지 않음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_sik", "name": "이식", "hanja": "李埴", "gender": "M",
-      "clan": "진성 이씨", "gen": 6, "sibIndex": 1, "birth": "1463", "death": "1502",
-      "title": "진사",
-      "note": "이계양의 장남. 7남 1녀를 둠.",
-      "sources": ["wiki_yihwang", "wiki_clan"]
-    },
-    {
-      "id": "yi_u", "name": "이우", "hanja": "李堣", "gender": "M",
-      "clan": "진성 이씨", "gen": 6, "sibIndex": 2, "birth": "1469", "death": "1517",
-      "pen": "송재(松齋)",
-      "title": "형조참판, 강원도관찰사, 청해군(靑海君)",
-      "note": "중종반정 정국공신. 송당파 파조. 이황이 12세에 그에게 《논어》를 배움.",
-      "sources": ["wiki_clan", "wiki_gyeyang"]
-    },
-    {
-      "id": "kim_hancheol", "name": "김한철", "hanja": "金漢哲", "gender": "M",
-      "clan": "의성 김씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "uiseong_kim", "name": null, "gender": "F",
-      "clan": "의성 김씨", "clanHanja": "義城金氏", "birth": "1460", "death": "1488",
-      "note": "이식의 초취(정실), 김한철의 딸. 이황에게는 전모(前母).",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "park_chi", "name": "박치", "hanja": "朴緇", "gender": "M",
-      "clan": "춘천 박씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "chuncheon_park", "name": null, "gender": "F",
-      "clan": "춘천 박씨", "clanHanja": "春川朴氏", "birth": "1470", "death": "1537",
-      "note": "이식의 재취, 박치의 딸. 이황의 생모.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_jam", "name": "이잠", "hanja": "李潛", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 1, "birth": "1479", "death": "1536",
-      "sources": ["wiki_yihwang", "wiki_clan"]
-    },
-    {
-      "id": "yi_ha", "name": "이하", "hanja": "李河", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 2, "birth": "1482", "death": "1544",
-      "sources": ["wiki_yihwang", "wiki_clan"]
-    },
-    {
-      "id": "yi_daughter_sik", "name": null, "gender": "F",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 2.5,
-      "note": "이식의 외동딸. 신담(辛聃)에게 출가. 이름은 전하지 않음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "sin_dam", "name": "신담", "hanja": "辛聃", "gender": "M",
-      "note": "이식의 사위.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_seorin", "name": "이서린", "hanja": "李瑞麟", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 3,
-      "note": "요절.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_ui", "name": "이의", "hanja": "李漪", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 4, "birth": "1494", "death": "1532",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_hae", "name": "이해", "hanja": "李瀣", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 5, "birth": "1496", "death": "1550",
-      "pen": "온계(溫溪)", "title": "예조참판, 증 이조판서, 시호 정민(貞愍)",
-      "note": "온계파 파조.",
-      "sources": ["wiki_yihwang", "wiki_hae", "wiki_clan"]
-    },
-    {
-      "id": "yi_jing", "name": "이징", "hanja": "李澄", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 6, "birth": "1498", "death": "1582",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_hwang", "name": "이황", "hanja": "李滉", "gender": "M",
-      "clan": "진성 이씨", "gen": 7, "sibIndex": 7, "birth": "1501", "death": "1570",
-      "pen": "퇴계(退溪)", "courtesy": "경호(景浩)",
-      "title": "대제학, 우찬성, 시호 문순(文純)",
-      "note": "이식의 7남. 상계파 파조. 문묘 배향.",
-      "sources": ["wiki_yihwang", "wiki_clan"]
-    },
-    {
-      "id": "heo_chan", "name": "허찬", "hanja": "許瓚", "gender": "M",
-      "clan": "김해 허씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "gimhae_heo", "name": null, "gender": "F",
-      "clan": "김해 허씨", "clanHanja": "金海許氏", "birth": "1501", "death": "1528",
-      "note": "이황의 초취, 허찬의 딸. 27세에 별세.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "gwon_jil", "name": "권질", "hanja": "權礩", "gender": "M",
-      "clan": "안동 권씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "andong_gwon", "name": null, "gender": "F",
-      "clan": "안동 권씨", "clanHanja": "安東權氏", "birth": "1502", "death": "1546",
-      "note": "이황의 재취, 권질의 딸.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "concubine_hwang", "name": null, "gender": "F",
-      "note": "이황의 첩. 서자 이적의 생모. 이름·본관이 전하지 않음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "duhyang", "name": "두향", "hanja": "杜香", "gender": "F",
-      "title": "기녀",
-      "note": "이황이 소실로 맞이함(단양군수 시절). 소생 기록 없음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_jun", "name": "이준", "hanja": "李寯", "gender": "M",
-      "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "birth": "1523", "death": "1583",
-      "note": "이황의 장남. 진성 이씨 족보 간행을 주관.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "geum_jae", "name": "금재", "hanja": "琴梓", "gender": "M",
-      "clan": "봉화 금씨",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "bonghwa_geum", "name": null, "gender": "F",
-      "clan": "봉화 금씨", "clanHanja": "奉化琴氏",
-      "note": "이준의 처, 금재의 딸.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_chae", "name": "이채", "hanja": "李寀", "gender": "M",
-      "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "birth": "1527", "death": "1548",
-      "note": "이황의 차남. 일찍 죽자 이황이 며느리를 친정으로 돌려보내 재혼할 수 있게 함.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "wife_chae", "name": null, "gender": "F",
-      "note": "이채의 처. 이름·본관이 전하지 않음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_jeok", "name": "이적", "hanja": "李寂", "gender": "M",
-      "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "birth": "1531", "death": "1608",
-      "note": "서자. 이황이 호적에 올려 차별하지 않음.",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_ando", "name": "이안도", "hanja": "李安道", "gender": "M",
-      "clan": "진성 이씨", "gen": 9, "sibIndex": 1, "birth": "1541", "death": "1584",
-      "pen": "몽재(蒙齋)",
-      "note": "이황의 장손. 이황이 보낸 편지 125통이 전함.",
-      "sources": ["wiki_yihwang", "aks_jongtaek", "hangyo_jongga"]
-    },
-    {
-      "id": "andong_gwon_ando", "name": null, "gender": "F",
-      "clan": "안동 권씨", "clanHanja": "安東權氏",
-      "note": "이안도의 처. 퇴계종택 솟을대문에 정려가 걸려 있음.",
-      "sources": ["aks_jongtaek", "hangyo_jongga"]
-    },
-    {
-      "id": "yi_sundo", "name": "이순도", "hanja": "李純道", "gender": "M",
-      "clan": "진성 이씨", "gen": 9, "sibIndex": 2, "birth": "1554", "death": "1584",
-      "sources": ["wiki_yihwang"]
-    },
-    {
-      "id": "yi_yeongdo", "name": "이영도", "hanja": "李詠道", "gender": "M",
-      "clan": "진성 이씨", "gen": 9, "sibIndex": 3, "birth": "1559", "death": "1637",
-      "pen": "동암(東巖)",
-      "title": "원주목사",
-      "note": "1600년 도산서원에서 진성 이씨 족보 초간본 간행.",
-      "sources": ["wiki_yihwang", "wiki_clan"]
-    },
-    {
-      "id": "yi_chungho", "name": "이충호", "hanja": "李忠鎬", "gender": "M",
-      "clan": "진성 이씨", "gen": 20, "birth": "1872", "death": "1951",
-      "note": "이황의 13대손. 1926년부터 3년에 걸쳐 퇴계종택을 새로 지음.",
-      "sources": ["aks_jongtaek"]
-    }
+    {"id": "yi_songju", "name": "이송주", "hanja": "李松柱", "gender": "M", "clan": "진성 이씨", "title": "호장(戶長)", "note": "시조 이석의 조부. 송안군 이자수의 정안(政案)에 따름.", "sources": ["wiki_clan"]},
+    {"id": "yi_yeongchan", "name": "이영찬", "hanja": "李英贊", "gender": "M", "clan": "진성 이씨", "title": "호장(戶長)", "note": "시조 이석의 부친.", "sources": ["wiki_clan"]},
+    {"id": "yi_seok", "name": "이석", "hanja": "李碩", "gender": "M", "clan": "진성 이씨", "gen": 1, "title": "시조(始祖), 증 봉익대부 밀직사", "note": "고려 충렬왕 때 진보현 아전으로 생원시 합격. 아들 이자수가 귀하게 되어 추봉.", "sources": ["wiki_clan"]},
+    {"id": "yi_jasu", "name": "이자수", "hanja": "李子脩", "gender": "M", "clan": "진성 이씨", "gen": 2, "sibIndex": 1, "title": "송안군(松安君)", "note": "1330년 문과 급제, 홍건적 평정으로 안사공신. 만년에 안동 주촌으로 이거.", "sources": ["wiki_clan", "asiae_jucheon"]},
+    {"id": "yi_jabang", "name": "이자방", "hanja": "李子芳", "gender": "M", "clan": "진성 이씨", "gen": 2, "sibIndex": 2, "note": "진보현에 그대로 거주(후평파).", "sources": ["wiki_clan"]},
+    {"id": "yi_ungu", "name": "이운구", "hanja": "李云具", "gender": "M", "clan": "진성 이씨", "gen": 3, "sibIndex": 1, "title": "공조참의", "sources": ["wiki_clan"]},
+    {"id": "yi_unhu", "name": "이운후", "hanja": "李云侯", "gender": "M", "clan": "진성 이씨", "gen": 3, "sibIndex": 2, "title": "군기시부정", "note": "진성 이씨 안동(주촌) 입향조. 처는 숙인 권씨(고봉집 「퇴계선생 묘갈명」).", "sources": ["wiki_clan", "asiae_jucheon", "gb_hwang", "gc_juchon"]},
+    {"id": "yi_jeong", "name": "이정", "hanja": "李禎", "gender": "M", "clan": "진성 이씨", "gen": 4, "title": "영변판관, 선산도호부사, 증 호조참판", "note": "이운후의 외동아들. 영변판관 시절 약산성(영변진)을 쌓아 여진을 막음. 처는 지보주사 김정(金挺)의 딸. 3남 6녀를 둠(이황 「증조고비 묘갈지」). 이황의 증조부.", "sources": ["wiki_clan", "asiae_jucheon", "tg_jeong", "gc_clan"]},
+    {"id": "yi_uyang", "name": "이우양", "hanja": "李遇陽", "gender": "M", "clan": "진성 이씨", "gen": 5, "sibIndex": 1, "title": "인동현감", "note": "이정의 장남. 무과 급제. 주촌파 파조.", "sources": ["wiki_clan", "tg_jeong", "gc_clan"]},
+    {"id": "yi_heungyang", "name": "이흥양", "hanja": "李興陽", "gender": "M", "clan": "진성 이씨", "gen": 5, "sibIndex": 2, "title": "훈련참군", "note": "이정의 차남. 무과 급제 후 주촌에서 마애로 돌아감. 망천(마애)파 파조.", "sources": ["wiki_clan", "tg_jeong", "gc_clan", "gc_maae"]},
+    {"id": "yi_gyeyang", "name": "이계양", "hanja": "李繼陽", "gender": "M", "clan": "진성 이씨", "gen": 5, "sibIndex": 3, "birth": "1424", "death": "1488", "pen": "노송정(老松亭)", "courtesy": "달부(達父)", "title": "진사, 봉화현교도, 증 이조판서, 진성군", "note": "이정의 3남. 온혜파 파조. 1453년 진사. 단종 폐위 후 예안 온계리로 낙향. 어머니는 김정(金挺)의 딸. 자는 달부·달보(達父).", "sources": ["wiki_gyeyang", "wiki_clan", "wiki_yihwang", "ek_gyeyang", "tg_jeong"]},
+    {"id": "kim_youyong", "name": "김유용", "hanja": "金有庸", "gender": "M", "clan": "영양 김씨", "title": "부사직(副司直)", "note": "이계양의 장인. 이우 묘갈지에는 「별시위」로도 적힘.", "sources": ["wiki_yihwang", "tg_sik", "tg_u", "ek_sik"]},
+    {"id": "yeongyang_kim", "name": null, "gender": "F", "clan": "영양 김씨", "clanHanja": "英陽金氏", "note": "이계양의 처, 김유용의 딸. 이름은 전하지 않음.", "sources": ["wiki_yihwang"]},
+    {"id": "yi_sik", "name": "이식", "hanja": "李埴", "gender": "M", "clan": "진성 이씨", "gen": 6, "sibIndex": 1, "birth": "1463", "death": "1502", "courtesy": "기지(器之)", "title": "진사, 증 의정부좌찬성", "note": "이계양의 장남. 초취 의성(문소) 김씨에게서 2남 1녀, 재취 춘천 박씨에게서 5남을 둠. 1502년 6월 13일 40세로 별세(이황 「갈음기사」). 백과사전은 39세로 적음.", "sources": ["wiki_yihwang", "wiki_clan", "tg_sik", "gb_sik", "ek_sik"]},
+    {"id": "yi_u", "name": "이우", "hanja": "李堣", "gender": "M", "clan": "진성 이씨", "gen": 6, "sibIndex": 2, "birth": "1469", "death": "1517", "pen": "송재(松齋)", "courtesy": "명중(明仲)", "title": "형조참판, 강원도관찰사, 청해군(靑海君)", "note": "이계양의 차남. 중종반정 정국공신(뒤에 삭훈), 청해군. 송당파 파조. 처는 월성 이씨 생원 이시민의 딸. 이황이 12세에 그에게 《논어》를 배움. 1517년 안동부사 재임 중 별세.", "sources": ["wiki_clan", "wiki_gyeyang", "tg_u", "ek_yiu", "gc_yiu"]},
+    {"id": "kim_hancheol", "name": "김한철", "hanja": "金漢哲", "gender": "M", "clan": "의성 김씨", "title": "예조정랑", "note": "이식의 초취 장인. 일찍 죽고 장서가 많아 장모 남씨가 사위 이식에게 책을 모두 물려줌.", "sources": ["wiki_yihwang", "tg_kim", "ek_sik"]},
+    {"id": "uiseong_kim", "name": null, "gender": "F", "clan": "의성 김씨", "clanHanja": "義城金氏", "birth": "1460", "death": "1488", "note": "이식의 초취(정실), 예조정랑 김한철의 딸. 1488년 4월 12일 29세로 별세. 2남 1녀(이잠·이하·신담 처)를 둠. 이황에게는 전모(前母).", "sources": ["wiki_yihwang", "tg_kim"]},
+    {"id": "park_chi", "name": "박치", "hanja": "朴緇", "gender": "M", "clan": "춘천 박씨", "title": "별시위, 사정(司正)", "note": "이황의 외조부. 처(외조모)는 월성 이씨 생원 이시민의 딸로 숙부 이우의 처와 자매이다. 외조모 개인 항목은 두지 않아 미상으로 표시된다.", "sources": ["wiki_yihwang", "tg_park", "tg_sik"]},
+    {"id": "chuncheon_park", "name": null, "gender": "F", "clan": "춘천 박씨", "clanHanja": "春川朴氏", "birth": "1470", "death": "1537", "note": "이식의 재취, 박치의 딸. 1470년 3월 18일생, 1537년 10월 15일 68세로 별세. 5남(이서린·이의·이해·이징·이황)을 둠. 이황의 생모.", "sources": ["wiki_yihwang", "tg_park"]},
+    {"id": "yi_jam", "name": "이잠", "hanja": "李潛", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 1, "birth": "1479", "death": "1536", "title": "충순위", "note": "이식의 장남(초취 소생). 아들 이인이 일찍 죽어 동생 이하의 아들 이완이 대를 이음.", "sources": ["wiki_yihwang", "wiki_clan", "tg_sik", "tg_kim"]},
+    {"id": "yi_ha", "name": "이하", "hanja": "李河", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 2, "birth": "1482", "death": "1544", "title": "예천훈도", "note": "이식의 차남(초취 소생). 형 이잠의 외아들 이인이 후사 없이 일찍 죽자 이하의 장남 이완이 대를 이어 이하의 후손이 종파가 됨.", "sources": ["wiki_yihwang", "wiki_clan", "tg_sik", "tg_kim", "gc_clan"]},
+    {"id": "yi_daughter_sik", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 7, "sibIndex": 2.5, "note": "이식의 외동딸(초취 소생). 신담(辛聃)에게 출가. 이름은 전하지 않음.", "sources": ["wiki_yihwang", "tg_sik", "tg_kim"]},
+    {"id": "sin_dam", "name": "신담", "hanja": "辛聃", "gender": "M", "note": "이식의 사위. 이황이 아들 신홍조를 「생질」이라 하며 영월 신씨 신달정의 「동성 족질」이라 하였으므로 영월 신씨로 보이나 본관을 명기한 자료는 확인하지 못함.", "sources": ["wiki_yihwang", "tg_sik", "tg_sin"]},
+    {"id": "yi_seorin", "name": "이서린", "hanja": "李瑞麟", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 3, "note": "재취 춘천 박씨의 장남. 관례 전에 요절(이황 「선비 박씨 묘갈지」).", "sources": ["wiki_yihwang", "tg_park", "gb_sik"]},
+    {"id": "yi_ui", "name": "이의", "hanja": "李漪", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 4, "birth": "1494", "death": "1532", "note": "업유(業儒), 일찍 죽음. 아들 이재는 동생 이해가 거두어 길렀다.", "sources": ["wiki_yihwang", "tg_sik", "tg_hae_ji"]},
+    {"id": "yi_hae", "name": "이해", "hanja": "李瀣", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 5, "birth": "1496", "death": "1550", "pen": "온계(溫溪)", "courtesy": "경명(景明)", "title": "예조참판, 증 이조판서, 시호 정민(貞愍)", "note": "온계파 파조.", "sources": ["wiki_yihwang", "wiki_hae", "wiki_clan", "tg_hae_ji", "tg_hae_gal", "ek_hae", "gc_hae"]},
+    {"id": "yi_jing", "name": "이징", "hanja": "李澄", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 6, "birth": "1498", "death": "1582", "title": "충순위, 제원도 찰방", "note": "이황의 바로 위 형(중형). 이황 집안 기록(갈음기사·묘갈지)과 고봉 묘갈명은 모두 징(澄)으로 적음. 디지털안동문화대전 「진성이씨」·「이해」 항목의 이점·이증은 오기로 보임.", "sources": ["wiki_yihwang", "tg_sik", "tg_park", "gb_sik"]},
+    {"id": "yi_hwang", "name": "이황", "hanja": "李滉", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 7, "birth": "1501", "death": "1570", "pen": "퇴계(退溪)", "courtesy": "경호(景浩)", "title": "대제학, 우찬성, 시호 문순(文純)", "note": "이식의 7남. 상계파 파조. 문묘 배향.", "sources": ["wiki_yihwang", "wiki_clan", "tg_sik", "gb_hwang", "gc_hwang"]},
+    {"id": "heo_chan", "name": "허찬", "hanja": "許瓚", "gender": "M", "clan": "김해 허씨", "birth": "1481", "death": "1535", "courtesy": "헌숙(獻叔)", "title": "진사", "note": "이황의 초취 장인. 김해 허씨로 고성을 거쳐 의춘(의령)으로 옮겨 살았다. 1535년 12월 29일 옥사에 얽혀 갇힌 중에 병사. 처는 사성 문경동(文敬仝)의 딸 안동 문씨. 2남 2녀를 둠.", "sources": ["wiki_yihwang", "tg_heochan", "gc_hwang"]},
+    {"id": "gimhae_heo", "name": null, "gender": "F", "clan": "김해 허씨", "clanHanja": "金海許氏", "birth": "1501", "death": "1528", "note": "이황의 초취, 진사 허찬의 맏딸. 1528년 둘째 아들 이채를 낳고 한 달 만에 27세로 별세.", "sources": ["wiki_yihwang", "tg_heochan", "gb_hwang"]},
+    {"id": "gwon_jil", "name": "권질", "hanja": "權礩", "gender": "M", "clan": "안동 권씨", "title": "봉사(奉事)", "note": "이황의 재취 장인. 갑자사화로 아버지 권주가 죽고 자신도 유배되었다가 예안으로 다시 유배됨.", "sources": ["wiki_yihwang", "gc_hwang", "gb_hwang"]},
+    {"id": "andong_gwon", "name": null, "gender": "F", "clan": "안동 권씨", "clanHanja": "安東權氏", "birth": "1502", "death": "1546", "note": "이황의 재취, 권질의 딸.", "sources": ["wiki_yihwang"]},
+    {"id": "concubine_hwang", "name": null, "gender": "F", "note": "이황의 첩. 서자 이적의 생모. 이름·본관이 전하지 않음.", "sources": ["wiki_yihwang"]},
+    {"id": "duhyang", "name": "두향", "hanja": "杜香", "gender": "F", "title": "기녀", "note": "이황이 소실로 맞이함(단양군수 시절). 소생 기록 없음.", "sources": ["wiki_yihwang"]},
+    {"id": "yi_jun", "name": "이준", "hanja": "李寯", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "birth": "1523", "death": "1583", "courtesy": "정수(廷秀)", "title": "봉화·의흥·의성현감, 군기시첨정", "note": "이황의 장남. 1583년 7월 3일 의성현감 재임 중 61세로 별세. 3남 2녀를 둠(김세렴 「이공 묘지명」).", "sources": ["wiki_yihwang", "dm_jun", "gb_hwang"]},
+    {"id": "geum_jae", "name": "금재", "hanja": "琴梓", "gender": "M", "clan": "봉화 금씨", "birth": "1498", "death": "1550", "courtesy": "숙재(叔材)", "title": "예안훈도", "note": "이준의 장인. 1498년 12월 17일생, 1550년 10월 15일 별세. 퇴계집 묘지에는 琴榟로 적힘. 처는 광주 김씨 김효로의 딸. 두 딸이 각각 이준과 이해의 아들 이치에게 출가.", "sources": ["wiki_yihwang", "tg_geumjae", "uc_geumjae", "tg_kimhyoro"]},
+    {"id": "bonghwa_geum", "name": null, "gender": "F", "clan": "봉화 금씨", "clanHanja": "奉化琴氏", "note": "이준의 처, 금재의 맏딸. 이준보다 3년 먼저(1580년경) 별세.", "sources": ["wiki_yihwang", "dm_jun", "tg_geumjae", "uc_geumjae"]},
+    {"id": "yi_chae", "name": "이채", "hanja": "李寀", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "birth": "1527", "death": "1548", "note": "이황의 차남. 일찍 죽자 이황이 며느리를 친정으로 돌려보내 재혼할 수 있게 함.", "sources": ["wiki_yihwang", "gb_hwang", "tg_heochan"]},
+    {"id": "wife_chae", "name": null, "gender": "F", "note": "이채의 처. 이름·본관이 전하지 않음.", "sources": ["wiki_yihwang"]},
+    {"id": "yi_jeok", "name": "이적", "hanja": "李寂", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "birth": "1531", "death": "1608", "note": "서자. 이황이 호적에 올려 차별하지 않음. 처는 흥해 배씨 배천석의 측실 소생 딸.", "sources": ["wiki_yihwang", "gb_hwang", "bd_bae"]},
+    {"id": "yi_ando", "name": "이안도", "hanja": "李安道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 1, "birth": "1541", "death": "1584", "pen": "몽재(蒙齋)", "title": "생원(1561), 사온서직장", "note": "이황의 장손. 자는 봉원(逢原, 정본 퇴계전서 역주) 또는 요원·아몽(디지털안동문화대전). 처는 부사 권소의 딸. 3녀만 두고 아들 없이 죽어 아우 이영도의 둘째 아들 이억이 뒤를 이음.", "sources": ["wiki_yihwang", "aks_jongtaek", "hangyo_jongga", "dm_jun", "gc_ando", "ij_yeongdo"]},
+    {"id": "andong_gwon_ando", "name": null, "gender": "F", "clan": "안동 권씨", "clanHanja": "安東權氏", "note": "이안도의 처, 부사 권소(權紹)의 딸. 시동생 이영도의 아들 이억을 양자로 들여 혼례를 치른 뒤 자진. 퇴계종택 솟을대문에 정려가 걸려 있음.", "sources": ["aks_jongtaek", "hangyo_jongga", "dm_jun", "gc_ando"]},
+    {"id": "yi_sundo", "name": "이순도", "hanja": "李純道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 2, "birth": "1554", "death": "1584", "note": "이준의 차남. 아들 없이 일찍 죽은 종숙 이치(이해의 아들)의 뒤를 이음(번암집 「온계 이공 신도비명」). 처는 김인옥의 딸.", "sources": ["wiki_yihwang", "dm_jun", "ba_hae"]},
+    {"id": "yi_yeongdo", "name": "이영도", "hanja": "李詠道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 3, "birth": "1559", "death": "1637", "pen": "동암(東巖)", "courtesy": "성여(聖輿)", "title": "원주목사, 군기감정, 증 좌승지", "note": "이준의 3남. 소자(小字) 하경(河慶). 1637년 2월 26일 별세. 처는 현감 권동미의 딸(충정공 권벌의 손녀). 형 이안도의 제사를 30년 가까이 대신 받들다 둘째 아들 이억을 형의 후사로 세움. 하계파(수졸당) 파조.", "sources": ["wiki_yihwang", "wiki_clan", "ij_yeongdo", "dm_jun", "gc_yeongdo"]},
+    {"id": "yi_chungho", "name": "이충호", "hanja": "李忠鎬", "gender": "M", "clan": "진성 이씨", "gen": 20, "birth": "1872", "death": "1951", "note": "이황의 13대손. 1926년부터 3년에 걸쳐 퇴계종택을 새로 지음.", "sources": ["aks_jongtaek"]},
+    {"id": "gwon_unhu", "name": null, "gender": "F", "clan": "권씨", "note": "이운후의 처, 숙인(淑人) 권씨. 본관·부친은 전하지 않음.", "sources": ["gb_hwang"]},
+    {"id": "kim_jeong_jbj", "name": "김정", "hanja": "金挺", "gender": "M", "clan": "안동 김씨", "title": "지보주사(知甫州事)", "note": "이정의 장인. 한국민족문화대백과사전 「이계양」은 지숙주군사(知肅州郡事)로 적음.", "sources": ["tg_jeong", "ek_gyeyang"]},
+    {"id": "andong_kim_jeong", "name": null, "gender": "F", "clan": "안동 김씨", "clanHanja": "安東金氏", "note": "이정의 처, 김정의 딸. 증 정부인. 이계양의 어머니.", "sources": ["tg_jeong", "gb_hwang", "ek_gyeyang"]},
+    {"id": "yi_jeong_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 남백경(南伯庚)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "nam_baekgyeong", "name": "남백경", "hanja": "南伯庚", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "yi_jeong_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 류봉수(柳鳳壽)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "yu_bongsu", "name": "류봉수", "hanja": "柳鳳壽", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "yi_jeong_d3", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 정보문(鄭普文)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "jeong_bomun", "name": "정보문", "hanja": "鄭普文", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "yi_jeong_d4", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 이주(李疇)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "yi_ju_jeong", "name": "이주", "hanja": "李疇", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "yi_jeong_d5", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 박근손(朴謹孫)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "park_geunson", "name": "박근손", "hanja": "朴謹孫", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "yi_jeong_d6", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 5, "note": "이정의 딸. 권종(權悰)에게 출가. 이정은 6녀를 두었으나 출생 순서는 전하지 않음(사위 나열 순서로 둠).", "sources": ["tg_jeong"]},
+    {"id": "gwon_jong", "name": "권종", "hanja": "權悰", "gender": "M", "note": "이정의 사위.", "sources": ["tg_jeong"]},
+    {"id": "park_hyojeon", "name": "박효전", "hanja": "朴孝佃", "gender": "M", "clan": "춘천 박씨", "note": "이황의 외증조부. 은덕불사(隱德不仕).", "sources": ["tg_park"]},
+    {"id": "park_nong", "name": "박농", "hanja": "朴農", "gender": "M", "clan": "춘천 박씨", "title": "칠원현감", "note": "이황 어머니의 증조부.", "sources": ["tg_park"]},
+    {"id": "park_gwangjeong", "name": "박광정", "hanja": "朴光廷", "gender": "M", "clan": "춘천 박씨", "note": "이황 어머니의 고조부. 경상도 용궁현 대죽리로 옮겨 삶.", "sources": ["tg_park"]},
+    {"id": "park_wonbi", "name": "박원비", "hanja": "朴元庇", "gender": "M", "clan": "춘천 박씨", "title": "판사(判事)", "note": "고려 말 인물. 박광정의 아버지.", "sources": ["tg_park"]},
+    {"id": "uiryeong_nam", "name": null, "gender": "F", "clan": "의령 남씨", "clanHanja": "宜寧南氏", "note": "김한철의 처, 북부참봉 남상치(南尙治)의 딸. 사위 이식에게 장서를 물려줌.", "sources": ["tg_kim", "ek_sik", "gb_sik"]},
+    {"id": "yi_simin", "name": "이시민", "hanja": "李時敏", "gender": "M", "clan": "월성 이씨", "title": "생원", "note": "대사헌 이승직(李繩直)의 아들. 두 딸이 각각 이우와 박치(이황의 외조부)에게 출가.", "sources": ["tg_u", "tg_park"]},
+    {"id": "wolseong_yi_u", "name": null, "gender": "F", "clan": "월성 이씨", "clanHanja": "月城李氏", "note": "이우의 처, 생원 이시민의 딸. 정부인. 이우보다 20년 뒤에 별세. 이황의 외조모와 자매.", "sources": ["tg_u"]},
+    {"id": "yi_suryeong", "name": "이수령", "hanja": "李壽苓", "gender": "M", "clan": "진성 이씨", "gen": 7, "sibIndex": 1, "title": "황산도 찰방", "note": "이우의 외아들. 어머니 상을 마치자마자 별세(1539년경).", "sources": ["tg_u"]},
+    {"id": "yi_u_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 7, "note": "이우의 딸. 함안군수 조효연에게 출가.", "sources": ["tg_u"]},
+    {"id": "jo_hyoyeon", "name": "조효연", "hanja": "曹孝淵", "gender": "M", "title": "함안군수", "note": "이우의 사위.", "sources": ["tg_u"]},
+    {"id": "yi_u_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 7, "note": "이우의 딸. 전의현감 오언의에게 출가.", "sources": ["tg_u"]},
+    {"id": "o_eonui", "name": "오언의", "hanja": "吳彦毅", "gender": "M", "title": "전의현감", "note": "이우의 사위.", "sources": ["tg_u"]},
+    {"id": "jo_yunsin", "name": "조윤신", "hanja": "曹允愼", "gender": "M", "note": "이우의 외손.", "sources": ["tg_u"]},
+    {"id": "jo_yungu", "name": "조윤구", "hanja": "曹允懼", "gender": "M", "title": "진사", "note": "이우의 외손.", "sources": ["tg_u"]},
+    {"id": "o_sujeong", "name": "오수정", "hanja": "吳守貞", "gender": "M", "note": "이우의 외손.", "sources": ["tg_u"]},
+    {"id": "o_suyeong", "name": "오수영", "hanja": "吳守盈", "gender": "M", "title": "진사", "note": "이우의 외손.", "sources": ["tg_u"]},
+    {"id": "yi_bing", "name": "이빙", "hanja": "李憑", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "title": "충순위", "note": "이수령의 장남. 이우 묘갈지를 세우는 일을 주관.", "sources": ["tg_u", "tg_kimsu"]},
+    {"id": "yi_gyeol", "name": "이결", "hanja": "李潔", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "sources": ["tg_u"]},
+    {"id": "yi_chung", "name": "이충", "hanja": "李沖", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "sources": ["tg_u"]},
+    {"id": "yi_suryeong_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이수령의 딸. 이영승에게 출가.", "sources": ["tg_u"]},
+    {"id": "yi_ryeongseung", "name": "이영승", "hanja": "李令承", "gender": "M", "note": "이수령의 사위.", "sources": ["tg_u"]},
+    {"id": "yi_suryeong_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이수령의 딸. 채운경에게 출가.", "sources": ["tg_u"]},
+    {"id": "chae_ungyeong", "name": "채운경", "hanja": "蔡雲慶", "gender": "M", "note": "이수령의 사위. 호 월천(月川, 조목 「역동서원사실」).", "sources": ["tg_u"]},
+    {"id": "kim_su", "name": "김수", "hanja": "金綏", "gender": "M", "clan": "광주 김씨", "birth": "1491", "death": "1555", "title": "생원", "note": "이빙의 장인. 김효로의 아들(금재의 처남).", "sources": ["tg_kimsu", "tg_kimhyoro"]},
+    {"id": "gwangju_kim_bing", "name": null, "gender": "F", "clan": "광주 김씨", "clanHanja": "光州金氏", "note": "이빙의 처, 생원 김수의 딸. 1555년 무렵 1남 2녀를 둠.", "sources": ["tg_kimsu", "tg_kimhyoro"]},
+    {"id": "yi_in", "name": "이인", "hanja": "李寅", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "note": "이잠의 외아들, 이식의 장손. 일찍 죽어 자식이 없자 4촌 아우 이완이 이잠의 대를 이음.", "sources": ["tg_sik", "gb_sik", "gc_clan"]},
+    {"id": "yi_jam_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이잠의 맏딸. 생원 민시원에게 출가.", "sources": ["tg_sik"]},
+    {"id": "min_siwon", "name": "민시원", "hanja": "閔蓍元", "gender": "M", "title": "생원", "note": "이잠의 사위.", "sources": ["tg_sik"]},
+    {"id": "yi_jam_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이잠의 막내딸. 교수 권륙에게 출가. 권륙 묘갈명에는 처가 「진안 이씨(眞安李氏)」로 적혀 있어 진보(眞寶)의 오기로 보임.", "sources": ["tg_sik", "tg_gwonryuk"]},
+    {"id": "gwon_ryuk", "name": "권륙", "hanja": "權稑", "gender": "M", "clan": "안동 권씨", "birth": "1493", "death": "1549", "courtesy": "공실(公實)", "title": "안주교수", "note": "이잠의 사위. 진사 권숙균의 아들.", "sources": ["tg_sik", "tg_gwonryuk"]},
+    {"id": "gwon_seonmun", "name": "권선문", "hanja": "權善文", "gender": "M", "clan": "안동 권씨", "sibIndex": 1, "note": "권륙의 장남. 처는 반씨(潘公의 딸). 3남 1녀를 둠.", "sources": ["tg_gwonryuk"]},
+    {"id": "gwon_homun", "name": "권호문", "hanja": "權好文", "gender": "M", "clan": "안동 권씨", "sibIndex": 2, "title": "진사(1561)", "note": "권륙의 차남. 처는 안경인(安景仁)의 딸.", "sources": ["tg_gwonryuk"]},
+    {"id": "gwon_doga", "name": "권도가", "hanja": "權道可", "gender": "M", "clan": "안동 권씨", "sibIndex": 1, "sources": ["tg_gwonryuk"]},
+    {"id": "gwon_haengga", "name": "권행가", "hanja": "權行可", "gender": "M", "clan": "안동 권씨", "sibIndex": 2, "sources": ["tg_gwonryuk"]},
+    {"id": "gwon_jega", "name": "권제가", "hanja": "權際可", "gender": "M", "clan": "안동 권씨", "sibIndex": 3, "sources": ["tg_gwonryuk"]},
+    {"id": "yi_wan", "name": "이완", "hanja": "李完", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "title": "진사", "note": "이하의 장남. 종형 이인(이잠의 아들)이 후사 없이 일찍 죽자 백부 이잠의 대를 이어 종손이 됨.", "sources": ["tg_sik", "gb_sik", "gc_clan"]},
+    {"id": "yi_goeng", "name": "이굉", "hanja": "李宏", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "note": "이하의 차남. 디지털안동문화대전은 李汯로도 적음. 후손은 예천 호명면에 삶.", "sources": ["tg_sik", "gb_sik", "gc_clan"]},
+    {"id": "yi_seong", "name": "이성", "hanja": "李宬", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "note": "이하의 3남. 1544년 갈음기사에 「요절(夭)」로 적혀 있으나, 디지털안동문화대전은 그 후손이 영해 원구리로 옮겨 살았다고 함(상충, 미확인).", "sources": ["tg_sik", "gb_sik", "gc_clan"]},
+    {"id": "yi_ha_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이하의 맏딸. 권윤변에게 출가.", "sources": ["tg_sik"]},
+    {"id": "gwon_yunbyeon", "name": "권윤변", "hanja": "權胤卞", "gender": "M", "note": "이하의 사위.", "sources": ["tg_sik"]},
+    {"id": "yi_ha_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이하의 둘째 딸. 송유경에게 출가. (막내딸은 1544년 당시 어림)", "sources": ["tg_sik"]},
+    {"id": "song_yugyeong", "name": "송유경", "hanja": "宋遺慶", "gender": "M", "note": "이하의 사위.", "sources": ["tg_sik"]},
+    {"id": "sin_hongjo", "name": "신홍조", "hanja": "辛弘祚", "gender": "M", "title": "습독(習讀)", "note": "신담의 아들. 이황의 생질.", "sources": ["tg_sik", "tg_sin"]},
+    {"id": "sin_dam_d1", "name": null, "gender": "F", "note": "신담의 딸. 신섬에게 출가.", "sources": ["tg_sik"]},
+    {"id": "sin_seom", "name": "신섬", "hanja": "申暹", "gender": "M", "note": "신담의 사위.", "sources": ["tg_sik"]},
+    {"id": "yi_seon", "name": "이선", "hanja": "李宣", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "note": "이의의 장남. 폐질(廢疾).", "sources": ["tg_sik", "gb_sik"]},
+    {"id": "yi_heon", "name": "이헌", "hanja": "李憲", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "sources": ["tg_sik", "gb_sik"]},
+    {"id": "yi_jae", "name": "이재", "hanja": "李宰", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "note": "이의의 3남. 아버지가 일찍 죽어 숙부 이해가 거두어 길렀다.", "sources": ["tg_sik", "gb_sik", "tg_hae_ji"]},
+    {"id": "yi_ui_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이의의 맏딸. 충의위 김박에게 출가. (나머지 두 딸은 1544년 당시 어림)", "sources": ["tg_sik"]},
+    {"id": "kim_bak", "name": "김박", "hanja": "金博", "gender": "M", "title": "충의위", "note": "이의의 사위.", "sources": ["tg_sik"]},
+    {"id": "kim_bokheung", "name": "김복흥", "hanja": "金復興", "gender": "M", "clan": "연안 김씨", "title": "통례원 가인의", "note": "이해의 장인.", "sources": ["tg_hae_wife", "tg_hae_ji"]},
+    {"id": "yeonan_kim_hae", "name": null, "gender": "F", "clan": "연안 김씨", "clanHanja": "延安金氏", "birth": "1499", "death": "1568", "note": "이해의 처, 김복흥의 딸. 정부인. 1499년 11월생, 1568년 11월 70세로 별세.", "sources": ["tg_hae_wife", "tg_hae_ji", "ba_hae"]},
+    {"id": "yi_bok", "name": "이복", "hanja": "李宓", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "note": "이해의 장남. 아버지를 따라 성절사 행차에 갔다가 중국 통주에서 죽음. 후사 없음. 처는 충찬위 신종손(申宗孫)의 딸.", "sources": ["tg_hae_ji", "tg_hae_wife", "ba_hae"]},
+    {"id": "yi_yeong_hae", "name": "이영", "hanja": "李寗", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "title": "진사(1561), 성현도 찰방, 현감", "note": "이해의 차남. 甯으로도 적음. 처는 군수 이정(李侹)의 딸. 1569년 묘지명에는 1남 1녀가 있다 했으나 번암집 신도비명은 아들이 없어 조카 이유도를 후사로 삼았다고 함.", "sources": ["tg_hae_ji", "tg_hae_gal", "ba_hae"]},
+    {"id": "yi_gyo", "name": "이교", "hanja": "李㝯", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 3, "title": "현감", "note": "이해의 3남. 아버지의 유배·장례 과정을 적은 「가정경술일기」를 남김. 초취 도사 황윤중의 딸, 재취 주부 금응석의 딸.", "sources": ["tg_hae_ji", "ba_hae", "wiki_hae"]},
+    {"id": "yi_chi", "name": "이치", "hanja": "李寘", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 4, "note": "이해의 4남. 훈도 금재의 딸(이준의 처제)과 혼인했으나 일찍 죽음. 종질 이순도가 뒤를 이음.", "sources": ["tg_hae_ji", "tg_hae_wife", "ba_hae", "uc_geumjae"]},
+    {"id": "yi_hye", "name": "이혜", "hanja": "李寭", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 5, "title": "공조좌랑", "note": "이해의 5남. 처는 학생 이희춘(李希春)의 딸.", "sources": ["tg_hae_ji", "ba_hae"]},
+    {"id": "yi_hae_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이해의 외동딸. 별좌 최덕수에게 출가.", "sources": ["tg_hae_ji", "ba_hae"]},
+    {"id": "choe_deoksu", "name": "최덕수", "hanja": "崔德秀", "gender": "M", "title": "별좌, 현감", "note": "이해의 사위.", "sources": ["tg_hae_ji", "ba_hae"]},
+    {"id": "choe_chim", "name": "최침", "hanja": "崔琛", "gender": "M", "title": "봉사", "note": "최덕수의 아들, 이해의 외손.", "sources": ["ba_hae", "tg_hae_ji"]},
+    {"id": "choe_deoksu_d1", "name": null, "gender": "F", "note": "최덕수의 딸. 군수 이충가에게 출가.", "sources": ["ba_hae"]},
+    {"id": "yi_chungga", "name": "이충가", "hanja": "李忠可", "gender": "M", "title": "군수", "note": "이해의 외손서.", "sources": ["ba_hae"]},
+    {"id": "choe_deoksu_d2", "name": null, "gender": "F", "note": "최덕수의 딸. 승지 이경함에게 출가.", "sources": ["ba_hae"]},
+    {"id": "yi_gyeongham", "name": "이경함", "hanja": "李慶涵", "gender": "M", "title": "승지", "note": "이해의 외손서.", "sources": ["ba_hae"]},
+    {"id": "sin_bok_wife", "name": null, "gender": "F", "note": "이복의 처, 충찬위 신종손(申宗孫)의 딸. 본관 미상.", "sources": ["tg_hae_ji"]},
+    {"id": "yi_yeong_wife", "name": null, "gender": "F", "note": "이영의 처, 군수 이정(李侹)의 딸. 본관 미상.", "sources": ["tg_hae_ji", "tg_hae_gal"]},
+    {"id": "yi_yeong_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이영의 맏딸. 감찰 이언직에게 출가.", "sources": ["ba_hae"]},
+    {"id": "yi_eonjik", "name": "이언직", "hanja": "李彦直", "gender": "M", "title": "감찰", "note": "이영의 사위.", "sources": ["ba_hae"]},
+    {"id": "yi_yeong_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이영의 둘째 딸. 이예복에게 출가.", "sources": ["ba_hae"]},
+    {"id": "yi_yebok", "name": "이예복", "hanja": "李禮福", "gender": "M", "note": "이영의 사위.", "sources": ["ba_hae"]},
+    {"id": "hwang_gyo_wife", "name": null, "gender": "F", "note": "이교의 초취, 도사 황윤중(黃允中)의 딸. 본관 미상.", "sources": ["tg_hae_ji"]},
+    {"id": "geum_gyo_wife", "name": null, "gender": "F", "note": "이교의 재취, 주부 금응석(琴應石)의 딸. 본관 미상.", "sources": ["tg_hae_ji"]},
+    {"id": "yi_sungdo", "name": "이숭도", "hanja": "李崇道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 1, "sources": ["ba_hae"]},
+    {"id": "yi_jeongdo", "name": "이정도", "hanja": "李正道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 2, "sources": ["ba_hae"]},
+    {"id": "yi_yudo", "name": "이유도", "hanja": "李有道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 3, "note": "이교의 3남. 아들이 없던 백부 이영의 후사가 됨.", "sources": ["ba_hae"]},
+    {"id": "yi_gyo_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이교의 딸. 도사 이경원에게 출가.", "sources": ["ba_hae"]},
+    {"id": "yi_gyeongwon", "name": "이경원", "hanja": "李敬元", "gender": "M", "title": "도사", "note": "이교의 사위.", "sources": ["ba_hae"]},
+    {"id": "bonghwa_geum_chi", "name": null, "gender": "F", "clan": "봉화 금씨", "clanHanja": "奉化琴氏", "note": "이치의 처, 훈도 금재의 둘째 딸. 이준의 처와 자매.", "sources": ["tg_hae_ji", "uc_geumjae", "tg_kimhyoro"]},
+    {"id": "yi_hye_wife", "name": null, "gender": "F", "note": "이혜의 처, 학생 이희춘(李希春)의 딸. 본관 미상.", "sources": ["tg_hae_ji"]},
+    {"id": "yi_judo", "name": "이주도", "hanja": "李周道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 1, "title": "능침랑", "sources": ["ba_hae"]},
+    {"id": "yi_mido", "name": "이미도", "hanja": "李味道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 2, "title": "호군", "sources": ["ba_hae"]},
+    {"id": "yi_simdo", "name": "이심도", "hanja": "李深道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 3, "sources": ["ba_hae"]},
+    {"id": "yi_sado", "name": "이사도", "hanja": "李士道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 4, "sources": ["ba_hae"]},
+    {"id": "yi_jikdo", "name": "이직도", "hanja": "李直道", "gender": "M", "clan": "진성 이씨", "gen": 9, "sibIndex": 5, "sources": ["ba_hae"]},
+    {"id": "yi_ju", "name": "이주", "hanja": "李宙", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "title": "충순위", "note": "이징의 장남.", "sources": ["tg_sik", "gb_sik", "bd_bae"]},
+    {"id": "yi_geon", "name": "이건", "hanja": "李騫", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "note": "이징의 차남. (셋째 아들은 1544년 당시 어려 이름이 적히지 않음)", "sources": ["tg_sik", "gb_sik"]},
+    {"id": "yi_jing_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이징의 맏딸. 이지영에게 출가.", "sources": ["tg_sik"]},
+    {"id": "yi_jiyeong", "name": "이지영", "hanja": "李之英", "gender": "M", "note": "이징의 사위.", "sources": ["tg_sik"]},
+    {"id": "yi_jing_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 8, "note": "이징의 둘째 딸. 권지훈련원봉사 박세현에게 출가.", "sources": ["tg_sik"]},
+    {"id": "park_sehyeon", "name": "박세현", "hanja": "朴世賢", "gender": "M", "title": "권지훈련원봉사", "note": "이징의 사위.", "sources": ["tg_sik"]},
+    {"id": "yi_ju_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이주의 딸. 흥해 배씨 배삼근에게 출가.", "sources": ["bd_bae"]},
+    {"id": "bae_samgeun", "name": "배삼근", "hanja": "裵三近", "gender": "M", "clan": "흥해 배씨", "note": "이주의 사위, 배천석의 차남. 1573년 당시 1남(배인길) 2녀.", "sources": ["bd_bae"]},
+    {"id": "heo_wonbo", "name": "허원보", "hanja": "許元輔", "gender": "M", "clan": "김해 허씨", "title": "생원", "note": "허찬의 아버지(이황의 처조부). 의춘으로 옮겨 삶. 처는 부호군 오한(吳漢)의 딸.", "sources": ["tg_heochan"]},
+    {"id": "andong_mun_heo", "name": null, "gender": "F", "clan": "안동 문씨", "clanHanja": "安東文氏", "note": "허찬의 처, 성균관 사성 문경동(文敬仝)의 딸. 이황의 초취 장모. 이황은 상처 뒤에도 장모가 죽을 때까지 처가 대소사를 챙겼다.", "sources": ["tg_heochan", "wiki_yihwang"]},
+    {"id": "heo_saryeom", "name": "허사렴", "hanja": "許士廉", "gender": "M", "clan": "김해 허씨", "sibIndex": 1, "title": "생원·진사(1549)", "note": "허찬의 장남. 일찍 죽음. 2녀를 두었는데 맏딸이 생원 오운(吳澐)에게 출가.", "sources": ["tg_heochan"]},
+    {"id": "heo_saeon", "name": "허사언", "hanja": "許士彦", "gender": "M", "clan": "김해 허씨", "sibIndex": 2, "note": "허찬의 차남.", "sources": ["tg_heochan"]},
+    {"id": "heo_chan_d2", "name": null, "gender": "F", "clan": "김해 허씨", "clanHanja": "金海許氏", "note": "허찬의 둘째 딸. 충의위 김진에게 출가.", "sources": ["tg_heochan"]},
+    {"id": "kim_jin", "name": "김진", "hanja": "金震", "gender": "M", "title": "충의위", "note": "허찬의 사위(이황의 동서).", "sources": ["tg_heochan"]},
+    {"id": "gwon_ju", "name": "권주", "hanja": "權柱", "gender": "M", "clan": "안동 권씨", "birth": "1457", "death": "1505", "title": "경상감사", "note": "권질의 아버지(이황의 재취 처조부). 갑자사화 때 폐비 윤씨에게 사약을 가져간 일로 평해에 유배되었다가 교살됨.", "sources": ["wiki_yihwang"]},
+    {"id": "bae_cheonseok", "name": "배천석", "hanja": "裵天錫", "gender": "M", "clan": "흥해 배씨", "birth": "1511", "death": "1573", "courtesy": "경수(景受)", "title": "병절교위 충좌위 부사과", "note": "측실 소생 딸 하나가 이적에게 출가. 차남 배삼근은 이징의 손녀와 혼인.", "sources": ["bd_bae"]},
+    {"id": "heunghae_bae_jeok", "name": null, "gender": "F", "clan": "흥해 배씨", "clanHanja": "興海裵氏", "note": "이적의 처, 배천석의 측실 소생 딸.", "sources": ["bd_bae"]},
+    {"id": "yi_jun_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이준의 맏딸. 수운판관 박려에게 출가.", "sources": ["dm_jun", "gb_hwang"]},
+    {"id": "park_ryeo", "name": "박려", "hanja": "朴欐", "gender": "M", "title": "수운판관", "note": "이준의 사위.", "sources": ["dm_jun", "gb_hwang"]},
+    {"id": "yi_jun_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 9, "note": "이준의 둘째 딸. 병조참의 김용에게 출가.", "sources": ["dm_jun", "uc_geumjae"]},
+    {"id": "kim_yong", "name": "김용", "hanja": "金涌", "gender": "M", "clan": "의성 김씨", "pen": "운천(雲川)", "title": "병조참의", "note": "이준의 사위. 장인의 외조부 금재의 묘갈명을 지으며 이준을 「우리 장인(我婦翁)」이라 함.", "sources": ["dm_jun", "uc_geumjae"]},
+    {"id": "park_seongbeom", "name": "박성범", "hanja": "朴成范", "gender": "M", "sibIndex": 1, "title": "생원", "note": "박려의 장남, 이준의 외손.", "sources": ["dm_jun"]},
+    {"id": "park_munbeom", "name": "박문범", "hanja": "朴文范", "gender": "M", "sibIndex": 2, "sources": ["dm_jun"]},
+    {"id": "park_gyeongbeom", "name": "박경범", "hanja": "朴景范", "gender": "M", "sibIndex": 3, "title": "가평군수", "sources": ["dm_jun"]},
+    {"id": "kim_siju", "name": "김시주", "hanja": "金是柱", "gender": "M", "clan": "의성 김씨", "sibIndex": 1, "title": "좌랑", "note": "김용의 장남, 이준의 외손.", "sources": ["dm_jun"]},
+    {"id": "kim_sigeon", "name": "김시건", "hanja": "金是楗", "gender": "M", "clan": "의성 김씨", "sibIndex": 2, "sources": ["dm_jun"]},
+    {"id": "kim_sijeong", "name": "김시정", "hanja": "金是楨", "gender": "M", "clan": "의성 김씨", "sibIndex": 3, "title": "생원", "sources": ["dm_jun"]},
+    {"id": "kim_sireung", "name": "김시릉", "hanja": "金是棱", "gender": "M", "clan": "의성 김씨", "sibIndex": 4, "sources": ["dm_jun"]},
+    {"id": "kim_sisang", "name": "김시상", "hanja": "金是相", "gender": "M", "clan": "의성 김씨", "sibIndex": 5, "sources": ["dm_jun"]},
+    {"id": "kim_yong_d1", "name": null, "gender": "F", "clan": "의성 김씨", "clanHanja": "義城金氏", "note": "김용의 딸. 판관 배상익(裵尙益)에게 출가.", "sources": ["dm_jun"]},
+    {"id": "kim_yong_d2", "name": null, "gender": "F", "clan": "의성 김씨", "clanHanja": "義城金氏", "note": "김용의 딸. 생원 이정준(李廷俊)에게 출가.", "sources": ["dm_jun"]},
+    {"id": "gwon_so", "name": "권소", "hanja": "權紹", "gender": "M", "clan": "안동 권씨", "title": "부사", "note": "이안도의 장인.", "sources": ["dm_jun"]},
+    {"id": "yi_ando_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이안도의 맏딸. 홍여율에게 출가.", "sources": ["dm_jun"]},
+    {"id": "hong_yeoyul", "name": "홍여율", "hanja": "洪汝栗", "gender": "M", "title": "순천군수, 증 이조참판, 당창군(唐昌君)", "note": "이안도의 사위.", "sources": ["dm_jun"]},
+    {"id": "yi_ando_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이안도의 둘째 딸. 여주목사 금개에게 출가.", "sources": ["dm_jun"]},
+    {"id": "geum_gae", "name": "금개", "hanja": "琴愷", "gender": "M", "title": "여주목사", "note": "이안도의 사위.", "sources": ["dm_jun"]},
+    {"id": "yi_ando_d3", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이안도의 셋째 딸. 생원 박홍경에게 출가.", "sources": ["dm_jun"]},
+    {"id": "park_honggyeong", "name": "박홍경", "hanja": "朴弘慶", "gender": "M", "title": "생원", "note": "이안도의 사위.", "sources": ["dm_jun"]},
+    {"id": "hong_yuhyeong", "name": "홍유형", "hanja": "洪有炯", "gender": "M", "title": "통판", "note": "홍여율의 아들, 이안도의 외손. 이준 묘지명을 김세렴에게 청함.", "sources": ["dm_jun"]},
+    {"id": "kim_sundo_wife", "name": null, "gender": "F", "note": "이순도의 처, 김인옥(金仁玉)의 딸. 본관 미상.", "sources": ["dm_jun"]},
+    {"id": "yi_yul", "name": "이률", "hanja": "李嵂", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 1, "title": "빙고서 별좌", "note": "이순도의 외아들.", "sources": ["dm_jun"]},
+    {"id": "yi_sundo_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이순도의 딸. 의금부도사 김지선에게 출가.", "sources": ["dm_jun"]},
+    {"id": "kim_jiseon", "name": "김지선", "hanja": "金止善", "gender": "M", "title": "의금부도사", "note": "이순도의 사위.", "sources": ["dm_jun"]},
+    {"id": "yi_sundo_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이순도의 딸. 안기도 찰방 김시추에게 출가.", "sources": ["dm_jun"]},
+    {"id": "kim_sichu", "name": "김시추", "hanja": "金是樞", "gender": "M", "title": "안기도 찰방", "note": "이순도의 사위.", "sources": ["dm_jun"]},
+    {"id": "gwon_dongmi", "name": "권동미", "hanja": "權東美", "gender": "M", "clan": "안동 권씨", "title": "현감", "note": "이영도의 장인. 충정공 권벌(權橃)의 아들.", "sources": ["ij_yeongdo", "dm_jun"]},
+    {"id": "andong_gwon_yeongdo", "name": null, "gender": "F", "clan": "안동 권씨", "clanHanja": "安東權氏", "note": "이영도의 처, 현감 권동미의 딸. 숙부인(정부인).", "sources": ["ij_yeongdo", "dm_jun", "gc_yeongdo"]},
+    {"id": "yi_gi", "name": "이기", "hanja": "李岐", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 1, "birth": "1591", "death": "1654", "pen": "수졸당(守拙堂)", "title": "공릉참봉", "note": "이영도의 장남. 광해군 때 과거를 단념. 수졸당 종택의 주인.", "sources": ["ij_yeongdo", "dm_jun", "gc_sujoldang"]},
+    {"id": "yi_eok", "name": "이억", "hanja": "李嶷", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 2, "title": "사직서참봉", "note": "이영도의 차남. 아들 없이 죽은 백부 이안도의 후사가 되어 상계 종가(퇴계 종손)를 이음.", "sources": ["ij_yeongdo", "dm_jun", "gc_ando", "gc_yeongdo"]},
+    {"id": "yi_gye", "name": "이계", "hanja": "李嵠", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 3, "note": "이영도의 측실 소생 아들. 디지털안동문화대전은 권씨 소생 세 아들(이기·이억·이계)로 적었으나, 이준 묘지명과 이영도 행장은 측실 소생으로 적음.", "sources": ["ij_yeongdo", "dm_jun", "gc_yeongdo"]},
+    {"id": "yi_yeongdo_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이영도의 측실 소생 딸. 박이환에게 출가.", "sources": ["ij_yeongdo", "dm_jun"]},
+    {"id": "park_ihwan", "name": "박이환", "hanja": "朴以煥", "gender": "M", "note": "이영도의 사위.", "sources": ["ij_yeongdo", "dm_jun"]},
+    {"id": "yi_yeongdo_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이영도의 측실 소생 딸. 김종선에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "kim_jongseon", "name": "김종선", "hanja": "金從善", "gender": "M", "note": "이영도의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_yeongdo_d3", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 10, "note": "이영도의 측실 소생 딸. 이𤽂(李𤽂, 이름 독음 미확인)에게 출가.", "sources": ["ij_yeongdo", "dm_jun"]},
+    {"id": "yi_huicheol", "name": "이희철", "hanja": "李希哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 1, "title": "찰방, 증 이조참의", "sources": ["ij_yeongdo"]},
+    {"id": "yi_geukcheol", "name": "이극철", "hanja": "李克哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 2, "title": "주부, 증 사복시정", "sources": ["ij_yeongdo"]},
+    {"id": "yi_gi_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이기의 딸. 금삼달에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "geum_samdal", "name": "금삼달", "hanja": "琴三達", "gender": "M", "note": "이기의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_gi_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이기의 딸. 참봉 금성휘에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "geum_seonghwi", "name": "금성휘", "hanja": "琴聖徽", "gender": "M", "title": "참봉", "note": "이기의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_gi_d3", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이기의 딸. 임헌에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "im_heon", "name": "임헌", "hanja": "任憲", "gender": "M", "note": "이기의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_myeongcheol", "name": "이명철", "hanja": "李命哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 1, "title": "참봉", "sources": ["ij_yeongdo"]},
+    {"id": "yi_seongcheol", "name": "이성철", "hanja": "李誠哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 2, "title": "판관", "sources": ["ij_yeongdo"]},
+    {"id": "yi_sincheol", "name": "이신철", "hanja": "李信哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 3, "sources": ["ij_yeongdo"]},
+    {"id": "yi_yuncheol", "name": "이윤철", "hanja": "李允哲", "gender": "M", "clan": "진성 이씨", "gen": 11, "sibIndex": 4, "sources": ["ij_yeongdo"]},
+    {"id": "yi_eok_d1", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이억의 딸. 류경지에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "ryu_gyeongji", "name": "류경지", "hanja": "柳敬之", "gender": "M", "note": "이억의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_eok_d2", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이억의 딸. 고이령에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "go_iryeong", "name": "고이령", "hanja": "高爾齡", "gender": "M", "note": "이억의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_eok_d3", "name": null, "gender": "F", "clan": "진성 이씨", "gen": 11, "note": "이억의 딸. 황석래에게 출가.", "sources": ["ij_yeongdo"]},
+    {"id": "hwang_seokrae", "name": "황석래", "hanja": "黃石來", "gender": "M", "note": "이억의 사위.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_hoe", "name": "이회", "hanja": "李櫰", "gender": "M", "clan": "진성 이씨", "gen": 12, "title": "증 이조참판", "note": "이희철의 아들.", "sources": ["ij_yeongdo"]},
+    {"id": "yi_suyak", "name": "이수약", "hanja": "李守約", "gender": "M", "clan": "진성 이씨", "gen": 13, "title": "참봉, 증 이조판서", "note": "이회의 아들. 이야순의 증조부.", "sources": ["ij_yeongdo", "gc_yasun"]},
+    {"id": "yi_segwan", "name": "이세관", "hanja": "李世觀", "gender": "M", "clan": "진성 이씨", "gen": 14, "note": "이야순의 조부.", "sources": ["gc_yasun"]},
+    {"id": "yi_guhyu", "name": "이구휴", "hanja": "李龜烋", "gender": "M", "clan": "진성 이씨", "gen": 15, "note": "이야순의 아버지.", "sources": ["gc_yasun"]},
+    {"id": "jeonju_yi_guhyu", "name": null, "gender": "F", "clan": "전주 이씨", "clanHanja": "全州李氏", "note": "이구휴의 처, 이약송(李若松)의 딸.", "sources": ["gc_yasun"]},
+    {"id": "yi_yasun", "name": "이야순", "hanja": "李野淳", "gender": "M", "clan": "진성 이씨", "gen": 16, "birth": "1755", "death": "1831", "pen": "광뢰(廣瀨)", "courtesy": "경용(景容)·건지(健之)", "title": "참봉(제수, 사양)", "note": "이황의 9대손. 초명 유회(有晦). 『퇴계연보보유』를 지음. 두 부인(풍산 류씨 류관춘의 딸, 전주 류씨 류호문의 딸)에게서 딸만 둘 두어 막내 아우 이암순의 둘째 아들 이휘정을 후사로 삼음.", "sources": ["gc_yasun", "ij_yeongdo"]},
+    {"id": "yi_uyang_son", "name": null, "gender": "M", "gen": 6, "note": "이우양의 아들. 이연(이정의 현손)·이한 형제의 조부로, 이름이 확인되지 않음.", "sources": ["gc_clan", "gc_juchon"]},
+    {"id": "yi_uyang_gson", "name": null, "gender": "M", "gen": 7, "note": "이우양의 손자, 이연·이한 형제의 아버지. 이름이 확인되지 않음.", "sources": ["gc_clan", "gc_juchon"]},
+    {"id": "yi_yeon", "name": "이연", "hanja": "李演", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 1, "birth": "1492", "death": "1561", "title": "훈도", "note": "이우양의 증손(이정의 현손). 경류정과 주촌 종택을 지음.", "sources": ["gc_clan", "gc_juchon"]},
+    {"id": "yi_han", "name": "이한", "hanja": "李漢", "gender": "M", "clan": "진성 이씨", "gen": 8, "sibIndex": 2, "note": "이연의 아우. 후손은 일직면 송리리로 옮겨 삶.", "sources": ["gc_clan", "gc_bongchun"]},
+    {"id": "yi_huian", "name": "이희안", "hanja": "李希顔", "gender": "M", "clan": "진성 이씨", "gen": 9, "note": "이연의 아들. 처는 의성 김씨 김예범(金禮範)의 딸.", "sources": ["gc_jeonghoe"]},
+    {"id": "uiseong_kim_huian", "name": null, "gender": "F", "clan": "의성 김씨", "clanHanja": "義城金氏", "note": "이희안의 처, 김예범의 딸.", "sources": ["gc_jeonghoe"]},
+    {"id": "yi_jeonghoe", "name": "이정회", "hanja": "李庭檜", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 1, "birth": "1542", "death": "1612", "pen": "송간(松澗)", "courtesy": "경직(景直)", "title": "의흥현감", "note": "이황의 문인. 임진왜란 때 의흥현감. 학봉 김성일과 내외종 간.", "sources": ["gc_jeonghoe", "gc_clan"]},
+    {"id": "yi_jeongbaek", "name": "이정백", "hanja": "李庭栢", "gender": "M", "clan": "진성 이씨", "gen": 10, "sibIndex": 2, "pen": "낙금헌(樂琴軒)", "note": "이정회의 아우.", "sources": ["gc_jeonghoe"]},
+    {"id": "yi_huiseong", "name": "이희성", "hanja": "李希聖", "gender": "M", "clan": "진성 이씨", "gen": 9, "note": "이한의 아들. 처사. 처는 양근 김씨 어모장군 김세필(金世弼)의 딸.", "sources": ["gc_bongchun"]},
+    {"id": "yanggeun_kim_huiseong", "name": null, "gender": "F", "clan": "양근 김씨", "clanHanja": "楊根金氏", "note": "이희성의 처, 김세필의 딸. 『국조문과방목』에는 이봉춘의 외조부가 정계근(鄭繼根)으로 나온다는 의견이 있음.", "sources": ["gc_bongchun"]},
+    {"id": "yi_bongchun", "name": "이봉춘", "hanja": "李逢春", "gender": "M", "clan": "진성 이씨", "gen": 10, "birth": "1542", "death": "1625", "pen": "학천(鶴川)", "courtesy": "근회(根晦)", "title": "문과(1576), 성균관전적·직강", "note": "이황의 문인. 디지털안동문화대전 「진성이씨」 항목은 호를 學川으로 적음.", "sources": ["gc_bongchun", "gc_clan"]},
+    {"id": "yi_don", "name": "이돈", "hanja": "李燉", "gender": "M", "clan": "진성 이씨", "gen": 9, "birth": "1568", "death": "1624", "pen": "호봉(壺峰)", "title": "문과(1601), 지평·헌납, 영해부사, 영천군수", "note": "훈련참군 이흥양의 현손. 산수정을 지음. 마애 진성 이씨의 중시조.", "sources": ["gc_sansujeong", "gc_clan", "gc_maae"]},
+    {"id": "yi_hoebo", "name": "이회보", "hanja": "李回寶", "gender": "M", "clan": "진성 이씨", "gen": 10, "birth": "1594", "death": "1669", "title": "문과 장원(1629)", "note": "이돈의 아들. 병자호란 때 남한산성에 호종하며 『산성일기』를 남김.", "sources": ["gc_clan", "gc_maae"]},
+    {"id": "yi_huidam", "name": "이희담", "hanja": "李希聃", "gender": "M", "clan": "진성 이씨", "gen": 5, "note": "이운구의 후손으로 동막파 파조(5세). 4세 부친의 이름은 확인하지 못함.", "sources": ["wiki_clan"]},
+    {"id": "yi_yeodam", "name": "이여담", "hanja": "李如聃", "gender": "M", "clan": "진성 이씨", "gen": 5, "note": "이운구의 후손으로 은풍파 파조(5세). 4세 부친의 이름은 확인하지 못함.", "sources": ["wiki_clan"]},
+    {"id": "yi_jongdam", "name": "이종담", "hanja": "李從聃", "gender": "M", "clan": "진성 이씨", "gen": 5, "note": "이운구의 후손으로 병방파 파조(5세). 4세 부친의 이름은 확인하지 못함.", "sources": ["wiki_clan"]},
+    {"id": "yi_seonho", "name": "이선호", "hanja": "李善浩", "gender": "M", "clan": "진성 이씨", "gen": 5, "note": "이자방의 후손으로 진보 후평파 파조(5세). 3·4세의 이름은 확인하지 못함.", "sources": ["wiki_clan"]}
   ],
 
   "unions": [
-    { "id": "u_songju", "husband": "yi_songju", "wife": null,
-      "children": ["yi_yeongchan"] },
-    { "id": "u_yeongchan", "husband": "yi_yeongchan", "wife": null,
-      "children": ["yi_seok"] },
-    { "id": "u_seok", "husband": "yi_seok", "wife": null,
-      "children": ["yi_jasu", "yi_jabang"] },
-    { "id": "u_jasu", "husband": "yi_jasu", "wife": null,
-      "children": ["yi_ungu", "yi_unhu"] },
-    { "id": "u_unhu", "husband": "yi_unhu", "wife": null,
-      "children": ["yi_jeong"] },
-    { "id": "u_jeong", "husband": "yi_jeong", "wife": null,
-      "children": ["yi_uyang", "yi_heungyang", "yi_gyeyang"] },
+    {"id": "u_songju", "husband": "yi_songju", "wife": null, "children": ["yi_yeongchan"]},
+    {"id": "u_yeongchan", "husband": "yi_yeongchan", "wife": null, "children": ["yi_seok"]},
+    {"id": "u_seok", "husband": "yi_seok", "wife": null, "children": ["yi_jasu", "yi_jabang"]},
+    {"id": "u_jasu", "husband": "yi_jasu", "wife": null, "children": ["yi_ungu", "yi_unhu"]},
+    {"id": "u_unhu", "husband": "yi_unhu", "wife": "gwon_unhu", "children": ["yi_jeong"]},
+    {"id": "u_jeong", "husband": "yi_jeong", "wife": "andong_kim_jeong", "type": "정실", "children": ["yi_uyang", "yi_heungyang", "yi_gyeyang", "yi_jeong_d1", "yi_jeong_d2", "yi_jeong_d3", "yi_jeong_d4", "yi_jeong_d5", "yi_jeong_d6"]},
+    {"id": "u_kim_youyong", "husband": "kim_youyong", "wife": null, "children": ["yeongyang_kim"]},
+    {"id": "u_gyeyang", "husband": "yi_gyeyang", "wife": "yeongyang_kim", "type": "정실", "note": "이계양의 자녀로는 2남(이식·이우)만 확인됨", "children": ["yi_sik", "yi_u"]},
+    {"id": "u_kim_hancheol", "husband": "kim_hancheol", "wife": "uiryeong_nam", "children": ["uiseong_kim"]},
+    {"id": "u_park_chi", "husband": "park_chi", "wife": null, "children": ["chuncheon_park"]},
+    {"id": "u_sik_1", "husband": "yi_sik", "wife": "uiseong_kim", "type": "정실", "order": 1, "note": "초취", "children": ["yi_jam", "yi_ha", "yi_daughter_sik"]},
+    {"id": "u_sik_2", "husband": "yi_sik", "wife": "chuncheon_park", "type": "계실", "order": 2, "note": "재취", "children": ["yi_seorin", "yi_ui", "yi_hae", "yi_jing", "yi_hwang"]},
+    {"id": "u_sindam", "husband": "sin_dam", "wife": "yi_daughter_sik", "type": "정실", "children": ["sin_hongjo", "sin_dam_d1"]},
+    {"id": "u_heo_chan", "husband": "heo_chan", "wife": "andong_mun_heo", "type": "정실", "children": ["heo_saryeom", "heo_saeon", "gimhae_heo", "heo_chan_d2"]},
+    {"id": "u_gwon_jil", "husband": "gwon_jil", "wife": null, "children": ["andong_gwon"]},
+    {"id": "u_hwang_1", "husband": "yi_hwang", "wife": "gimhae_heo", "type": "정실", "order": 1, "note": "초취", "children": ["yi_jun", "yi_chae"]},
+    {"id": "u_hwang_2", "husband": "yi_hwang", "wife": "andong_gwon", "type": "계실", "order": 2, "note": "재취, 소생 없음", "children": []},
+    {"id": "u_hwang_3", "husband": "yi_hwang", "wife": "concubine_hwang", "type": "첩", "order": 3, "children": ["yi_jeok"]},
+    {"id": "u_hwang_4", "husband": "yi_hwang", "wife": "duhyang", "type": "첩", "order": 4, "note": "소실, 소생 기록 없음", "children": []},
+    {"id": "u_geum_jae", "husband": "geum_jae", "wife": null, "children": ["bonghwa_geum", "bonghwa_geum_chi"]},
+    {"id": "u_jun", "husband": "yi_jun", "wife": "bonghwa_geum", "type": "정실", "children": ["yi_ando", "yi_sundo", "yi_yeongdo", "yi_jun_d1", "yi_jun_d2"]},
+    {"id": "u_chae", "husband": "yi_chae", "wife": "wife_chae", "type": "정실", "note": "이채 사후 친정으로 돌아가 재혼", "children": []},
+    {"id": "u_ando", "husband": "yi_ando", "wife": "andong_gwon_ando", "type": "정실", "children": ["yi_ando_d1", "yi_ando_d2", "yi_ando_d3"]},
+    {"id": "u_kim_jeong_jbj", "husband": "kim_jeong_jbj", "wife": null, "children": ["andong_kim_jeong"]},
+    {"id": "u_nam_baekgyeong", "husband": "nam_baekgyeong", "wife": "yi_jeong_d1", "type": "정실", "children": []},
+    {"id": "u_yu_bongsu", "husband": "yu_bongsu", "wife": "yi_jeong_d2", "type": "정실", "children": []},
+    {"id": "u_jeong_bomun", "husband": "jeong_bomun", "wife": "yi_jeong_d3", "type": "정실", "children": []},
+    {"id": "u_yi_ju_jeong", "husband": "yi_ju_jeong", "wife": "yi_jeong_d4", "type": "정실", "children": []},
+    {"id": "u_park_geunson", "husband": "park_geunson", "wife": "yi_jeong_d5", "type": "정실", "children": []},
+    {"id": "u_gwon_jong", "husband": "gwon_jong", "wife": "yi_jeong_d6", "type": "정실", "children": []},
+    {"id": "u_park_wonbi", "husband": "park_wonbi", "wife": null, "children": ["park_gwangjeong"]},
+    {"id": "u_park_gwangjeong", "husband": "park_gwangjeong", "wife": null, "children": ["park_nong"]},
+    {"id": "u_park_nong", "husband": "park_nong", "wife": null, "children": ["park_hyojeon"]},
+    {"id": "u_park_hyojeon", "husband": "park_hyojeon", "wife": null, "children": ["park_chi"]},
+    {"id": "u_yi_simin", "husband": "yi_simin", "wife": null, "children": ["wolseong_yi_u"]},
+    {"id": "u_u", "husband": "yi_u", "wife": "wolseong_yi_u", "type": "정실", "children": ["yi_suryeong", "yi_u_d1", "yi_u_d2"]},
+    {"id": "u_jo_hyoyeon", "husband": "jo_hyoyeon", "wife": "yi_u_d1", "type": "정실", "children": ["jo_yunsin", "jo_yungu"]},
+    {"id": "u_o_eonui", "husband": "o_eonui", "wife": "yi_u_d2", "type": "정실", "children": ["o_sujeong", "o_suyeong"]},
+    {"id": "u_suryeong", "husband": "yi_suryeong", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_bing", "yi_gyeol", "yi_chung", "yi_suryeong_d1", "yi_suryeong_d2"]},
+    {"id": "u_yi_ryeongseung", "husband": "yi_ryeongseung", "wife": "yi_suryeong_d1", "type": "정실", "children": []},
+    {"id": "u_chae_ungyeong", "husband": "chae_ungyeong", "wife": "yi_suryeong_d2", "type": "정실", "children": []},
+    {"id": "u_kim_su", "husband": "kim_su", "wife": null, "children": ["gwangju_kim_bing"]},
+    {"id": "u_bing", "husband": "yi_bing", "wife": "gwangju_kim_bing", "type": "정실", "children": []},
+    {"id": "u_jam", "husband": "yi_jam", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_in", "yi_jam_d1", "yi_jam_d2"]},
+    {"id": "u_min_siwon", "husband": "min_siwon", "wife": "yi_jam_d1", "type": "정실", "children": []},
+    {"id": "u_gwon_ryuk", "husband": "gwon_ryuk", "wife": "yi_jam_d2", "type": "정실", "children": ["gwon_seonmun", "gwon_homun"]},
+    {"id": "u_gwon_seonmun", "husband": "gwon_seonmun", "wife": null, "note": "처는 반씨(潘公의 딸), 이름·본관 미상", "children": ["gwon_doga", "gwon_haengga", "gwon_jega"]},
+    {"id": "u_ha", "husband": "yi_ha", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_wan", "yi_goeng", "yi_seong", "yi_ha_d1", "yi_ha_d2"]},
+    {"id": "u_gwon_yunbyeon", "husband": "gwon_yunbyeon", "wife": "yi_ha_d1", "type": "정실", "children": []},
+    {"id": "u_song_yugyeong", "husband": "song_yugyeong", "wife": "yi_ha_d2", "type": "정실", "children": []},
+    {"id": "u_sin_seom", "husband": "sin_seom", "wife": "sin_dam_d1", "type": "정실", "children": []},
+    {"id": "u_ui", "husband": "yi_ui", "wife": null, "note": "처는 기록에서 확인하지 못함. 후손은 예천 대죽리로 옮겨 삶(디지털안동문화대전)", "children": ["yi_seon", "yi_heon", "yi_jae", "yi_ui_d1"]},
+    {"id": "u_kim_bak", "husband": "kim_bak", "wife": "yi_ui_d1", "type": "정실", "children": []},
+    {"id": "u_kim_bokheung", "husband": "kim_bokheung", "wife": null, "children": ["yeonan_kim_hae"]},
+    {"id": "u_hae", "husband": "yi_hae", "wife": "yeonan_kim_hae", "type": "정실", "children": ["yi_bok", "yi_yeong_hae", "yi_gyo", "yi_chi", "yi_hye", "yi_hae_d1"]},
+    {"id": "u_choe_deoksu", "husband": "choe_deoksu", "wife": "yi_hae_d1", "type": "정실", "children": ["choe_chim", "choe_deoksu_d1", "choe_deoksu_d2"]},
+    {"id": "u_yi_chungga", "husband": "yi_chungga", "wife": "choe_deoksu_d1", "type": "정실", "children": []},
+    {"id": "u_yi_gyeongham", "husband": "yi_gyeongham", "wife": "choe_deoksu_d2", "type": "정실", "children": []},
+    {"id": "u_bok", "husband": "yi_bok", "wife": "sin_bok_wife", "type": "정실", "note": "후사 없음", "children": []},
+    {"id": "u_yeong_hae", "husband": "yi_yeong_hae", "wife": "yi_yeong_wife", "type": "정실", "children": ["yi_yeong_d1", "yi_yeong_d2"]},
+    {"id": "u_yi_eonjik", "husband": "yi_eonjik", "wife": "yi_yeong_d1", "type": "정실", "children": []},
+    {"id": "u_yi_yebok", "husband": "yi_yebok", "wife": "yi_yeong_d2", "type": "정실", "children": []},
+    {"id": "u_gyo_1", "husband": "yi_gyo", "wife": "hwang_gyo_wife", "type": "정실", "order": 1, "note": "초취", "children": []},
+    {"id": "u_gyo_2", "husband": "yi_gyo", "wife": "geum_gyo_wife", "type": "계실", "order": 2, "note": "재취. 1569년 묘지명의 「재취 후 3남을 낳음」 서술에 따라 세 아들을 재취 소생으로 둠. 딸(이경원 처)의 생모는 기록에 없어 여기에 함께 둠", "children": ["yi_sungdo", "yi_jeongdo", "yi_yudo", "yi_gyo_d1"]},
+    {"id": "u_yi_gyeongwon", "husband": "yi_gyeongwon", "wife": "yi_gyo_d1", "type": "정실", "children": []},
+    {"id": "u_chi", "husband": "yi_chi", "wife": "bonghwa_geum_chi", "type": "정실", "note": "이치 요절. 이순도를 후사로 세움", "children": []},
+    {"id": "u_hye", "husband": "yi_hye", "wife": "yi_hye_wife", "type": "정실", "children": ["yi_judo", "yi_mido", "yi_simdo", "yi_sado", "yi_jikdo"]},
+    {"id": "u_jing", "husband": "yi_jing", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_ju", "yi_geon", "yi_jing_d1", "yi_jing_d2"]},
+    {"id": "u_yi_jiyeong", "husband": "yi_jiyeong", "wife": "yi_jing_d1", "type": "정실", "children": []},
+    {"id": "u_park_sehyeon", "husband": "park_sehyeon", "wife": "yi_jing_d2", "type": "정실", "children": []},
+    {"id": "u_ju", "husband": "yi_ju", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_ju_d1"]},
+    {"id": "u_bae_samgeun", "husband": "bae_samgeun", "wife": "yi_ju_d1", "type": "정실", "children": []},
+    {"id": "u_heo_wonbo", "husband": "heo_wonbo", "wife": null, "children": ["heo_chan"]},
+    {"id": "u_kim_jin", "husband": "kim_jin", "wife": "heo_chan_d2", "type": "정실", "children": []},
+    {"id": "u_gwon_ju", "husband": "gwon_ju", "wife": null, "children": ["gwon_jil"]},
+    {"id": "u_bae_cheonseok", "husband": "bae_cheonseok", "wife": null, "order": 1, "note": "정실은 연일 정씨(정세호의 딸)", "children": ["bae_samgeun"]},
+    {"id": "u_bae_cheonseok_2", "husband": "bae_cheonseok", "wife": null, "type": "첩", "order": 2, "note": "측실", "children": ["heunghae_bae_jeok"]},
+    {"id": "u_jeok", "husband": "yi_jeok", "wife": "heunghae_bae_jeok", "type": "정실", "children": []},
+    {"id": "u_park_ryeo", "husband": "park_ryeo", "wife": "yi_jun_d1", "type": "정실", "children": ["park_seongbeom", "park_munbeom", "park_gyeongbeom"]},
+    {"id": "u_kim_yong", "husband": "kim_yong", "wife": "yi_jun_d2", "type": "정실", "children": ["kim_siju", "kim_sigeon", "kim_sijeong", "kim_sireung", "kim_sisang", "kim_yong_d1", "kim_yong_d2"]},
+    {"id": "u_gwon_so", "husband": "gwon_so", "wife": null, "children": ["andong_gwon_ando"]},
+    {"id": "u_hong_yeoyul", "husband": "hong_yeoyul", "wife": "yi_ando_d1", "type": "정실", "children": ["hong_yuhyeong"]},
+    {"id": "u_geum_gae", "husband": "geum_gae", "wife": "yi_ando_d2", "type": "정실", "children": []},
+    {"id": "u_park_honggyeong", "husband": "park_honggyeong", "wife": "yi_ando_d3", "type": "정실", "children": []},
+    {"id": "u_sundo", "husband": "yi_sundo", "wife": "kim_sundo_wife", "type": "정실", "children": ["yi_yul", "yi_sundo_d1", "yi_sundo_d2"]},
+    {"id": "u_kim_jiseon", "husband": "kim_jiseon", "wife": "yi_sundo_d1", "type": "정실", "children": []},
+    {"id": "u_kim_sichu", "husband": "kim_sichu", "wife": "yi_sundo_d2", "type": "정실", "children": []},
+    {"id": "u_gwon_dongmi", "husband": "gwon_dongmi", "wife": null, "children": ["andong_gwon_yeongdo"]},
+    {"id": "u_yeongdo", "husband": "yi_yeongdo", "wife": "andong_gwon_yeongdo", "type": "정실", "order": 1, "children": ["yi_gi", "yi_eok"]},
+    {"id": "u_yeongdo_2", "husband": "yi_yeongdo", "wife": null, "type": "첩", "order": 2, "note": "측실. 1남 3녀", "children": ["yi_gye", "yi_yeongdo_d1", "yi_yeongdo_d2", "yi_yeongdo_d3"]},
+    {"id": "u_park_ihwan", "husband": "park_ihwan", "wife": "yi_yeongdo_d1", "type": "정실", "children": []},
+    {"id": "u_kim_jongseon", "husband": "kim_jongseon", "wife": "yi_yeongdo_d2", "type": "정실", "children": []},
+    {"id": "u_gi", "husband": "yi_gi", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_huicheol", "yi_geukcheol", "yi_gi_d1", "yi_gi_d2", "yi_gi_d3"]},
+    {"id": "u_geum_samdal", "husband": "geum_samdal", "wife": "yi_gi_d1", "type": "정실", "children": []},
+    {"id": "u_geum_seonghwi", "husband": "geum_seonghwi", "wife": "yi_gi_d2", "type": "정실", "children": []},
+    {"id": "u_im_heon", "husband": "im_heon", "wife": "yi_gi_d3", "type": "정실", "children": []},
+    {"id": "u_eok", "husband": "yi_eok", "wife": null, "note": "처는 기록에서 확인하지 못함", "children": ["yi_myeongcheol", "yi_seongcheol", "yi_sincheol", "yi_yuncheol", "yi_eok_d1", "yi_eok_d2", "yi_eok_d3"]},
+    {"id": "u_ryu_gyeongji", "husband": "ryu_gyeongji", "wife": "yi_eok_d1", "type": "정실", "children": []},
+    {"id": "u_go_iryeong", "husband": "go_iryeong", "wife": "yi_eok_d2", "type": "정실", "children": []},
+    {"id": "u_hwang_seokrae", "husband": "hwang_seokrae", "wife": "yi_eok_d3", "type": "정실", "children": []},
+    {"id": "u_huicheol", "husband": "yi_huicheol", "wife": null, "children": ["yi_hoe"]},
+    {"id": "u_hoe", "husband": "yi_hoe", "wife": null, "children": ["yi_suyak"]},
+    {"id": "u_suyak", "husband": "yi_suyak", "wife": null, "children": ["yi_segwan"]},
+    {"id": "u_segwan", "husband": "yi_segwan", "wife": null, "children": ["yi_guhyu"]},
+    {"id": "u_guhyu", "husband": "yi_guhyu", "wife": "jeonju_yi_guhyu", "type": "정실", "children": ["yi_yasun"]},
+    {"id": "u_uyang", "husband": "yi_uyang", "wife": null, "children": ["yi_uyang_son"]},
+    {"id": "u_uyang_son", "husband": "yi_uyang_son", "wife": null, "children": ["yi_uyang_gson"]},
+    {"id": "u_uyang_gson", "husband": "yi_uyang_gson", "wife": null, "children": ["yi_yeon", "yi_han"]},
+    {"id": "u_yeon", "husband": "yi_yeon", "wife": null, "children": ["yi_huian"]},
+    {"id": "u_huian", "husband": "yi_huian", "wife": "uiseong_kim_huian", "type": "정실", "children": ["yi_jeonghoe", "yi_jeongbaek"]},
+    {"id": "u_han", "husband": "yi_han", "wife": null, "children": ["yi_huiseong"]},
+    {"id": "u_huiseong", "husband": "yi_huiseong", "wife": "yanggeun_kim_huiseong", "type": "정실", "children": ["yi_bongchun"]},
+    {"id": "u_don", "husband": "yi_don", "wife": null, "children": ["yi_hoebo"]}
+  ],
 
-    { "id": "u_kim_youyong", "husband": "kim_youyong", "wife": null,
-      "children": ["yeongyang_kim"] },
-    { "id": "u_gyeyang", "husband": "yi_gyeyang", "wife": "yeongyang_kim", "type": "정실",
-      "children": ["yi_sik", "yi_u"] },
-
-    { "id": "u_kim_hancheol", "husband": "kim_hancheol", "wife": null,
-      "children": ["uiseong_kim"] },
-    { "id": "u_park_chi", "husband": "park_chi", "wife": null,
-      "children": ["chuncheon_park"] },
-    { "id": "u_sik_1", "husband": "yi_sik", "wife": "uiseong_kim", "type": "정실", "order": 1,
-      "note": "초취",
-      "children": ["yi_jam", "yi_ha", "yi_daughter_sik"] },
-    { "id": "u_sik_2", "husband": "yi_sik", "wife": "chuncheon_park", "type": "계실", "order": 2,
-      "note": "재취",
-      "children": ["yi_seorin", "yi_ui", "yi_hae", "yi_jing", "yi_hwang"] },
-    { "id": "u_sindam", "husband": "sin_dam", "wife": "yi_daughter_sik", "type": "정실",
-      "children": [] },
-
-    { "id": "u_heo_chan", "husband": "heo_chan", "wife": null,
-      "children": ["gimhae_heo"] },
-    { "id": "u_gwon_jil", "husband": "gwon_jil", "wife": null,
-      "children": ["andong_gwon"] },
-    { "id": "u_hwang_1", "husband": "yi_hwang", "wife": "gimhae_heo", "type": "정실", "order": 1,
-      "note": "초취",
-      "children": ["yi_jun", "yi_chae"] },
-    { "id": "u_hwang_2", "husband": "yi_hwang", "wife": "andong_gwon", "type": "계실", "order": 2,
-      "note": "재취, 소생 없음",
-      "children": [] },
-    { "id": "u_hwang_3", "husband": "yi_hwang", "wife": "concubine_hwang", "type": "첩", "order": 3,
-      "children": ["yi_jeok"] },
-    { "id": "u_hwang_4", "husband": "yi_hwang", "wife": "duhyang", "type": "첩", "order": 4,
-      "note": "소실, 소생 기록 없음",
-      "children": [] },
-
-    { "id": "u_geum_jae", "husband": "geum_jae", "wife": null,
-      "children": ["bonghwa_geum"] },
-    { "id": "u_jun", "husband": "yi_jun", "wife": "bonghwa_geum", "type": "정실",
-      "children": ["yi_ando", "yi_sundo", "yi_yeongdo"] },
-    { "id": "u_chae", "husband": "yi_chae", "wife": "wife_chae", "type": "정실",
-      "note": "이채 사후 친정으로 돌아가 재혼",
-      "children": [] },
-    { "id": "u_ando", "husband": "yi_ando", "wife": "andong_gwon_ando", "type": "정실",
-      "children": [] }
+  "adoptions": [
+    {"id": "ad_wan", "child": "yi_wan", "union": "u_jam", "note": "백부 이잠의 외아들 이인이 일찍 죽어 자식이 없자 이완이 대를 이음(寅早夭無子 以完嗣). 원문은 누구의 후사인지 명시하지 않으나 이인과 같은 항렬이므로 이잠의 계후로 둠", "sources": ["tg_sik", "gc_clan"]},
+    {"id": "ad_yudo", "child": "yi_yudo", "union": "u_yeong_hae", "note": "아들이 없던 백부 이영의 후사가 됨(寗縣監無子 以有道嗣)", "sources": ["ba_hae"]},
+    {"id": "ad_sundo", "child": "yi_sundo", "union": "u_chi", "note": "일찍 죽은 종숙 이치의 후사가 됨(寘早夭 以純道嗣)", "sources": ["ba_hae"]},
+    {"id": "ad_eok", "child": "yi_eok", "union": "u_ando", "note": "아들 없이 죽은 백부 이안도의 후사가 됨. 이안도의 처 권씨가 양자로 들임", "sources": ["ij_yeongdo", "gc_ando"]}
   ],
 
   "lineageGaps": [
-    {
-      "id": "gap_jongson",
-      "ancestor": "yi_ando",
-      "descendant": "yi_chungho",
-      "generations": 11,
-      "confidence": "추정",
-      "note": "이충호는 이황의 13대손(이안도의 11대손)으로 전한다. 종손 계통으로 추정되나 중간 10대의 인물은 이 목업에 수록하지 않아 '미상'으로 자동 생성된다."
-    }
+    {"id": "gap_jongson", "ancestor": "yi_ando", "descendant": "yi_chungho", "generations": 11, "confidence": "추정", "note": "이충호는 이황의 13대손으로 전한다(디지털안동문화대전 「퇴계종택」: 13세손 이충호). 이안도는 친아들이 없고 아우 이영도의 아들 이억을 후사로 들였으므로, 실제 혈통은 이억을 거쳐 이어진다. 중간 10대의 인물은 이 데이터에 수록하지 않아 미상으로 자동 생성되며, 계보 계산을 단순하게 하려고 이안도 아래에 이었다."},
+    {"id": "gap_don", "ancestor": "yi_heungyang", "descendant": "yi_don", "generations": 4, "confidence": "기록", "note": "이돈은 이흥양의 현손(디지털안동문화대전 「산수정」). 사이 3대의 이름은 확인하지 못해 미상으로 생성된다."},
+    {"id": "gap_huidam", "ancestor": "yi_ungu", "descendant": "yi_huidam", "generations": 2, "confidence": "추정", "note": "5세 파조이므로 3세 이운구의 손자로 둔다. 4세 부친은 미상이며, 세 파조가 형제인지 여부는 확인하지 못해 각각 따로 이었다."},
+    {"id": "gap_yeodam", "ancestor": "yi_ungu", "descendant": "yi_yeodam", "generations": 2, "confidence": "추정", "note": "5세 파조이므로 3세 이운구의 손자로 둔다. 4세 부친은 미상."},
+    {"id": "gap_jongdam", "ancestor": "yi_ungu", "descendant": "yi_jongdam", "generations": 2, "confidence": "추정", "note": "5세 파조이므로 3세 이운구의 손자로 둔다. 4세 부친은 미상."},
+    {"id": "gap_seonho", "ancestor": "yi_jabang", "descendant": "yi_seonho", "generations": 3, "confidence": "추정", "note": "5세 파조이므로 2세 이자방의 증손으로 둔다. 3·4세는 미상."}
   ]
 });
