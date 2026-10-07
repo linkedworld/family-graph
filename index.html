@@ -3,143 +3,83 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>한국 역사 인물 가계도</title>
+<meta name="theme-color" content="#04060c">
+<title>버블 가계도</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261007-10">
-<link rel="stylesheet" href="css/nav.css?v=20261007-10">
+<link rel="stylesheet" href="css/bubble.css?v=20261007-11">
+<link rel="stylesheet" href="css/nav.css?v=20261007-11">
 </head>
 <body>
-<div class="app">
-  <header class="bar">
+<main class="space" id="space" aria-label="버블 가계도 3D 화면">
+  <canvas id="gl" aria-label="3D 구슬 가계도. 구슬을 누르면 자손을 펼치거나 접습니다."></canvas>
+  <div id="labels" class="labels" aria-hidden="true"></div>
+  <div id="tip" class="tip" hidden></div>
+
+  <header class="hud-top">
     <div class="brand">
-      <h1 id="title">퇴계 이황 가계도</h1>
-      <p class="sub" id="subtitle">진성 이씨 · 목업 데이터</p>
+      <p class="eyebrow">BUBBLE GENEALOGY · 3D</p>
+      <h1 id="title">버블 가계도</h1>
+      <p class="sub" id="subtitle"></p>
     </div>
-    <button type="button" id="toggleControls" class="only-narrow" aria-expanded="false" aria-controls="moreControls">설정</button>
-    <div class="controls">
-      <label class="field" for="dataset">
-        <span class="label">가계도</span>
-        <select id="dataset"></select>
-      </label>
-      <label class="field" for="find">
-        <span class="label">인물 찾기</span>
+    <button type="button" id="toggleControls" class="glass-btn only-narrow" aria-expanded="false" aria-controls="controls">설정</button>
+    <div class="controls" id="controls">
+      <label class="field" for="dataset"><span>가계도</span><select id="dataset"></select></label>
+      <label class="field" for="ego"><span>기준 인물</span><select id="ego"></select></label>
+      <label class="field" for="find"><span>인물 찾기</span>
         <input id="find" type="search" list="people" placeholder="이름 입력" autocomplete="off">
         <datalist id="people"></datalist>
       </label>
-      <div class="more" id="moreControls">
-      <label class="field" for="ego">
-        <span class="label">기준 인물</span>
-        <select id="ego"></select>
-      </label>
-      <label class="field" for="lineMode">
-        <span class="label">직계 표시</span>
-        <select id="lineMode">
-          <option value="paternal" selected>부계만</option>
-          <option value="both">부계·모계</option>
-          <option value="none">표시 안 함</option>
-        </select>
-      </label>
-      <div class="field expand-btns" role="group" aria-label="접기·펴기">
-        <span class="label">가지</span>
-        <button type="button" id="expandAll">모두 펼치기</button>
-        <button type="button" id="collapseAll">직계만 보기</button>
+      <div class="chips" role="group" aria-label="표시">
+        <label class="chip"><input type="checkbox" id="showSpouses" checked><span>배우자</span></label>
+        <label class="chip"><input type="checkbox" id="hideUnknown"><span>미상 숨기기</span></label>
+        <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
       </div>
-      <label class="toggle" for="showLine">
-        <input type="checkbox" id="showLine" checked>
-        <span>정통 표시</span>
-      </label>
-      <label class="toggle" for="fold">
-        <input type="checkbox" id="fold" checked>
-        <span>형제 접기</span>
-      </label>
-      <label class="toggle" for="hideUnknown">
-        <input type="checkbox" id="hideUnknown">
-        <span>미상 인물 숨기기</span>
-      </label>
-      <label class="toggle" for="showInlaws">
-        <input type="checkbox" id="showInlaws" checked>
-        <span>외가·처가 표시</span>
-      </label>
+      <div class="chips" role="group" aria-label="펼치기">
+        <button type="button" class="glass-btn" id="expandAll">모두 펼치기</button>
+        <button type="button" class="glass-btn" id="collapseAll">직계만</button>
       </div>
     </div>
   </header>
 
-  <main class="body">
-    <section class="stage" aria-label="가계도">
-      <svg id="tree" role="img" aria-label="가계도 다이어그램"></svg>
-      <!-- 도구 막대: 왼쪽 페이지 메뉴(js/nav.js가 채움) · 가운데 안내 · 오른쪽 확대·축소 -->
-      <div class="stagebar" role="toolbar" aria-label="가계도 도구">
-        <nav class="navmenu sb-left" data-page="tree" aria-label="페이지"></nav>
-        <div class="sb-mid"><p class="hint">카드를 누르면 상세 정보, 두 번 누르면 기준 인물로 바뀝니다.</p></div>
-        <div class="zoom sb-right" role="group" aria-label="확대·축소">
-          <button type="button" id="zoomIn" aria-label="확대">＋</button>
-          <button type="button" id="zoomOut" aria-label="축소">－</button>
-          <button type="button" id="zoomFit">맞춤</button>
-        </div>
-      </div>
-    </section>
+  <ul class="legend" aria-label="보는 법">
+    <li><i class="dot ego"></i>기준 인물</li>
+    <li><i class="dot lineal"></i>직계</li>
+    <li><i class="dot near"></i><i class="dot far"></i>방계 (가까움→멂)</li>
+    <li><i class="dot spouse"></i>배우자</li>
+    <li><i class="dot unknown"></i>미상</li>
+    <li><i class="ring-sample"></i>이름난 인물</li>
+    <li><i class="shell-sample"></i>접힌 자손 (+N)</li>
+  </ul>
 
-    <aside class="panel">
-      <button type="button" id="sheetHandle" class="sheet-handle only-narrow" aria-expanded="false">
-        <span class="grip" aria-hidden="true"></span>
-        <span class="sheet-line"><b id="sheetName"></b><span id="sheetTerm"></span></span>
-        <span class="sheet-hint">자세히</span>
-      </button>
-      <section id="detail" class="detail" aria-live="polite"></section>
+  <aside id="info" class="info" aria-live="polite" hidden></aside>
 
-      <section class="relations">
-        <h2>기준 인물과의 관계</h2>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>인물</th><th>호칭</th><th class="num">촌수</th></tr></thead>
-            <tbody id="relRows"></tbody>
-          </table>
-        </div>
-      </section>
+  <div id="fallback" class="fallback" hidden>
+    <p>이 브라우저에서는 3D(WebGL)를 쓸 수 없습니다.</p>
+    <a href="tree.html">카드 가계도로 보기</a>
+  </div>
 
-      <section class="legend">
-        <h2>보는 법</h2>
-        <ul>
-          <li><span class="sw sw-male"></span>남자</li>
-          <li><span class="sw sw-female"></span>여자</li>
-          <li><span class="sw sw-ego"></span>기준 인물</li>
-          <li><span class="mk mk-heir">宗</span><span class="ln ln-heir"></span>정통(종통): 대를 잇는 맏아들의 흐름. 그 집 양자가 있으면 양자, 적자가 없으면 서자 맏아들이 잇습니다. 시조와 이름난 인물에서 시작합니다.</li>
-          <li><span class="mk mk-notable">名</span>역사적으로 이름난 인물 · <b class="firstborn-sample">장남</b>·<b class="firstborn-sample">장녀</b> 맏아들·맏딸 강조</li>
-          <li><span class="fold-sample">+3</span>숨은 자녀 펼치기 · <span class="fold-sample open">−</span>펼친 자녀 접기 (처음에는 직계만 보임)</li>
-          <li><span class="sw sw-lineal"></span><span class="ln ln-lineal"></span>부계 직계: 아버지·할아버지로 이어지는 조상과 그 부인, 아들 계통 자손 (기본 표시)</li>
-          <li><span class="sw sw-maternal"></span><span class="ln ln-maternal"></span>모계 직계: 외조부 등 어머니 쪽 조상, 외손 등 딸을 거친 자손 (설정의 '직계 표시'에서 켜기)</li>
-          <li><span class="sw sw-unknown"></span>미상: 기록은 없지만 관계상 반드시 있는 인물</li>
-          <li><span class="ln ln-solid"></span>부부는 나란히 놓고 카드 아래를 결혼선으로 잇습니다. 자녀선은 두 사람 사이의 점(•)에서 내려갑니다.</li>
-          <li><span class="ln ln-solid"></span>정실·계실 혼인, 친자 관계</li>
-          <li><span class="ln ln-dot"></span>첩(소실)과의 관계</li>
-          <li><span class="ln ln-dash"></span>중간 세대를 건너뛴 직계(미상 숨김 시)</li>
-          <li><span class="ln ln-solid"></span>형제 접기: 폭이 넓은 세대에서 자손이 이어지지 않는 형제가 넷 이상이면 열마다 두 명씩 위아래로 쌓고, 열 왼쪽 줄기선에서 가지를 냅니다(위→아래, 왼쪽→오른쪽이 출생 순서)</li>
-          <li><span class="ln ln-adopt"></span>양자: 대를 잇기 위해 들어간 집(양가)</li>
-          <li><span class="ln ln-out"></span>출계: 양자로 나간 사람의 생가</li>
-        </ul>
-      </section>
-
-      <section class="sources">
-        <h2>자료 출처</h2>
-        <ul id="sources"></ul>
-      </section>
-    </aside>
-  </main>
-</div>
-<!-- 서버 없이 index.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다.
-     ?v=는 캐시 무효화용 버전: CSS·JS·데이터를 바꿔 배포할 때 모두 같은 값으로 올린다(테스트가 확인). -->
-<script src="vendor/dagre.min.js?v=20261007-10"></script>
-<!-- 가계도 데이터: 파일 하나가 window.GENEALOGY_DATASETS에 가계도 하나를 추가한다. 순서대로 선택 목록에 나온다. -->
-<script src="data/yi-hwang.js?v=20261007-10"></script>
-<script src="data/yi-i.js?v=20261007-10"></script>
-<script src="data/yi-sunsin.js?v=20261007-10"></script>
-<script src="data/jeong-yakyong.js?v=20261007-10"></script>
-<script src="js/nav.js?v=20261007-10"></script>
-<script src="js/model.js?v=20261007-10"></script>
-<script src="js/kinship.js?v=20261007-10"></script>
-<script src="js/layout.js?v=20261007-10"></script>
-<script src="js/app.js?v=20261007-10"></script>
+  <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
+  <div class="stagebar" role="toolbar" aria-label="버블 가계도 도구">
+    <nav class="navmenu sb-left" data-page="bubble" aria-label="페이지"></nav>
+    <div class="sb-mid"><p class="hint">끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기</p></div>
+    <div class="zoom sb-right" role="group" aria-label="확대·축소">
+      <button type="button" id="zoomIn" aria-label="확대">＋</button>
+      <button type="button" id="zoomOut" aria-label="축소">－</button>
+      <button type="button" id="zoomFit">맞춤</button>
+    </div>
+  </div>
+</main>
+<!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 tree.html과 같은 캐시 무효화 버전(테스트가 확인). -->
+<script src="vendor/three.min.js?v=20261007-11"></script>
+<script src="data/yi-hwang.js?v=20261007-11"></script>
+<script src="data/yi-i.js?v=20261007-11"></script>
+<script src="data/yi-sunsin.js?v=20261007-11"></script>
+<script src="data/jeong-yakyong.js?v=20261007-11"></script>
+<script src="js/nav.js?v=20261007-11"></script>
+<script src="js/model.js?v=20261007-11"></script>
+<script src="js/kinship.js?v=20261007-11"></script>
+<script src="js/bubble.js?v=20261007-11"></script>
 </body>
 </html>
