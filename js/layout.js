@@ -9,6 +9,7 @@
 // - 양자는 양가 혼인에서 내려오는 선(adopt)과 생가 혼인에서 내려오는 선(adoptedOut)을 함께 그린다.
 // - dagre가 정한 세대(줄)와 좌우 순서는 그대로 두고, 가로 위치만 다시 계산해 자녀를 부모 아래로 모은다
 //   (compact 참고).
+// - 자손이 이어지지 않는 형제가 많으면 여러 줄로 접는다(foldSiblings 참고).
 // - 같은 세대 사이를 지나는 자녀선의 가로 구간은 좌우가 겹치면 서로 다른 높이(차선)에 놓고,
 //   세대 사이 간격은 그 사이에 들어갈 결혼선 층수와 차선 수에 맞춰 넓힌다(placeRows 참고).
 // 서버 없이 file://로도 열리도록 모듈 대신 전역 Genealogy 객체에 등록한다.
@@ -23,6 +24,14 @@
   const LANE_PAD = 16;     // 같은 차선에 놓을 두 가로 구간 사이의 최소 거리
   const MIN_GAP = 96;      // 세대 사이 최소 간격
   const MARGIN_Y = 24;
+  // 형제 접기: 자손이 없는(화면에 이어지는 자녀가 없는) 형제가 FOLD_MIN명 이상이면
+  // 한 열에 FOLD_PER_COL명씩 위아래로 쌓고 열을 옆으로 붙인다. 열 왼쪽에 줄기선을 둔다.
+  const FOLD_MIN = 4;
+  const FOLD_PER_COL = 2;
+  const FOLD_SPINE = 22;   // 열 왼쪽 줄기선 자리
+  const FOLD_ROW_GAP = 34; // 접힌 열 안에서 위아래 묶음 사이(결혼선 자리 포함)
+  const FOLD_COL_GAP = 20;
+  const FOLD_ROW_WIDTH = 3200; // 묶음 폭 합계가 이보다 넓은 세대의 형제만 접는다(좁은 세대는 접어도 높이만 늘어남)
 
   // 시조 계열(가장 윗대 조상의 후손)과 그 배우자를 '본가'로 보고, 나머지는 외가·처가로 본다.
   function coreSet(model, rootId) {
@@ -149,18 +158,108 @@
     return levels;
   }
 
-  function layout(view) {
-    const { blocks, blockOf } = makeBlocks(view);
-    const levels = assignLevels(view, blockOf);
-
-    const g = new window.dagre.graphlib.Graph({ multigraph: true });
-    g.setGraph({ rankdir: 'TB', nodesep: 28, ranksep: RANK_SEP, edgesep: 10, marginx: 70, marginy: 24 });
-    g.setDefaultEdgeLabel(() => ({}));
-    for (const b of blocks) g.setNode(b.id, { width: b.width, height: CARD.h });
+  // 자손이 이어지지 않는 형제가 많은 혼인마다 그 형제 묶음들을 하나의 '접힌 묶음(fold)'으로 모은다.
+  function foldSiblings(view, blocks, blockOf, allow) {
+    const hasKids = new Set();   // 화면에 자녀가 이어지는 묶음
+    const parentsOf = new Map(); // 묶음 → 그 묶음으로 자녀선이 들어오는 혼인들
     for (const un of view.unions) {
       const from = blockOf.get(un.partners[0]);
       for (const c of un.children) {
         const to = blockOf.get(c.id);
+        if (!to || to === from) continue;
+        hasKids.add(from);
+        if (!parentsOf.has(to)) parentsOf.set(to, new Set());
+        parentsOf.get(to).add(un.u.id);
+      }
+    }
+    const folds = [];
+    const foldOf = new Map();
+    for (const un of view.unions) {
+      const from = blockOf.get(un.partners[0]);
+      const seen = new Set();
+      const leaves = [];
+      for (const c of un.children) {
+        const b = blockOf.get(c.id);
+        if (!b || b === from || seen.has(b) || foldOf.has(b)) continue;
+        seen.add(b);
+        if (hasKids.has(b) || parentsOf.get(b).size !== 1 || c.adoptedOut) continue;
+        leaves.push({ b, child: c.id, rank: c.rank ?? 999 });
+      }
+      if (leaves.length < FOLD_MIN || !allow(un)) continue;
+      leaves.sort((a, b) => a.rank - b.rank);
+      // 접힌 묶음 안에서는 그 집 자녀를 묶음 맨 왼쪽에 두어 가지선이 배우자 카드를 지나지 않게 한다.
+      for (const { b, child } of leaves) {
+        b.order = [child, ...b.order.filter((id) => id !== child)];
+        b.index = new Map(b.order.map((id, i) => [id, i]));
+      }
+      const cols = [];
+      leaves.forEach((l, i) => {
+        const ci = Math.floor(i / FOLD_PER_COL);
+        (cols[ci] = cols[ci] || []).push(l);
+      });
+      const colW = cols.map((col) => Math.max(...col.map((l) => l.b.width)));
+      const fold = {
+        id: `fold:${un.u.id}`, kind: 'fold', union: un.u.id, cols, colW,
+        width: colW.reduce((s, w) => s + w + FOLD_SPINE, 0) + (cols.length - 1) * FOLD_COL_GAP,
+        height: Math.min(leaves.length, FOLD_PER_COL) * CARD.h + (Math.min(leaves.length, FOLD_PER_COL) - 1) * FOLD_ROW_GAP,
+        members: leaves.map((l) => l.b),
+      };
+      for (const l of leaves) foldOf.set(l.b, fold);
+      folds.push(fold);
+    }
+    return { folds, foldOf };
+  }
+
+  // 접힌 묶음 안 각 묶음의 위치와 열 줄기선의 x를 정한다(묶음 가운데·위쪽 기준).
+  function placeFold(fold) {
+    let left = fold.x - fold.width / 2;
+    fold.spine = new Map();
+    fold.cols.forEach((col, ci) => {
+      const spineX = left + FOLD_SPINE / 2;
+      col.forEach((l, ri) => {
+        l.b.x = left + FOLD_SPINE + l.b.width / 2;
+        l.b.y = fold.top + ri * (CARD.h + FOLD_ROW_GAP) + CARD.h / 2;
+        fold.spine.set(l.b, spineX);
+      });
+      left += FOLD_SPINE + fold.colW[ci] + FOLD_COL_GAP;
+    });
+  }
+
+  // 접기를 켜면 두 번 배치한다. 먼저 접지 않고 배치해 세대마다 폭을 잰 뒤,
+  // 폭이 넓은 세대로 자녀가 내려가는 혼인의 형제만 접어 다시 배치한다.
+  function layout(view) {
+    const plain = layoutPass(view, null);
+    if (view.fold === false) return plain;
+    const rowWidth = new Map();
+    for (const b of plain.blocks) rowWidth.set(Math.round(b.y), (rowWidth.get(Math.round(b.y)) || 0) + b.width);
+    const wide = new Set();
+    for (const un of plain.unions) {
+      for (const c of un.children) {
+        const p = plain.pos.get(c.id);
+        if (p && rowWidth.get(Math.round(p.y)) > FOLD_ROW_WIDTH) wide.add(un.u.id);
+      }
+    }
+    if (!wide.size) return plain;
+    return layoutPass(view, (un) => wide.has(un.u.id));
+  }
+
+  function layoutPass(view, allowFold) {
+    const { blocks, blockOf } = makeBlocks(view);
+    const { foldOf } = allowFold ? foldSiblings(view, blocks, blockOf, allowFold) : { foldOf: new Map() };
+    const levels = assignLevels(view, blockOf);
+    // 배치 단위(node): 접힌 묶음이거나, 접히지 않은 묶음 하나
+    const nodeOf = (id) => { const b = blockOf.get(id); return b && (foldOf.get(b) || b); };
+    const nodes = [...new Set(blocks.map((b) => foldOf.get(b) || b))];
+    for (const n of nodes) if (n.height == null) n.height = CARD.h;
+
+    const g = new window.dagre.graphlib.Graph({ multigraph: true });
+    g.setGraph({ rankdir: 'TB', nodesep: 28, ranksep: RANK_SEP, edgesep: 10, marginx: 70, marginy: 24 });
+    g.setDefaultEdgeLabel(() => ({}));
+    for (const n of nodes) g.setNode(n.id, { width: n.width, height: n.height });
+    for (const un of view.unions) {
+      const from = blockOf.get(un.partners[0]);
+      for (const c of un.children) {
+        const to = nodeOf(c.id);
         if (!to || to === from) continue;
         // 생가에서 출계한 선은 배치에 약하게만 반영해 양자가 양가 쪽에 놓이게 한다.
         g.setEdge(from.id, to.id, { weight: c.adoptedOut ? 0.2 : 1, minlen: 1 }, `${un.u.id}>${c.id}`);
@@ -168,13 +267,14 @@
     }
     window.dagre.layout(g);
 
-    for (const b of blocks) {
-      const n = g.node(b.id);
-      b.x = n.x;
-      b.y = n.y;
+    for (const n of nodes) {
+      const d = g.node(n.id);
+      n.x = d.x;
+      n.y = d.y;
     }
-    const bounds = compact(view, blocks, blockOf);
-    const rows = placeRows(view, blocks, blockOf, levels);
+    const bounds = compact(view, nodes, blockOf, nodeOf);
+    const rows = placeRows(view, nodes, blockOf, nodeOf, levels);
+    for (const n of nodes) if (n.kind === 'fold') placeFold(n);
 
     const pos = new Map();
     for (const b of blocks) {
@@ -192,7 +292,12 @@
       const bottom = ps[0].y + CARD.h / 2;
       const y = bottom + level * LEVEL_STEP;
       const x = ps.reduce((s, p) => s + p.x, 0) / ps.length;
-      const children = un.children.map((c) => ({ ...c, busY: rows.busY.get(`${un.u.id}|${c.id}`) }));
+      const children = un.children.map((c) => {
+        const b = blockOf.get(c.id);
+        const fold = b && foldOf.get(b);
+        // 접힌 묶음의 자녀는 열 줄기선(spineX)을 따라 내려가 카드 왼쪽으로 들어간다.
+        return { ...c, busY: rows.busY.get(`${un.u.id}|${c.id}`), spineX: fold ? fold.spine.get(b) : undefined };
+      });
       unions.push({ ...un, children, level, bottom, drop: { x, y }, xs: ps.map((p) => p.x) });
     }
 
@@ -200,10 +305,13 @@
   }
 
   // 세대(줄)마다 y를 정하고, 자녀선 가로 구간의 높이(차선)를 배정한다.
-  function placeRows(view, blocks, blockOf, levels) {
-    const ys = [...new Set(blocks.map((b) => Math.round(b.y)))].sort((a, b) => a - b);
-    const rankOf = new Map(blocks.map((b) => [b, ys.indexOf(Math.round(b.y))]));
+  // 줄의 높이는 그 줄에서 가장 큰 배치 단위(접힌 묶음 포함)에 맞춘다.
+  function placeRows(view, nodes, blockOf, nodeOf, levels) {
+    const ys = [...new Set(nodes.map((b) => Math.round(b.y)))].sort((a, b) => a - b);
+    const rankOf = new Map(nodes.map((b) => [b, ys.indexOf(Math.round(b.y))]));
     const n = ys.length;
+    const rowH = new Array(n).fill(CARD.h);
+    for (const nd of nodes) rowH[rankOf.get(nd)] = Math.max(rowH[rankOf.get(nd)], nd.height);
     const maxLevel = new Array(n).fill(0);
     const buses = Array.from({ length: n }, () => []);
 
@@ -211,20 +319,23 @@
       const from = blockOf.get(un.partners[0]);
       const level = levels.get(un.u.id);
       if (level == null) continue;
-      const pr = rankOf.get(from);
+      const pr = rankOf.get(nodeOf(un.partners[0]));
       maxLevel[pr] = Math.max(maxLevel[pr], level);
+      if (from !== nodeOf(un.partners[0])) continue; // 접힌 묶음 안(자녀 없음)
       const dropX = un.partners.reduce((sum, p) => sum + from.x + memberOffset(from, p), 0) / un.partners.length;
-      // 자녀가 있는 줄마다 가로 구간 하나: 결혼선 가운데 점부터 양 끝 자녀까지
+      // 자녀가 있는 줄마다 가로 구간 하나: 결혼선 가운데 점부터 양 끝 자녀(접힌 묶음은 열 줄기선)까지
       const byRank = new Map();
       for (const c of un.children) {
-        const to = blockOf.get(c.id);
+        const to = nodeOf(c.id);
         if (!to) continue;
         const r = rankOf.get(to);
-        const x = to.x + memberOffset(to, c.id);
+        const xs = to.kind === 'fold'
+          ? [to.x - to.width / 2 + FOLD_SPINE / 2, to.x + to.width / 2 - to.colW[to.colW.length - 1] - FOLD_SPINE / 2]
+          : [to.x + memberOffset(to, c.id)];
         if (!byRank.has(r)) byRank.set(r, { lo: dropX, hi: dropX, keys: [] });
         const bus = byRank.get(r);
-        bus.lo = Math.min(bus.lo, x);
-        bus.hi = Math.max(bus.hi, x);
+        bus.lo = Math.min(bus.lo, ...xs);
+        bus.hi = Math.max(bus.hi, ...xs);
         bus.keys.push(`${un.u.id}|${c.id}`);
       }
       for (const [r, bus] of byRank) if (r > 0) buses[r].push(bus);
@@ -245,23 +356,26 @@
 
     // 세대 사이 간격 = 위 줄 결혼선 층 + 여백 + 자녀선 차선 + 여백 (최소 MIN_GAP)
     const lead = (r) => maxLevel[r - 1] * LEVEL_STEP + 20;
-    const rowY = new Array(n);
-    rowY[0] = MARGIN_Y + CARD.h / 2;
+    const rowTop = new Array(n);
+    rowTop[0] = MARGIN_Y;
     for (let r = 1; r < n; r++) {
       const gap = Math.max(MIN_GAP, lead(r) + lanes[r] * LANE_STEP + 18);
-      rowY[r] = rowY[r - 1] + CARD.h + gap;
+      rowTop[r] = rowTop[r - 1] + rowH[r - 1] + gap;
     }
-    for (const b of blocks) b.y = rowY[rankOf.get(b)];
+    for (const nd of nodes) {
+      nd.top = rowTop[rankOf.get(nd)];
+      nd.y = nd.top + CARD.h / 2;
+    }
 
     const busY = new Map();
     for (let r = 1; r < n; r++) {
-      const top = rowY[r - 1] + CARD.h / 2;
+      const top = rowTop[r - 1] + rowH[r - 1];
       // 차선이 적으면 가로 구간을 세대 사이 가운데쯤에 둔다.
-      const free = rowY[r] - CARD.h / 2 - top - lead(r) - lanes[r] * LANE_STEP;
+      const free = rowTop[r] - top - lead(r) - lanes[r] * LANE_STEP;
       const start = top + lead(r) + Math.max(0, (free - 18) / 2);
       for (const bus of buses[r]) for (const key of bus.keys) busY.set(key, start + bus.lane * LANE_STEP);
     }
-    return { busY, height: rowY[n - 1] + CARD.h / 2 + MARGIN_Y };
+    return { busY, height: rowTop[n - 1] + rowH[n - 1] + MARGIN_Y };
   }
 
   // 묶음 가운데에서 그 사람 카드 가운데까지의 가로 거리
@@ -277,15 +391,17 @@
   //   위로 훑기  : 각 묶음의 결혼선 가운데 점을 자녀들 가운데로 끌어온다.
   // 같은 줄의 좌우 순서는 dagre가 정한 대로 두고(선 교차를 늘리지 않음), 겹치지 않는 범위에서
   // 원하는 위치와의 차이(제곱합)가 가장 작은 자리를 고른다(가중 단조 회귀, PAV).
-  function compact(view, blocks, blockOf) {
+  function compact(view, blocks, blockOf, nodeOf = (id) => blockOf.get(id)) {
     const links = [];
     for (const un of view.unions) {
       const from = blockOf.get(un.partners[0]);
       const rel = un.partners.reduce((sum, p) => sum + memberOffset(from, p), 0) / un.partners.length;
       un.children.forEach((c, childIndex) => {
-        const to = blockOf.get(c.id);
+        const to = nodeOf(c.id);
         if (!to || to === from) return;
-        links.push({ from, rel, to, off: memberOffset(to, c.id), w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex, rank: c.rank ?? childIndex });
+        // 접힌 묶음은 묶음 가운데를 부모 아래로 끌어온다.
+        const off = to.kind === 'fold' ? 0 : memberOffset(to, c.id);
+        links.push({ from, rel, to, off, w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex, rank: c.rank ?? childIndex });
       });
     }
     const down = new Map(), up = new Map();
