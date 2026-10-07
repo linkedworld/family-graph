@@ -161,6 +161,16 @@ function render({ refit = false } = {}) {
   state.shown = shown;
   state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core, keep: shown });
   state.view.fold = state.fold;
+  // 배치용 직계 줄기: 기준 인물과 부계 직계(조상·자손). 이 사람들의 카드를 세로로 맞춘다.
+  const trunk = new Set([state.ego]);
+  for (const id of state.view.persons) {
+    const r = allRels.get(id);
+    if (r.kind !== 'blood' || !r.path || (r.path.up !== 0 && r.path.down !== 0)) continue;
+    const mids = r.path.up > 0 ? r.path.asc.slice(0, -1) : r.path.desc.slice(0, -1);
+    if (mids.every((m) => model.get(m).gender === 'M')) trunk.add(id);
+  }
+  state.view.trunk = trunk;
+  state.view.male = (id) => model.get(id).gender === 'M';
   state.lay = layout(state.view);
   const { pos } = state.lay;
 
@@ -226,10 +236,16 @@ function render({ refit = false } = {}) {
         const cat = line.get(c.id) === 'P' && un.partners.some((p) => line.get(p) === 'P') ? 'paternal' : 'maternal';
         ecls.push('lineal', cat);
       }
+      // 직계 줄기로 세로 정렬된 자녀는 직계 부모 카드에서 곧게 내려간다.
+      const trunk = state.view.trunk;
+      const straight = c.spineX == null && !c.adoptedOut && trunk.has(c.id)
+        && un.partners.some((p, i) => trunk.has(p) && Math.abs(un.xs[i] - b.x) < 3);
       // 접힌 형제는 열 왼쪽 줄기선을 따라 내려가 카드 왼쪽으로 들어간다.
-      const d = c.spineX != null
-        ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
-        : `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}`;
+      const d = straight
+        ? `M${b.x} ${bottom} V${top}`
+        : c.spineX != null
+          ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
+          : `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}`;
       if (state.showLine && state.heir.edges.has(`${fatherOf(un)}>${c.id}`)) {
         el('path', { class: 'heir-outer', d }, gHeir);
         el('path', { class: 'heir-inner', d }, gHeir);

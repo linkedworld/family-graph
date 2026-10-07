@@ -387,6 +387,7 @@
   }
 
   const NODE_SEP = 28;
+  const TRUNK_WEIGHT = 10000;  // 직계 줄기를 세로로 맞추는 힘(일반 부모·자녀 연결의 8배)
   const MARGIN_X = 70;
 
   // 자녀를 부모 아래로 모은다.
@@ -395,15 +396,22 @@
   // 같은 줄의 좌우 순서는 dagre가 정한 대로 두고(선 교차를 늘리지 않음), 겹치지 않는 범위에서
   // 원하는 위치와의 차이(제곱합)가 가장 작은 자리를 고른다(가중 단조 회귀, PAV).
   function compact(view, blocks, blockOf, nodeOf = (id) => blockOf.get(id)) {
+    const trunk = view.trunk;
     const links = [];
     for (const un of view.unions) {
       const from = blockOf.get(un.partners[0]);
       const rel = un.partners.reduce((sum, p) => sum + memberOffset(from, p), 0) / un.partners.length;
+      // 직계 줄기(trunk): 직계 부모 카드 바로 아래에 직계 자녀 카드를 세로로 맞춘다(남편 쪽 우선).
+      const trunkParent = trunk && (un.partners.find((p) => trunk.has(p) && view.male?.(p)) || un.partners.find((p) => trunk.has(p)));
       un.children.forEach((c, childIndex) => {
         const to = nodeOf(c.id);
         if (!to || to === from) return;
         // 접힌 묶음은 묶음 가운데를 부모 아래로 끌어온다.
         const off = to.kind === 'fold' ? 0 : memberOffset(to, c.id);
+        if (trunkParent && trunk.has(c.id) && !c.adoptedOut && to.kind !== 'fold') {
+          links.push({ from, rel: memberOffset(from, trunkParent), to, off, w: TRUNK_WEIGHT, union: un.u.id, childIndex, rank: c.rank ?? childIndex });
+          return;
+        }
         links.push({ from, rel, to, off, w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex, rank: c.rank ?? childIndex });
       });
     }
