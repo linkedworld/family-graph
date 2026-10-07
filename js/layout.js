@@ -48,10 +48,12 @@
   }
 
   // 보이는 인물과 혼인(보이는 배우자, 보이는 자녀)을 정리한다.
-  function buildView(model, { hideUnknown, showInlaws, core }) {
+  // keep: 접기·펴기로 정한 '보일 사람' 집합(없으면 전체)
+  function buildView(model, { hideUnknown, showInlaws, core, keep }) {
     const visible = (id) => {
       if (hideUnknown && model.isUnknown(id)) return false;
       if (!showInlaws && !core.has(id)) return false;
+      if (keep && !keep.has(id)) return false;
       return true;
     };
     const unionVisible = (u) => [u.husband, u.wife].some((p) => p && visible(p));
