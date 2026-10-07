@@ -7,6 +7,8 @@
 // - 숨겨진 인물(미상 숨기기, 외가·처가 끄기)이 계보 중간에 있으면, 그 아래에서 처음
 //   보이는 후손을 위쪽 혼인에 바로 잇고 건너뛴 세대 수를 기록한다.
 // - 양자는 양가 혼인에서 내려오는 선(adopt)과 생가 혼인에서 내려오는 선(adoptedOut)을 함께 그린다.
+// - dagre가 정한 세대(줄)와 좌우 순서는 그대로 두고, 가로 위치만 다시 계산해 자녀를 부모 아래로 모은다
+//   (compact 참고).
 // 서버 없이 file://로도 열리도록 모듈 대신 전역 Genealogy 객체에 등록한다.
 (function (G) {
   'use strict';
@@ -152,12 +154,17 @@
     }
     window.dagre.layout(g);
 
-    const pos = new Map();
     for (const b of blocks) {
       const n = g.node(b.id);
-      const left = n.x - b.width / 2;
-      b.order.forEach((id, i) => {
-        pos.set(id, { x: left + i * (CARD.w + COUPLE_GAP) + CARD.w / 2, y: n.y, w: CARD.w, h: CARD.h });
+      b.x = n.x;
+      b.y = n.y;
+    }
+    const bounds = compact(view, blocks, blockOf);
+
+    const pos = new Map();
+    for (const b of blocks) {
+      b.order.forEach((id) => {
+        pos.set(id, { x: b.x + memberOffset(b, id), y: b.y, w: CARD.w, h: CARD.h });
       });
     }
 
@@ -174,7 +181,106 @@
     }
 
     const gr = g.graph();
-    return { pos, unions, blocks, width: gr.width, height: gr.height };
+    return { pos, unions, blocks, width: bounds.width, height: gr.height };
+  }
+
+  // 묶음 가운데에서 그 사람 카드 가운데까지의 가로 거리
+  function memberOffset(block, id) {
+    return block.index.get(id) * (CARD.w + COUPLE_GAP) + CARD.w / 2 - block.width / 2;
+  }
+
+  const NODE_SEP = 28;
+  const MARGIN_X = 70;
+
+  // 자녀를 부모 아래로 모은다.
+  //   아래로 훑기: 각 묶음을 그 사람의 부모 결혼선 가운데 점 아래로 끌어온다.
+  //   위로 훑기  : 각 묶음의 결혼선 가운데 점을 자녀들 가운데로 끌어온다.
+  // 같은 줄의 좌우 순서는 dagre가 정한 대로 두고(선 교차를 늘리지 않음), 겹치지 않는 범위에서
+  // 원하는 위치와의 차이(제곱합)가 가장 작은 자리를 고른다(가중 단조 회귀, PAV).
+  function compact(view, blocks, blockOf) {
+    const links = [];
+    for (const un of view.unions) {
+      const from = blockOf.get(un.partners[0]);
+      const rel = un.partners.reduce((sum, p) => sum + memberOffset(from, p), 0) / un.partners.length;
+      un.children.forEach((c, childIndex) => {
+        const to = blockOf.get(c.id);
+        if (!to || to === from) return;
+        links.push({ from, rel, to, off: memberOffset(to, c.id), w: c.adoptedOut ? 0.1 : 1, union: un.u.id, childIndex });
+      });
+    }
+    const down = new Map(), up = new Map();
+    for (const l of links) {
+      if (!down.has(l.to)) down.set(l.to, []);
+      if (!up.has(l.from)) up.set(l.from, []);
+      down.get(l.to).push(l);
+      up.get(l.from).push(l);
+    }
+
+    const rankMap = new Map();
+    for (const b of blocks) {
+      const key = Math.round(b.y);
+      if (!rankMap.has(key)) rankMap.set(key, []);
+      rankMap.get(key).push(b);
+    }
+    const ranks = [...rankMap.entries()].sort((a, b) => a[0] - b[0]).map(([, list]) => list);
+    for (const list of ranks) list.sort((a, b) => a.x - b.x);
+
+    const place = (list, desiredOf) => {
+      const items = list.map((b) => {
+        const want = desiredOf(b);
+        return want ? { b, d: want.x, w: want.w } : { b, d: b.x, w: 0.05 };
+      });
+      // 겹치지 않을 최소 간격을 누적해 빼면 '오름차순' 조건만 남는다.
+      let acc = 0;
+      items.forEach((it, i) => {
+        if (i > 0) acc += (items[i - 1].b.width + it.b.width) / 2 + NODE_SEP;
+        it.off = acc;
+        it.v = it.d - acc;
+      });
+      const pools = [];
+      for (const it of items) {
+        pools.push({ v: it.v, w: it.w, n: 1 });
+        while (pools.length > 1 && pools[pools.length - 2].v > pools[pools.length - 1].v) {
+          const b2 = pools.pop(), a2 = pools.pop();
+          const w = a2.w + b2.w;
+          pools.push({ v: (a2.v * a2.w + b2.v * b2.w) / w, w, n: a2.n + b2.n });
+        }
+      }
+      let i = 0;
+      for (const pl of pools) for (let k = 0; k < pl.n; k++, i++) items[i].b.x = pl.v + items[i].off;
+    };
+    const mean = (pairs) => {
+      if (!pairs.length) return null;
+      const w = pairs.reduce((s, p) => s + p.w, 0);
+      return { x: pairs.reduce((s, p) => s + p.x * p.w, 0) / w, w };
+    };
+    const wantFromParents = (b) => mean((down.get(b) || []).map((l) => ({ x: l.from.x + l.rel - l.off, w: l.w })));
+    const wantFromChildren = (b) => mean((up.get(b) || []).map((l) => ({ x: l.to.x + l.off - l.rel, w: l.w })));
+
+    // 줄 안의 순서를 부모 위치 기준으로 다시 정한다. 같은 부부의 자녀는 출생 순서대로 붙여 둔다.
+    // 부모가 없는 묶음(맨 윗대, 사위·며느리의 친정 등)은 자기 자리를 기준으로 둔다.
+    const reorder = (list) => {
+      const keyed = list.map((b, i) => {
+        const ls = down.get(b) || [];
+        const want = wantFromParents(b);
+        const main = ls.reduce((best, l) => (!best || l.w > best.w ? l : best), null);
+        return { b, i, key: want ? want.x : b.x, union: main ? main.union : '', child: main ? main.childIndex : 0 };
+      });
+      keyed.sort((p, q) => (p.key - q.key) || (p.union < q.union ? -1 : p.union > q.union ? 1 : 0) || (p.child - q.child) || (p.i - q.i));
+      list.splice(0, list.length, ...keyed.map((k) => k.b));
+    };
+    // 같은 부부의 자녀는 부모 결혼선 아래에 같은 키로 모이므로, 정렬하면 서로 붙게 된다.
+    for (let pass = 0; pass < 4; pass++) {
+      for (const list of ranks) { reorder(list); place(list, wantFromParents); }
+      for (const list of [...ranks].reverse()) place(list, wantFromChildren);
+    }
+    for (const list of ranks) { reorder(list); place(list, wantFromParents); }
+
+    // 왼쪽 여백을 맞추고 전체 폭을 구한다.
+    const minX = Math.min(...blocks.map((b) => b.x - b.width / 2));
+    const maxX = Math.max(...blocks.map((b) => b.x + b.width / 2));
+    for (const b of blocks) b.x += MARGIN_X - minX;
+    return { width: maxX - minX + 2 * MARGIN_X };
   }
 
   G.CARD = CARD;
