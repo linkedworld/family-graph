@@ -540,6 +540,7 @@ function select(id) {
 
 function setEgo(id) {
   state.ego = id;
+  window.Genealogy.nav?.saveEgo(state.data.meta.id, id);
   state.selected = id;
   $('ego').value = id;
   // 숨김 옵션 때문에 기준 인물이 안 보이면 옵션을 풀어서 보여 준다.
@@ -674,8 +675,10 @@ function loadDataset(data) {
     state.lineage.add(id);
     stack.push(...model.children(id, 'all'));
   }
-  state.ego = data.meta.subject;
-  state.selected = data.meta.subject;
+  // 버블 가계도 등 다른 페이지에서 고른 기준 인물을 이어받는다(같은 탭 안에서만).
+  const kept = window.Genealogy.nav?.loadEgo(data.meta.id);
+  state.ego = kept && model.get(kept) && !model.isUnknown(kept) ? kept : data.meta.subject;
+  state.selected = state.ego;
 
   document.title = data.meta.title;
   $('title').textContent = data.meta.title;

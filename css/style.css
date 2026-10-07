@@ -89,10 +89,9 @@ input[type="search"] { width: 9rem; }
 .stage { position: relative; min-width: 0; overflow: hidden; }
 #tree { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 #tree.dragging { cursor: grabbing; }
-.zoom {
-  position: absolute; right: 14px; bottom: 14px;
-  display: flex; gap: 4px;
-}
+/* 도구 막대 색(css/nav.css) */
+.stage { --nav-bg: var(--card); --nav-menu-bg: var(--card); --nav-ink: var(--ink); --nav-ink-2: var(--ink-2);
+  --nav-line: var(--line); --nav-accent: var(--indigo); --nav-hover: var(--indigo-soft); }
 .zoom button {
   font: 500 0.85rem var(--f-body);
   min-width: 36px; height: 34px; padding: 0 10px;
@@ -100,10 +99,6 @@ input[type="search"] { width: 9rem; }
   border: 1px solid var(--line); border-radius: 4px; cursor: pointer;
 }
 .zoom button:hover { border-color: var(--indigo); color: var(--indigo); }
-.hint {
-  position: absolute; left: 14px; bottom: 10px; margin: 0;
-  font-size: 0.75rem; color: var(--ink-2);
-}
 
 /* 다이어그램 요소 */
 .card rect.box { fill: var(--card); stroke: var(--line); stroke-width: 1; }
@@ -282,7 +277,6 @@ td .alt { display: block; font-size: 0.75rem; color: var(--ink-2); }
   .body { position: relative; display: block; flex: 1; min-height: 0; }
   .stage { height: 100%; border-bottom: 0; }
   .hint { display: none; }
-  .zoom { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); right: 12px; }
   .zoom button { min-width: 42px; height: 40px; }
 
   .panel {
