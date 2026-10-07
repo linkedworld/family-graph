@@ -74,7 +74,7 @@ input[type="search"] { width: 9rem; }
 /* 본문 */
 .body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 360px; }
 .stage { position: relative; min-width: 0; overflow: hidden; }
-#tree { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#tree { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 #tree.dragging { cursor: grabbing; }
 .zoom {
   position: absolute; right: 14px; bottom: 14px;
@@ -186,13 +186,74 @@ td .alt { display: block; font-size: 0.75rem; color: var(--ink-2); }
 .ln-adopt { border-top: 2px solid var(--indigo); }
 .ln-out { border-top-style: dotted; border-top-color: var(--unknown); }
 
+.only-narrow { display: none; }
+.more { display: contents; }
+
+/* 휴대폰: 화면 전체를 다이어그램에 쓰고, 상세 정보는 아래쪽 시트로 올린다. */
 @media (max-width: 820px) {
-  html, body { height: auto; }
-  .app { height: auto; }
-  .body { grid-template-columns: minmax(0, 1fr); }
-  .stage { height: 64vh; border-bottom: 1px solid var(--line); }
-  .panel { border-left: 0; overflow: visible; }
-  .bar { padding: 12px 16px; }
-  .panel { padding: 16px 16px 28px; }
+  html, body { height: 100%; overflow: hidden; }
+  .app { height: 100%; }
+  .only-narrow { display: inline-flex; }
+
+  .bar {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center;
+    gap: 8px 10px; padding: 8px 12px;
+  }
+  .brand { min-width: 0; }
+  .brand h1 { font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brand .sub { display: none; }
+  #toggleControls {
+    font: 600 0.85rem var(--f-body); color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; min-height: 36px; cursor: pointer;
+  }
+  .bar.open #toggleControls { border-color: var(--indigo); color: var(--indigo); }
+  .controls { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .controls .label { display: none; }
+  .field { min-width: 0; }
+  .field select, .field input[type="search"] { width: 100%; max-width: none; min-height: 36px; font-size: 16px; }
+  .more { display: none; }
+  .bar.open .more { display: grid; grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 4px 0 2px; }
+  .bar.open .more .label { display: inline; min-width: 4.5em; white-space: nowrap; }
+  .toggle { min-height: 32px; }
+
+  .body { position: relative; display: block; flex: 1; min-height: 0; }
+  .stage { height: 100%; border-bottom: 0; }
   .hint { display: none; }
+  .zoom { bottom: calc(72px + env(safe-area-inset-bottom, 0px)); right: 12px; }
+  .zoom button { min-width: 42px; height: 40px; }
+
+  .panel {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+    max-height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-left: 0; border-top: 1px solid var(--line);
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -6px 18px rgb(0 0 0 / 0.12);
+    overflow: hidden; gap: 22px;
+    transition: max-height 0.22s ease;
+  }
+  body.sheet-open .panel { max-height: 78%; overflow-y: auto; }
+  .sheet-handle {
+    position: sticky; top: 0; z-index: 1;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 12px;
+    width: calc(100% + 32px); margin: 0 -16px; padding: 14px 16px 12px;
+    background: var(--paper-2); border: 0; border-bottom: 1px solid transparent;
+    color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  }
+  body.sheet-open .sheet-handle { border-bottom-color: var(--line); }
+  .sheet-handle .grip {
+    position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px;
+    border-radius: 2px; background: var(--line);
+  }
+  .sheet-line { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .sheet-line b { font: 700 1.05rem var(--f-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #sheetTerm { color: var(--indigo); font-weight: 600; font-size: 0.88rem; white-space: nowrap; }
+  .sheet-hint { font-size: 0.8rem; color: var(--ink-2); }
+  body.sheet-open .sheet-hint::before { content: "닫기"; }
+  body.sheet-open .sheet-hint { font-size: 0; }
+  body.sheet-open .sheet-hint::before { font-size: 0.8rem; }
+  .detail > h2 { display: none; }
+}
+@media (max-width: 820px) and (prefers-reduced-motion: reduce) {
+  .panel { transition: none; }
 }
