@@ -11,7 +11,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const dataFiles = [...html.matchAll(/<script src="(data\/[^"]+\.js)"><\/script>/g)].map((m) => m[1]);
+const dataFiles = [...html.matchAll(/<script src="(data\/[^"?]+\.js)(?:\?[^"]*)?"><\/script>/g)].map((m) => m[1]);
 
 const ctx = vm.createContext({});
 ctx.window = ctx;

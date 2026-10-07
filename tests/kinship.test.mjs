@@ -205,6 +205,16 @@ test('양자 데이터 검사: 잘못된 입양은 오류', () => {
   assert.throws(() => buildModel(twice), /adopted twice/);
 });
 
+test('index.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
+  assert.ok(refs.length >= 8, `로컬 자원 ${refs.length}개`);
+  const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
+  assert.ok(!versions.has(undefined), `버전이 빠진 자원: ${refs.filter((r) => !r.includes('?v=')).join(', ')}`);
+  assert.equal(versions.size, 1, `버전이 서로 다름: ${[...versions].join(', ')}`);
+  for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 index.html에 없음`);
+});
+
 // ── 가상의 가족으로 일반 호칭 검증 ─────────────────────────────
 //
 //            gf ─ gm                       mgf ─ mgm

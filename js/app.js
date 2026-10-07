@@ -7,7 +7,11 @@ const { buildModel, Kinship, buildView, layout, coreSet, CARD } = window.Genealo
 const SVGNS = 'http://www.w3.org/2000/svg';
 const KIND_ORDER = { self: 0, blood: 1, spouse: 2, affinal: 3, sadon: 4, distant: 5, none: 6 };
 
-const $ = (id) => document.getElementById(id);
+// 브라우저 캐시 때문에 예전 index.html과 새 스크립트가 섞여도 멈추지 않도록, 없는 요소는
+// 화면에 붙지 않은 빈 요소로 대신한다(그 기능만 동작하지 않고 가계도는 그려진다).
+const missing = new Map();
+const $ = (id) => document.getElementById(id) || missing.get(id) ||
+  (missing.set(id, document.createElement('div')), console.warn(`#${id} 요소가 없습니다`), missing.get(id));
 const svg = $('tree');
 
 const state = {
