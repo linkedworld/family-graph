@@ -7,7 +7,11 @@ const { buildModel, Kinship, buildView, layout, coreSet, CARD } = window.Genealo
 const SVGNS = 'http://www.w3.org/2000/svg';
 const KIND_ORDER = { self: 0, blood: 1, spouse: 2, affinal: 3, sadon: 4, distant: 5, none: 6 };
 
-const $ = (id) => document.getElementById(id);
+// 브라우저 캐시 때문에 예전 index.html과 새 스크립트가 섞여도 멈추지 않도록, 없는 요소는
+// 화면에 붙지 않은 빈 요소로 대신한다(그 기능만 동작하지 않고 가계도는 그려진다).
+const missing = new Map();
+const $ = (id) => document.getElementById(id) || missing.get(id) ||
+  (missing.set(id, document.createElement('div')), console.warn(`#${id} 요소가 없습니다`), missing.get(id));
 const svg = $('tree');
 
 const state = {
@@ -147,6 +151,14 @@ function render({ refit = false } = {}) {
   if (refit) fit();
 }
 
+// 친정 형제가 한 명만 기록된 사람(다른 집에서 들어온 배우자 등)은 외아들·외동딸로 단정하지 않는다.
+function birthOrderShown(id) {
+  const order = state.model.birthOrder(id);
+  if (!order) return null;
+  if (order.sons + order.daughters === 1 && !state.lineage.has(id)) return null;
+  return order;
+}
+
 function drawCard(parent, id, p, rel, isLineal) {
   const { model } = state;
   const person = model.get(id);
@@ -184,8 +196,15 @@ function drawCard(parent, id, p, rel, isLineal) {
   const yr = el('text', { class: 'years', x: 12, y: 63 }, g);
   yr.textContent = years(person);
   if (person.gen != null) {
-    const gen = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
-    gen.textContent = `${person.gen}世`;
+    const t = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
+    t.textContent = `${person.gen}世`;
+  }
+  // 넷째 줄: 출생 순서 ('7남 1녀 중 여덟째', '2남 1녀 중 장남' …)
+  const order = birthOrderShown(id);
+  if (order) {
+    const t = el('text', { class: 'order', x: 12, y: 81 }, g);
+    t.textContent = fitText(order.full, CARD.w - 22, 11);
+    t.style.fontSize = `${fontFor(order.full, CARD.w - 22, 11)}px`;
   }
 
   if (id === state.ego) {
@@ -372,6 +391,11 @@ function renderDetail() {
   const add = (k, v) => { if (v) rows.push(h('dt', {}, k), h('dd', {}, v)); };
   add('본관', p.clan && (p.clanHanja ? `${p.clan}(${p.clanHanja})` : p.clan));
   add('세(世)', p.gen != null ? `${p.gen}세` : null);
+  const order = birthOrderShown(id);
+  if (order) {
+    const parent = model.father(id) || model.mother(id);
+    add('출생 순서', `${personLabel(parent)}의 ${order.full}`);
+  }
   add('생몰', years(p));
   add('자', p.courtesy);
   add('호', p.pen);
@@ -388,10 +412,14 @@ function renderDetail() {
     return extra ? `${personLabel(s.id)} – ${extra}` : personLabel(s.id);
   });
   add('배우자', spouses.join(' / '));
-  const kids = model.children(id, 'all').map((c) => {
+  // 자녀는 태어난 순서대로, 출생 순서(장남·차녀·셋째…)를 붙여 보여 준다.
+  const kids = model.orderedChildren(id, 'all').map((c) => {
     const ch = model.get(c);
-    if (!ch.adoptiveUnion) return personLabel(c);
-    return model.parents(c).includes(id) ? `${personLabel(c)} (양자)` : `${personLabel(c)} (출계)`;
+    const order = model.birthOrder(c);
+    const notes = [order && model.parents(c).includes(id) ? order.label : null];
+    if (ch.adoptiveUnion) notes.push(model.parents(c).includes(id) ? '양자' : '출계');
+    const extra = notes.filter(Boolean).join(', ');
+    return extra ? `${personLabel(c)} (${extra})` : personLabel(c);
   });
   add('자녀', kids.join(', '));
 
@@ -449,6 +477,14 @@ function loadDataset(data) {
   let root = data.meta.subject;
   while (model.father(root)) root = model.father(root);
   state.core = coreSet(model, root);
+  // 시조의 혈통(배우자 제외). 다른 집에서 들어온 사람은 친정 형제가 일부만 조사되어 있다.
+  state.lineage = new Set();
+  for (const stack = [root]; stack.length;) {
+    const id = stack.pop();
+    if (state.lineage.has(id)) continue;
+    state.lineage.add(id);
+    stack.push(...model.children(id, 'all'));
+  }
   state.ego = data.meta.subject;
   state.selected = data.meta.subject;
 

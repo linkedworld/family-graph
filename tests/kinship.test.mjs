@@ -205,6 +205,36 @@ test('양자 데이터 검사: 잘못된 입양은 오류', () => {
   assert.throws(() => buildModel(twice), /adopted twice/);
 });
 
+test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)', () => {
+  const m = buildModel(yiHwang);
+  // 이식의 자녀: 이잠, 이하, 딸, 이서린, 이의, 이해, 이징, 이황 (7남 1녀)
+  assert.equal(m.birthOrder('yi_jam').full, '7남 1녀 중 장남');
+  assert.equal(m.birthOrder('yi_ha').full, '7남 1녀 중 차남');
+  assert.equal(m.birthOrder('yi_daughter_sik').full, '7남 1녀 중 장녀');
+  assert.equal(m.birthOrder('yi_hae').full, '7남 1녀 중 여섯째');
+  assert.equal(m.birthOrder('yi_hwang').full, '7남 1녀 중 여덟째');
+  assert.equal(m.birthOrder('yi_hwang').label, '여덟째');
+  assert.deepEqual([...m.orderedChildren('yi_sik').slice(-2)], ['yi_jing', 'yi_hwang']);
+  const s = buildModel(dataset('yi-sunsin'));
+  assert.equal(s.birthOrder('yi_sunsin').full, '4남 중 셋째');
+  assert.equal(s.birthOrder('yi_ye').label, '차남');     // 이회 1567, 이예 1571, 이훈 1574(서자) 순
+  assert.deepEqual([...s.orderedChildren('yi_sunsin').filter((c) => s.get(c).gender === 'M')],
+    ['yi_hoe', 'yi_ye', 'yi_hun', 'yi_sin', 'yi_myeon']);
+  // 자녀가 하나뿐이면 외아들·외동딸
+  const only = [...m.persons.keys()].find((id) => { const o = m.birthOrder(id); return o && o.sons + o.daughters === 1; });
+  assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
+});
+
+test('index.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
+  assert.ok(refs.length >= 8, `로컬 자원 ${refs.length}개`);
+  const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
+  assert.ok(!versions.has(undefined), `버전이 빠진 자원: ${refs.filter((r) => !r.includes('?v=')).join(', ')}`);
+  assert.equal(versions.size, 1, `버전이 서로 다름: ${[...versions].join(', ')}`);
+  for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 index.html에 없음`);
+});
+
 // ── 가상의 가족으로 일반 호칭 검증 ─────────────────────────────
 //
 //            gf ─ gm                       mgf ─ mgm

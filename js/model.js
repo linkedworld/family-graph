@@ -100,6 +100,15 @@
     return v;
   }
 
+  // 1 → 첫째, 8 → 여덟째, 11 → 열한째 …
+  function ordinalKo(n) {
+    const ones = ['', '첫', '둘', '셋', '넷', '다섯', '여섯', '일곱', '여덟', '아홉'];
+    if (n < 10) return `${ones[n]}째`;
+    if (n === 10) return '열째';
+    if (n < 20) return `열${n === 11 ? '한' : n === 12 ? '두' : ones[n - 10]}째`;
+    return `${n}째`;
+  }
+
   class Model {
     constructor(meta, persons, unions) {
       this.meta = meta;
@@ -144,6 +153,66 @@
 
     isAdopted(id) {
       return !!this.get(id).adoptiveUnion;
+    }
+
+    // 한 부모의 자녀를 태어난 순서대로. 족보처럼 아버지의 자녀 전체(부인이 여럿이어도)를 함께 센다.
+    // 순서 근거: 기록된 출생 순서(sibIndex) → 출생 연도 → 데이터에 적힌 순서.
+    orderedChildren(parentId, mode = 'legal') {
+      const kids = this.children(parentId, mode);
+      const sib = (c) => this.get(c).sibIndex;
+      const year = (c) => { const y = parseInt(this.get(c).birth, 10); return Number.isNaN(y) ? null : y; };
+      // 자녀마다 하나의 순서 값을 정한 뒤 그 값으로 정렬한다(근거가 섞여 있어도 순서가 일관되도록).
+      const hasSib = kids.some((c) => sib(c) != null);
+      const val = new Map();
+      for (const c of kids) {
+        if (hasSib) {
+          if (sib(c) != null) { val.set(c, sib(c)); continue; }
+          const y = year(c);
+          if (y == null) continue;
+          // 생년만 있으면, 출생 순서와 생년이 모두 있는 형제들 사이에 끼워 넣는다.
+          const ref = kids.filter((k) => sib(k) != null && year(k) != null);
+          const later = ref.filter((k) => year(k) > y).map(sib);
+          const earlier = ref.filter((k) => year(k) <= y).map(sib);
+          if (later.length) val.set(c, Math.min(...later) - 0.5);
+          else if (earlier.length) val.set(c, Math.max(...earlier) + 0.5);
+        } else if (year(c) != null) {
+          val.set(c, year(c));
+        }
+      }
+      // 근거가 없는 자녀는 데이터에서 바로 앞 형제 다음에 둔다.
+      let prev = null, k = 0;
+      for (const c of kids) {
+        if (val.has(c)) { prev = val.get(c); k = 0; continue; }
+        const next = kids.slice(kids.indexOf(c) + 1).find((x) => val.has(x));
+        const base = prev != null ? prev : (next != null ? val.get(next) - 1 : 0);
+        val.set(c, base + 0.001 * ++k);
+      }
+      const pos = new Map(kids.map((c, i) => [c, i]));
+      return [...kids].sort((a, b) => (val.get(a) - val.get(b)) || (pos.get(a) - pos.get(b)));
+    }
+
+    // 출생 순서를 '7남 1녀 중 여덟째'처럼 나타낸다.
+    //   첫째·둘째 아들/딸은 장남·차남·장녀·차녀, 그 밖에는 전체 형제 중 몇째(셋째, 넷째…).
+    //   자녀가 하나뿐이면 외아들·외동딸. 부모가 없거나 성별을 모르면 null.
+    //   label: 짧은 호칭(장남, 여덟째…), full: '7남 1녀 중 여덟째'
+    birthOrder(id) {
+      const parent = this.father(id) || this.mother(id);
+      const g = this.get(id).gender;
+      if (!parent || (g !== 'M' && g !== 'F')) return null;
+      const all = this.orderedChildren(parent);
+      const nth = all.indexOf(id) + 1;
+      if (nth < 1) return null;
+      const sons = all.filter((c) => this.get(c).gender === 'M');
+      const daughters = all.filter((c) => this.get(c).gender === 'F');
+      const k = (g === 'M' ? sons : daughters).indexOf(id) + 1;
+      const counts = [sons.length ? `${sons.length}남` : '', daughters.length ? `${daughters.length}녀` : ''].filter(Boolean).join(' ');
+      let label;
+      if (all.length === 1) label = g === 'M' ? '외아들' : '외동딸';
+      else if (k === 1) label = g === 'M' ? '장남' : '장녀';
+      else if (k === 2) label = g === 'M' ? '차남' : '차녀';
+      else label = ordinalKo(nth);
+      const full = all.length === 1 ? label : `${counts} 중 ${label}`;
+      return { nth, k, sons: sons.length, daughters: daughters.length, label, full };
     }
 
     spouses(id) {
