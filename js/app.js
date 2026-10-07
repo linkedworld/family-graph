@@ -64,15 +64,27 @@ function render({ refit = false } = {}) {
   const gNodes = el('g', {}, vp);
 
   // 결혼선: 두 사람 카드 아래를 잇는 ㄷ자 선. 가운데 점(drop)에서 자녀선이 내려간다.
+  // 기준 인물의 직계(조상·자손): 족보 계통(양가) 기준 혈족 중 위로만 또는 아래로만 이어진 사람
+  const rels = new Map(state.view.persons.map((id) => [id, kin.relation(state.ego, id)]));
+  const lineal = new Set(state.view.persons.filter((id) => {
+    const r = rels.get(id);
+    return id === state.ego || (r.kind === 'blood' && r.path && (r.path.up === 0 || r.path.down === 0));
+  }));
+  // 직계 아래쪽 줄기를 그리는 동안 위에 덮이도록 따로 모아 두었다가 마지막에 붙인다.
+  const gLineal = el('g', {}, gEdges);
+
   for (const un of state.lay.unions) {
     const cls = ['edge', 'marriage'];
     if (un.u.type === '첩') cls.push('concubine');
+    // 직계가 이 혼인을 지나 자녀로 이어지면 결혼선도 직계 줄기로 표시한다.
+    const linealUnion = un.partners.some((p) => lineal.has(p)) && un.children.some((c) => lineal.has(c.id));
+    if (linealUnion) cls.push('lineal');
     const { bottom, drop } = un;
     const d = un.xs.length === 2
       ? `M${un.xs[0]} ${bottom} V${drop.y} H${un.xs[1]} V${bottom}`
       : `M${un.xs[0]} ${bottom} V${drop.y}`;
-    el('path', { class: cls.join(' '), d }, gEdges);
-    if (un.children.length) el('circle', { class: 'union-dot', cx: drop.x, cy: drop.y, r: 2.6 }, gNodes);
+    el('path', { class: cls.join(' '), d }, linealUnion ? gLineal : gEdges);
+    if (un.children.length) el('circle', { class: linealUnion ? 'union-dot lineal' : 'union-dot', cx: drop.x, cy: drop.y, r: linealUnion ? 3.4 : 2.6 }, gNodes);
 
     for (const c of un.children) {
       const b = pos.get(c.id);
@@ -84,7 +96,9 @@ function render({ refit = false } = {}) {
       if (c.gap) ecls.push('gap');
       if (c.adopt) ecls.push('adopt');
       if (c.adoptedOut) ecls.push('adopted-out');
-      el('path', { class: ecls.join(' '), d: `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}` }, gEdges);
+      const linealEdge = linealUnion && lineal.has(c.id) && !c.adoptedOut;
+      if (linealEdge) ecls.push('lineal');
+      el('path', { class: ecls.join(' '), d: `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}` }, linealEdge ? gLineal : gEdges);
       if (c.adopt || c.adoptedOut) {
         // 같은 카드로 양자선과 출계선이 함께 들어오므로 '양자'는 왼쪽, '출계'는 오른쪽에 둔다.
         const text = c.adopt ? '양자' : '출계';
@@ -105,14 +119,14 @@ function render({ refit = false } = {}) {
   }
 
   for (const id of state.view.persons) {
-    drawCard(gNodes, id, pos.get(id), kin.relation(state.ego, id));
+    drawCard(gNodes, id, pos.get(id), rels.get(id), lineal.has(id));
   }
 
   applyTransform();
   if (refit) fit();
 }
 
-function drawCard(parent, id, p, rel) {
+function drawCard(parent, id, p, rel, isLineal) {
   const { model } = state;
   const person = model.get(id);
   const unknown = model.isUnknown(id);
@@ -121,6 +135,7 @@ function drawCard(parent, id, p, rel) {
   if (person.gender === 'M') cls.push('male');
   else if (person.gender === 'F') cls.push('female');
   if (id === state.ego) cls.push('ego');
+  else if (isLineal) cls.push('lineal');
   if (id === state.selected) cls.push('selected');
   const g = el('g', { class: cls.join(' '), transform: `translate(${p.x - CARD.w / 2} ${p.y - CARD.h / 2})`, tabindex: 0, role: 'button' }, parent);
   g.dataset.id = id;
