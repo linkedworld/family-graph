@@ -104,7 +104,14 @@ test('모든 가계도 데이터: 형식 검사', () => {
     }
     // 기준 인물에서 모든 인물의 관계를 계산할 수 있어야 한다.
     const k = new Kinship(m);
-    for (const [id] of m.persons) assert.notEqual(k.relation(d.meta.subject, id).kind, 'none', `${d.meta.id}/${id}`);
+    for (const [id] of m.persons) {
+      const r = k.relation(d.meta.subject, id);
+      assert.notEqual(r.kind, 'none', `${d.meta.id}/${id}`);
+      // 방계 혈족은 10촌까지만 싣는다(직계 조상·후손은 예외).
+      if (r.kind === 'blood' && r.path && r.path.up > 0 && r.path.down > 0) {
+        assert.ok(r.chon <= 10, `${d.meta.id}/${id}: 방계 ${r.chon}촌`);
+      }
+    }
   }
 });
 
@@ -184,8 +191,9 @@ test('양자(출계): 양가 기준 호칭과 생가 표시', () => {
   const ks = new Kinship(buildModel(dataset('yi-sunsin')));
   assert.deepEqual(rel(ks, 'yi_ye', 'yi_jiseok'), ['양자', 1]);
   assert.deepEqual(rel(ks, 'yi_hoe', 'yi_jiseok'), ['출계한 아들', 1]);
+  // 이지백(1596)과 이지석(1612): 양가 기준 사촌 동생, 생가 기준 아우
   const bro = ks.relation('yi_jibaek', 'yi_jiseok');
-  assert.equal(bro.term, '종형제');
+  assert.equal(bro.term, '종제');
   assert.match(bro.detail, /생가 기준 아우 2촌/);
 });
 

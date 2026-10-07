@@ -360,6 +360,10 @@ function loadDataset(data) {
     .map((id) => h('option', { value: id }, personLabel(id))));
   $('ego').value = state.ego;
   $('dataset').value = data.meta.id;
+  $('people').replaceChildren(...[...model.persons.keys()]
+    .filter((id) => !model.isUnknown(id))
+    .map((id) => h('option', { value: personLabel(id) })));
+  $('find').value = '';
 
   render();
   centerOn(state.ego, 0.9);
@@ -387,6 +391,24 @@ function main() {
   });
 
   $('ego').addEventListener('change', (ev) => setEgo(ev.target.value));
+  // 이름(또는 한자)으로 찾아 해당 카드를 선택하고 화면 가운데로 옮긴다.
+  $('find').addEventListener('change', (ev) => {
+    const q = ev.target.value.trim();
+    if (!q) return;
+    const { model } = state;
+    const ids = [...model.persons.keys()].filter((id) => !model.isUnknown(id));
+    const hit = ids.find((id) => personLabel(id) === q) ||
+      ids.find((id) => personLabel(id).includes(q) || (model.get(id).hanja || '').includes(q));
+    if (!hit) return;
+    if (!state.lay.pos.has(hit)) {
+      // 숨김 옵션 때문에 안 보이는 인물이면 옵션을 풀어서 보여 준다.
+      state.hideUnknown = false; $('hideUnknown').checked = false;
+      state.showInlaws = true; $('showInlaws').checked = true;
+      render(); renderRelations();
+    }
+    select(hit);
+    centerOn(hit);
+  });
   $('hideUnknown').addEventListener('change', (ev) => {
     state.hideUnknown = ev.target.checked;
     render(); centerOn(state.ego); renderRelations();
