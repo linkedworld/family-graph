@@ -18,6 +18,7 @@ const state = {
   model: null, kin: null, core: null,
   ego: null, selected: null,
   hideUnknown: false, showInlaws: false, // 외가·처가는 기본으로 숨긴다
+  fold: true, // 자손이 이어지지 않는 형제가 많으면 여러 줄로 접는다
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   lay: null, view: null,
   t: { k: 1, x: 0, y: 0 },
@@ -50,7 +51,7 @@ function chonText(r) {
 
 function years(p) {
   if (p.placeholder) return '기록 없음';
-  if (!p.birth && !p.death) return '생몰 미상';
+  if (!p.birth && !p.death) return '생몰년 미상';
   return `${p.birth ?? '?'}–${p.death ?? '?'}`;
 }
 
@@ -59,6 +60,7 @@ function years(p) {
 function render({ refit = false } = {}) {
   const { model, kin } = state;
   state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core });
+  state.view.fold = state.fold;
   state.lay = layout(state.view);
   const { pos } = state.lay;
 
@@ -121,7 +123,11 @@ function render({ refit = false } = {}) {
         const cat = line.get(c.id) === 'P' && un.partners.some((p) => line.get(p) === 'P') ? 'paternal' : 'maternal';
         ecls.push('lineal', cat);
       }
-      el('path', { class: ecls.join(' '), d: `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}` }, linealEdge ? gLineal : gEdges);
+      // 접힌 형제는 열 왼쪽 줄기선을 따라 내려가 카드 왼쪽으로 들어간다.
+      const d = c.spineX != null
+        ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
+        : `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}`;
+      el('path', { class: ecls.join(' '), d }, linealEdge ? gLineal : gEdges);
       if (c.adopt || c.adoptedOut) {
         // 같은 카드로 양자선과 출계선이 함께 들어오므로 '양자'는 왼쪽, '출계'는 오른쪽에 둔다.
         const text = c.adopt ? '양자' : '출계';
@@ -396,7 +402,7 @@ function renderDetail() {
     const parent = model.father(id) || model.mother(id);
     add('출생 순서', `${personLabel(parent)}의 ${order.full}`);
   }
-  add('생몰', years(p));
+  add('생몰년', years(p));
   add('자', p.courtesy);
   add('호', p.pen);
   add('관직·칭호', p.title);
@@ -551,6 +557,10 @@ function main() {
   $('hideUnknown').addEventListener('change', (ev) => {
     state.hideUnknown = ev.target.checked;
     render(); centerOn(state.ego); renderRelations();
+  });
+  $('fold').addEventListener('change', (ev) => {
+    state.fold = ev.target.checked;
+    render(); centerOn(state.ego);
   });
   $('lineMode').addEventListener('change', (ev) => {
     state.lineMode = ev.target.value;
