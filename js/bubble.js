@@ -1025,7 +1025,7 @@ function setupControls() {
       setTimeout(() => { if (!press || press.fired) ring.hidden = true; }, 380);
       haptic([18, 40, 30]);
       n.scaleV += 7; // 톡 튀어 오르기
-      state.selected = n.id;
+      // 길게 누르기는 자녀 펼치기·접기만 한다. 선택을 바꾸지 않으므로 상세 카드도 열리지 않는다.
       toggle(n.id);
       flyTo(n, false);
     }, LONG_PRESS_MS);
