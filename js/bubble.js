@@ -29,6 +29,11 @@ const COLORS = {
 const col = (hex) => new T.Color(hex); // ColorManagement: sRGB → 선형으로 바뀐다
 
 const HEIR_COLOR = new T.Color(COLORS.heir);
+const LONG_PRESS_MS = 520; // 길게 누르기로 인정하는 시간
+// 진동(햅틱). 지원하지 않는 기기(iOS Safari 등)에서는 아무 일도 하지 않는다.
+function haptic(pattern) {
+  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) { /* 무시 */ }
+}
 const isNarrow = () => window.matchMedia('(max-width: 820px)').matches;
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -38,6 +43,7 @@ const state = {
   showSpouses: true, hideUnknown: false, autoRotate: !reduceMotion,
   descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
   showHeir: true,  // 종통 줄기 표시
+  tapExpand: true, // 구슬을 누르면 바로 자녀를 펼친다(끄면 누르기는 선택만, 길게 누르기로 펼침)
   heir: { members: new Set(), edges: new Set() },
   axisLine: [],
   rels: new Map(), trunk: new Set(),
@@ -753,6 +759,8 @@ function simulate(dt) {
       const home = n.kind === 'spouse' ? n.partner : n.parent;
       if (home) n.pos.lerp(home.pos, 1 - Math.exp(-dt * 7));
     }
+    // 길게 누르는 동안 차오르는 값(0→1). 손을 떼면 빠르게 빠진다.
+    n.pressAmt = n.pressing ? Math.min(1, (performance.now() - n.pressT0) / LONG_PRESS_MS) : Math.max(0, (n.pressAmt || 0) - dt * 5);
     const hlT = n.id === state.hovered ? 1 : n.id === state.selected ? 0.75 : 0;
     n.hl += (hlT - n.hl) * (1 - Math.exp(-dt * 10));
     const shellT = n.alive && n.hidden ? 1 : 0;
@@ -783,13 +791,14 @@ function writeInstances() {
   let i = 0, h = 0, r = 0;
   for (const n of order) {
     if (n.scale <= 0.001) continue;
-    const rad = n.radius * n.scale;
+    const pa = n.pressAmt || 0;
+    const rad = n.radius * n.scale * (1 + 0.22 * pa * pa + 0.03 * pa * Math.sin(clock * 40));
     _q.identity();
     _m.compose(n.pos, _q, _s.set(rad, rad, rad));
     spheres.setMatrixAt(i, _m);
     sc[i * 3] = n.color.r; sc[i * 3 + 1] = n.color.g; sc[i * 3 + 2] = n.color.b;
     const bright = n.id === state.ego ? 1.5 : n.lineal ? 1.2 : n.kind === 'spouse' ? 0.85 : 1.0;
-    sp[i * 4] = bright * (n.unknown ? 0.6 : 1); sp[i * 4 + 1] = n.hl; sp[i * 4 + 2] = n.unknown ? 0.75 : 0; sp[i * 4 + 3] = n.seed;
+    sp[i * 4] = bright * (n.unknown ? 0.6 : 1) * (1 + pa * 0.8); sp[i * 4 + 1] = Math.min(1.6, n.hl + pa); sp[i * 4 + 2] = n.unknown ? 0.75 : 0; sp[i * 4 + 3] = n.seed;
     drawn[i] = n;
     i++;
     if (n.shellVis > 0.01 && n.kind === 'person') {
@@ -991,7 +1000,48 @@ function setupControls() {
     ctl.target.addScaledVector(right, -dx * s).addScaledVector(up, dy * s);
     ctl.goal = null;
   };
+  // 길게 누르기(탭으로 펼치기를 끈 경우): 누른 자리에 원이 차오르고 구슬이 부풀다가,
+  // 시간이 차면 진동과 함께 터지듯 자녀를 펼치거나 접는다.
+  const ring = $('pressRing');
+  let press = null;
+  const startPress = (x, y) => {
+    if (state.tapExpand) return;
+    const n = pick(x, y);
+    if (!n || !n.alive || n.kind !== 'person' || !(n.hidden || state.expanded.has(n.id))) return;
+    press = { n, fired: false };
+    hideTip();
+    n.pressing = true; n.pressT0 = performance.now();
+    ring.style.left = `${x}px`; ring.style.top = `${y}px`;
+    ring.style.setProperty('--dur', `${LONG_PRESS_MS}ms`);
+    ring.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
+    ring.classList.remove('burst', 'run');
+    ring.hidden = false;
+    void ring.offsetWidth; // 애니메이션 다시 시작
+    ring.classList.add('run');
+    press.timer = setTimeout(() => {
+      press.fired = true;
+      n.pressing = false;
+      ring.classList.add('burst');
+      setTimeout(() => { if (!press || press.fired) ring.hidden = true; }, 380);
+      haptic([18, 40, 30]);
+      n.scaleV += 7; // 톡 튀어 오르기
+      state.selected = n.id;
+      toggle(n.id);
+      flyTo(n, false);
+    }, LONG_PRESS_MS);
+  };
+  const cancelPress = () => {
+    if (!press) return;
+    clearTimeout(press.timer);
+    press.n.pressing = false;
+    if (!press.fired) { ring.classList.remove('run'); ring.hidden = true; }
+    press = null;
+  };
+
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  // 터치가 끝난 뒤 브라우저가 덧붙이는 click·mouse 이벤트를 막는다. 막지 않으면 구슬을 누른 자리에
+  // 막 열린 상세 카드가 그 click을 받아 곧바로 닫힌다. 탭 처리는 pointerup에서 이미 끝났다.
+  canvas.addEventListener('touchend', (e) => { if (e.cancelable) e.preventDefault(); }, { passive: false });
   canvas.addEventListener('pointerdown', (e) => {
     canvas.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -999,7 +1049,9 @@ function setupControls() {
     if (pointers.size === 1) {
       downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
       mode = e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey ? 'pan' : 'rotate';
+      if (mode === 'rotate') startPress(e.clientX, e.clientY);
     } else if (pointers.size === 2) {
+      cancelPress();
       const [a, b] = [...pointers.values()];
       lastPinch = Math.hypot(a.x - b.x, a.y - b.y);
       lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -1012,7 +1064,7 @@ function setupControls() {
     const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     ctl.idle = 0;
-    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 5) { downAt = null; canvas.classList.add('dragging'); hideTip(); }
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; cancelPress(); canvas.classList.add('dragging'); hideTip(); }
     if (downAt) return;
     if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
     else if (mode === 'pan') panBy(dx, dy);
@@ -1029,7 +1081,9 @@ function setupControls() {
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     canvas.classList.remove('dragging');
-    if (downAt && pointers.size === 0 && performance.now() - downAt.t < 600) clickAt(e.clientX, e.clientY);
+    const longFired = press && press.fired;
+    cancelPress();
+    if (downAt && pointers.size === 0 && !longFired && performance.now() - downAt.t < 600) clickAt(e.clientX, e.clientY);
     downAt = null;
     if (pointers.size === 1) { mode = 'rotate'; lastPinch = 0; lastMid = null; }
   };
@@ -1086,11 +1140,22 @@ function processHover() {
 }
 function clickAt(x, y) {
   const n = pick(x, y);
-  if (!n || !n.alive) return;
+  if (!n || !n.alive) {
+    if (isNarrow()) closeInfo(); // 휴대폰: 빈 곳을 누르면 상세 카드를 닫는다
+    return;
+  }
+  haptic(10);
   state.selected = n.id;
-  if (n.kind === 'person' && (n.hidden || state.expanded.has(n.id))) toggle(n.id);
+  // '탭으로 펼치기'가 켜져 있으면 누르기만으로 자녀를 펼치고 접는다. 꺼져 있으면 선택만 하고, 펼치기는 길게 누르기로.
+  if (state.tapExpand && n.kind === 'person' && (n.hidden || state.expanded.has(n.id))) toggle(n.id);
   else { updateLabelsContent(); renderInfo(); }
   flyTo(n, false);
+}
+function closeInfo() {
+  if (!state.selected && $('info').hidden) return;
+  state.selected = null;
+  $('info').hidden = true;
+  $('info').classList.remove('open');
 }
 function toggle(id) {
   if (!state.lineage.has(id)) return;
@@ -1106,7 +1171,8 @@ function showTip(n, x, y) {
   const p = model.get(n.id);
   const r = relOf(n.id);
   const kidsN = n.kind === 'person' ? kids(n.id).length : 0;
-  const action = n.kind !== 'person' || !kidsN ? '' : state.expanded.has(n.id) ? '누르면 자녀 접기' : `누르면 자녀 ${kidsN}명 펼치기 · 자손 ${descCount(n.id)}명`;
+  const verb = state.tapExpand ? '누르면' : '길게 누르면';
+  const action = n.kind !== 'person' || !kidsN ? '' : state.expanded.has(n.id) ? `${verb} 자녀 접기` : `${verb} 자녀 ${kidsN}명 펼치기 · 자손 ${descCount(n.id)}명`;
   tip.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
   tip.innerHTML = `<b>${esc(model.displayName(n.id))}${p.hanja ? ` <small>${esc(p.hanja)}</small>` : ''}</b>` +
     `<span class="t">${esc(n.id === state.ego ? '기준 인물' : r.term)}</span> ${esc(n.id === state.ego ? '' : chonText(r))}` +
@@ -1246,7 +1312,7 @@ function renderInfo() {
   const kicker = id === state.ego ? 'REFERENCE' : isLineal(r) ? 'LINEAL · 직계' : r.kind === 'blood' ? 'COLLATERAL · 방계' : r.kind === 'spouse' || r.kind === 'affinal' ? 'IN-LAW · 인척' : 'RELATION';
   box.style.setProperty('--c', c);
   box.innerHTML = `
-    <button type="button" class="close" aria-label="닫기">×</button>
+    <button type="button" class="close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"/></svg></button>
     <p class="kicker">${esc(kicker)}</p>
     <h2>${esc(model.displayName(id))}${p.hanja ? `<small>${esc(p.hanja)}</small>` : ''}</h2>
     <div class="rel"><b>${esc(id === state.ego ? '기준 인물' : r.term)}</b><span>${esc(id === state.ego ? '' : chonText(r))}</span></div>
@@ -1264,15 +1330,35 @@ function renderInfo() {
       <button type="button" class="glass-btn" data-act="focus">가까이 보기</button>
       <button type="button" class="glass-btn only-narrow" data-act="more">${box.classList.contains('open') ? '간단히' : '자세히'}</button>
     </div>`;
+  if (box.hidden) box._openedAt = performance.now();
   box.hidden = false;
-  box.querySelector('.close').addEventListener('click', () => { state.selected = null; box.hidden = true; });
   box.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
     const act = b.dataset.act;
+    haptic(8);
+    // 휴대폰에서는 단추를 누르면 카드를 닫아 바뀐 장면이 바로 보이게 한다('자세히'는 제외).
+    const narrow = isNarrow() && act !== 'more';
+    if (narrow) closeInfo();
     if (act === 'toggle') toggle(id);
     if (act === 'ego') setEgo(id);
     if (act === 'more') { box.classList.toggle('open'); b.textContent = box.classList.contains('open') ? '간단히' : '자세히'; }
     if (act === 'focus') flyTo(nodes.get(id) || [...nodes.values()].find((x) => x.id === id), true);
   }));
+}
+// 상세 카드: 닫기 단추, 그리고 휴대폰에서는 카드의 아무 곳이나 눌러도 닫힌다(단추 제외).
+function setupInfoCard() {
+  const box = $('info');
+  box.addEventListener('click', (ev) => {
+    // 구슬을 누른 손가락이 떨어질 때 뒤따르는 click이 막 열린 카드에 닿아 바로 닫히지 않도록 잠깐 무시한다.
+    if (performance.now() - (box._openedAt || 0) < 450) return;
+    if (ev.target.closest('.close')) { haptic(8); closeInfo(); return; }
+    if (ev.target.closest('[data-act]')) return;
+    if (isNarrow()) { haptic(8); closeInfo(); }
+  });
+}
+function updateHint() {
+  $('hint').textContent = state.tapExpand
+    ? '끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기'
+    : '끌기: 회전 · 휠/두 손가락: 확대 · 구슬 누르기: 정보 · 길게 누르기: 자손 펼치기/접기';
 }
 
 // ── 기준 인물·가계도 바꾸기 ───────────────────────────────
@@ -1376,6 +1462,7 @@ function frame(now) {
 function main() {
   try { state.descAxis = localStorage.getItem('genealogy.descAxis') === '1'; } catch (err) { /* 저장 불가: 기본값 */ }
   try { state.showHeir = localStorage.getItem('genealogy.showHeir') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
+  try { state.tapExpand = localStorage.getItem('genealogy.tapExpand') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
   const datasets = window.GENEALOGY_DATASETS || [];
   if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
   if (!initGL()) return;
@@ -1404,6 +1491,14 @@ function main() {
   $('hideUnknown').addEventListener('change', (e) => { state.hideUnknown = e.target.checked; rebuild(); });
   $('autoRotate').checked = state.autoRotate;
   $('autoRotate').addEventListener('change', (e) => { state.autoRotate = e.target.checked; });
+  $('tapExpand').checked = state.tapExpand;
+  $('tapExpand').addEventListener('change', (e) => {
+    state.tapExpand = e.target.checked;
+    try { localStorage.setItem('genealogy.tapExpand', state.tapExpand ? '1' : '0'); } catch (err) { /* 저장 불가: 무시 */ }
+    updateHint();
+  });
+  updateHint();
+  setupInfoCard();
   $('showHeir').checked = state.showHeir;
   $('showHeir').addEventListener('change', (e) => {
     state.showHeir = e.target.checked;
