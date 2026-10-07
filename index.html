@@ -16,6 +16,7 @@
       <h1 id="title">퇴계 이황 가계도</h1>
       <p class="sub" id="subtitle">진성 이씨 · 목업 데이터</p>
     </div>
+    <button type="button" id="toggleControls" class="only-narrow" aria-expanded="false" aria-controls="moreControls">설정</button>
     <div class="controls">
       <label class="field" for="dataset">
         <span class="label">가계도</span>
@@ -26,6 +27,7 @@
         <input id="find" type="search" list="people" placeholder="이름 입력" autocomplete="off">
         <datalist id="people"></datalist>
       </label>
+      <div class="more" id="moreControls">
       <label class="field" for="ego">
         <span class="label">기준 인물</span>
         <select id="ego"></select>
@@ -38,6 +40,7 @@
         <input type="checkbox" id="showInlaws" checked>
         <span>외가·처가 표시</span>
       </label>
+      </div>
     </div>
   </header>
 
@@ -53,6 +56,11 @@
     </section>
 
     <aside class="panel">
+      <button type="button" id="sheetHandle" class="sheet-handle only-narrow" aria-expanded="false">
+        <span class="grip" aria-hidden="true"></span>
+        <span class="sheet-line"><b id="sheetName"></b><span id="sheetTerm"></span></span>
+        <span class="sheet-hint">자세히</span>
+      </button>
       <section id="detail" class="detail" aria-live="polite"></section>
 
       <section class="relations">

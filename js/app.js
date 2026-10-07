@@ -155,7 +155,7 @@ function drawCard(parent, id, p, rel) {
   const tip = el('title', {}, g);
   tip.textContent = `${model.displayName(id)} · ${termText}${rel.alt ? ` (${rel.alt})` : ''}`;
 
-  g.addEventListener('click', () => select(id));
+  g.addEventListener('click', () => { if (!state.suppressClick) select(id); });
   g.addEventListener('dblclick', () => setEgo(id));
   g.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') { ev.shiftKey ? setEgo(id) : select(id); }
@@ -205,20 +205,49 @@ function centerOn(id, zoom) {
   applyTransform();
 }
 
+// 마우스·터치 공통: 한 손가락(또는 마우스)으로 끌어 이동, 두 손가락으로 확대·축소.
+// 카드 위에서 시작해도 끌 수 있고, 거의 움직이지 않았을 때만 카드 클릭으로 본다.
 function setupPanZoom() {
-  let drag = null;
+  const pts = new Map();
+  let gesture = null;
+  const local = (ev) => { const r = svg.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; };
+  const start = () => {
+    const [a, b] = [...pts.values()];
+    gesture = b
+      ? { kind: 'pinch', t: { ...state.t }, dist: Math.hypot(a[0] - b[0], a[1] - b[1]), mid: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], moved: true }
+      : { kind: 'pan', t: { ...state.t }, from: a, moved: false };
+  };
   svg.addEventListener('pointerdown', (ev) => {
-    if (ev.target.closest('.card')) return;
-    drag = { x: ev.clientX, y: ev.clientY, t: { ...state.t } };
-    svg.setPointerCapture(ev.pointerId);
-    svg.classList.add('dragging');
+    pts.set(ev.pointerId, local(ev));
+    if (pts.size > 2) return;
+    start();
   });
   svg.addEventListener('pointermove', (ev) => {
-    if (!drag) return;
-    state.t = { ...drag.t, x: drag.t.x + ev.clientX - drag.x, y: drag.t.y + ev.clientY - drag.y };
+    if (!pts.has(ev.pointerId) || !gesture) return;
+    pts.set(ev.pointerId, local(ev));
+    if (gesture.kind === 'pan') {
+      const [x, y] = pts.values().next().value;
+      const dx = x - gesture.from[0], dy = y - gesture.from[1];
+      if (!gesture.moved && Math.hypot(dx, dy) < 6) return;
+      if (!gesture.moved) { gesture.moved = true; svg.setPointerCapture(ev.pointerId); svg.classList.add('dragging'); }
+      state.t = { ...gesture.t, x: gesture.t.x + dx, y: gesture.t.y + dy };
+    } else {
+      const [a, b] = [...pts.values()];
+      const k = Math.min(3, Math.max(0.15, gesture.t.k * Math.hypot(a[0] - b[0], a[1] - b[1]) / gesture.dist));
+      const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const f = k / gesture.t.k;
+      state.t = { k, x: mid[0] - (gesture.mid[0] - gesture.t.x) * f, y: mid[1] - (gesture.mid[1] - gesture.t.y) * f };
+    }
     applyTransform();
   });
-  const end = () => { drag = null; svg.classList.remove('dragging'); };
+  const end = (ev) => {
+    if (!pts.has(ev.pointerId)) return;
+    pts.delete(ev.pointerId);
+    // 끌기가 끝난 직후의 click은 카드 선택으로 처리하지 않는다.
+    if (gesture?.moved) { state.suppressClick = true; setTimeout(() => { state.suppressClick = false; }, 0); }
+    svg.classList.remove('dragging');
+    if (pts.size === 1) start(); else gesture = null;
+  };
   svg.addEventListener('pointerup', end);
   svg.addEventListener('pointercancel', end);
   svg.addEventListener('wheel', (ev) => {
@@ -230,6 +259,33 @@ function setupPanZoom() {
   $('zoomIn').addEventListener('click', () => zoomAt(1.25, ...mid()));
   $('zoomOut').addEventListener('click', () => zoomAt(1 / 1.25, ...mid()));
   $('zoomFit').addEventListener('click', fit);
+}
+
+// ── 휴대폰: 설정 펼치기, 아래쪽 시트 ─────────────────────
+
+const isNarrow = () => window.matchMedia('(max-width: 820px)').matches;
+
+function setSheet(open) {
+  document.body.classList.toggle('sheet-open', open);
+  $('sheetHandle').setAttribute('aria-expanded', String(open));
+}
+
+function renderSheetSummary() {
+  const id = state.selected;
+  if (!id) return;
+  const r = state.kin.relation(state.ego, id);
+  const term = id === state.ego ? '기준 인물' : r.term;
+  const chon = chonText(r);
+  $('sheetName').textContent = state.model.displayName(id);
+  $('sheetTerm').textContent = chon ? `${term} · ${chon}` : term;
+}
+
+function setupMobile() {
+  $('toggleControls').addEventListener('click', () => {
+    const open = document.querySelector('.bar').classList.toggle('open');
+    $('toggleControls').setAttribute('aria-expanded', String(open));
+  });
+  $('sheetHandle').addEventListener('click', () => setSheet(!document.body.classList.contains('sheet-open')));
 }
 
 // ── 패널 ────────────────────────────────────────────────
@@ -246,6 +302,7 @@ function setEgo(id) {
   $('ego').value = id;
   render();
   centerOn(id);
+  if (isNarrow()) setSheet(false); // 휴대폰에서는 시트를 닫아 바뀐 호칭을 바로 보이게 한다
   renderDetail();
   renderRelations();
 }
@@ -257,6 +314,7 @@ function personLabel(id) {
 }
 
 function renderDetail() {
+  renderSheetSummary();
   const { model, kin } = state;
   const id = state.selected;
   const box = $('detail');
@@ -327,7 +385,7 @@ function renderRelations() {
     (parseInt(model.get(a.id).birth, 10) || 9999) - (parseInt(model.get(b.id).birth, 10) || 9999));
   $('relRows').replaceChildren(...rows.map(({ id, r }) => h('tr', {
     class: model.isUnknown(id) ? 'is-unknown' : '',
-    onclick: () => { select(id); centerOn(id); },
+    onclick: () => { select(id); centerOn(id); if (isNarrow()) setSheet(false); },
   },
   h('td', {}, model.displayName(id)),
   h('td', {}, r.term, r.alt ? h('span', { class: 'alt' }, r.alt) : null),
@@ -366,7 +424,7 @@ function loadDataset(data) {
   $('find').value = '';
 
   render();
-  centerOn(state.ego, 0.9);
+  centerOn(state.ego, isNarrow() ? 0.75 : 0.9);
   renderDetail();
   renderRelations();
 }
@@ -419,6 +477,7 @@ function main() {
   });
 
   setupPanZoom();
+  setupMobile();
   loadDataset(fromHash() || datasets[0]);
 }
 
