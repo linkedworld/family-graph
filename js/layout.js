@@ -9,14 +9,20 @@
 // - 양자는 양가 혼인에서 내려오는 선(adopt)과 생가 혼인에서 내려오는 선(adoptedOut)을 함께 그린다.
 // - dagre가 정한 세대(줄)와 좌우 순서는 그대로 두고, 가로 위치만 다시 계산해 자녀를 부모 아래로 모은다
 //   (compact 참고).
+// - 같은 세대 사이를 지나는 자녀선의 가로 구간은 좌우가 겹치면 서로 다른 높이(차선)에 놓고,
+//   세대 사이 간격은 그 사이에 들어갈 결혼선 층수와 차선 수에 맞춰 넓힌다(placeRows 참고).
 // 서버 없이 file://로도 열리도록 모듈 대신 전역 Genealogy 객체에 등록한다.
 (function (G) {
   'use strict';
 
   const CARD = { w: 156, h: 74 };
   const COUPLE_GAP = 18;   // 부부 묶음 안 카드 사이 간격
-  const LEVEL_STEP = 9;    // 결혼선 층 사이 간격
-  const RANK_SEP = 64;     // 세대(줄) 사이 간격: 결혼선과 자녀선이 들어갈 자리
+  const LEVEL_STEP = 10;   // 결혼선 층 사이 간격
+  const RANK_SEP = 64;     // dagre에 주는 세대 간격(최종 세대 간격은 아래에서 다시 계산)
+  const LANE_STEP = 12;    // 자녀선 가로 구간(차선) 사이 간격
+  const LANE_PAD = 16;     // 같은 차선에 놓을 두 가로 구간 사이의 최소 거리
+  const MIN_GAP = 96;      // 세대 사이 최소 간격
+  const MARGIN_Y = 24;
 
   // 시조 계열(가장 윗대 조상의 후손)과 그 배우자를 '본가'로 보고, 나머지는 외가·처가로 본다.
   function coreSet(model, rootId) {
@@ -160,6 +166,7 @@
       b.y = n.y;
     }
     const bounds = compact(view, blocks, blockOf);
+    const rows = placeRows(view, blocks, blockOf, levels);
 
     const pos = new Map();
     for (const b of blocks) {
@@ -177,11 +184,76 @@
       const bottom = ps[0].y + CARD.h / 2;
       const y = bottom + level * LEVEL_STEP;
       const x = ps.reduce((s, p) => s + p.x, 0) / ps.length;
-      unions.push({ ...un, level, bottom, drop: { x, y }, xs: ps.map((p) => p.x) });
+      const children = un.children.map((c) => ({ ...c, busY: rows.busY.get(`${un.u.id}|${c.id}`) }));
+      unions.push({ ...un, children, level, bottom, drop: { x, y }, xs: ps.map((p) => p.x) });
     }
 
-    const gr = g.graph();
-    return { pos, unions, blocks, width: bounds.width, height: gr.height };
+    return { pos, unions, blocks, width: bounds.width, height: rows.height };
+  }
+
+  // 세대(줄)마다 y를 정하고, 자녀선 가로 구간의 높이(차선)를 배정한다.
+  function placeRows(view, blocks, blockOf, levels) {
+    const ys = [...new Set(blocks.map((b) => Math.round(b.y)))].sort((a, b) => a - b);
+    const rankOf = new Map(blocks.map((b) => [b, ys.indexOf(Math.round(b.y))]));
+    const n = ys.length;
+    const maxLevel = new Array(n).fill(0);
+    const buses = Array.from({ length: n }, () => []);
+
+    for (const un of view.unions) {
+      const from = blockOf.get(un.partners[0]);
+      const level = levels.get(un.u.id);
+      if (level == null) continue;
+      const pr = rankOf.get(from);
+      maxLevel[pr] = Math.max(maxLevel[pr], level);
+      const dropX = un.partners.reduce((sum, p) => sum + from.x + memberOffset(from, p), 0) / un.partners.length;
+      // 자녀가 있는 줄마다 가로 구간 하나: 결혼선 가운데 점부터 양 끝 자녀까지
+      const byRank = new Map();
+      for (const c of un.children) {
+        const to = blockOf.get(c.id);
+        if (!to) continue;
+        const r = rankOf.get(to);
+        const x = to.x + memberOffset(to, c.id);
+        if (!byRank.has(r)) byRank.set(r, { lo: dropX, hi: dropX, keys: [] });
+        const bus = byRank.get(r);
+        bus.lo = Math.min(bus.lo, x);
+        bus.hi = Math.max(bus.hi, x);
+        bus.keys.push(`${un.u.id}|${c.id}`);
+      }
+      for (const [r, bus] of byRank) if (r > 0) buses[r].push(bus);
+    }
+
+    // 왼쪽부터 훑으며, 앞선 구간과 겹치지 않는 가장 낮은 번호의 차선에 넣는다.
+    const lanes = new Array(n).fill(0);
+    for (let r = 1; r < n; r++) {
+      const ends = [];
+      buses[r].sort((a, b) => a.lo - b.lo || a.hi - b.hi);
+      for (const bus of buses[r]) {
+        let lane = ends.findIndex((end) => end + LANE_PAD <= bus.lo);
+        if (lane < 0) { lane = ends.length; ends.push(bus.hi); } else ends[lane] = bus.hi;
+        bus.lane = lane;
+      }
+      lanes[r] = ends.length;
+    }
+
+    // 세대 사이 간격 = 위 줄 결혼선 층 + 여백 + 자녀선 차선 + 여백 (최소 MIN_GAP)
+    const lead = (r) => maxLevel[r - 1] * LEVEL_STEP + 20;
+    const rowY = new Array(n);
+    rowY[0] = MARGIN_Y + CARD.h / 2;
+    for (let r = 1; r < n; r++) {
+      const gap = Math.max(MIN_GAP, lead(r) + lanes[r] * LANE_STEP + 18);
+      rowY[r] = rowY[r - 1] + CARD.h + gap;
+    }
+    for (const b of blocks) b.y = rowY[rankOf.get(b)];
+
+    const busY = new Map();
+    for (let r = 1; r < n; r++) {
+      const top = rowY[r - 1] + CARD.h / 2;
+      // 차선이 적으면 가로 구간을 세대 사이 가운데쯤에 둔다.
+      const free = rowY[r] - CARD.h / 2 - top - lead(r) - lanes[r] * LANE_STEP;
+      const start = top + lead(r) + Math.max(0, (free - 18) / 2);
+      for (const bus of buses[r]) for (const key of bus.keys) busY.set(key, start + bus.lane * LANE_STEP);
+    }
+    return { busY, height: rowY[n - 1] + CARD.h / 2 + MARGIN_Y };
   }
 
   // 묶음 가운데에서 그 사람 카드 가운데까지의 가로 거리
