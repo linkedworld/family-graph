@@ -18,6 +18,8 @@
   --female-soft: #f7ecf0;
   /* 기준 인물의 직계 줄기: 황금색 */
   --lineal: #b07a12;
+  /* 모계 직계 줄기: 보라 */
+  --maternal: #7a52a8;
 
   --f-display: "Noto Serif KR", "Nanum Myeongjo", "Batang", serif;
   --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -27,14 +29,14 @@
   :root:not([data-theme="light"]) {
     --paper: #131816; --paper-2: #1a201e; --card: #212826; --ink: #e4eae6; --ink-2: #9ba8a2;
     --line: #3d4844; --indigo: #93abdb; --indigo-soft: #26314a; --seal: #e2725f; --unknown: #6f7a75;
-    --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a; --lineal: #e3b450;
+    --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a; --lineal: #e3b450; --maternal: #b693e0;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #131816; --paper-2: #1a201e; --card: #212826; --ink: #e4eae6; --ink-2: #9ba8a2;
   --line: #3d4844; --indigo: #93abdb; --indigo-soft: #26314a; --seal: #e2725f; --unknown: #6f7a75;
-  --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a; --lineal: #e3b450;
+  --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a; --lineal: #e3b450; --maternal: #b693e0;
   color-scheme: dark;
 }
 
@@ -108,11 +110,13 @@ input[type="search"] { width: 9rem; }
 .card.selected rect.box { stroke: var(--indigo); stroke-width: 2; }
 .card.ego rect.box { stroke: var(--seal); stroke-width: 2.5; }
 .card.lineal rect.box { stroke: var(--lineal); stroke-width: 2.5; }
+.card.lineal.maternal rect.box { stroke: var(--maternal); }
 .card.lineal.selected rect.box { stroke: var(--indigo); }
 .card.male rect.box { fill: var(--male-soft); }
 .card.female rect.box { fill: var(--female-soft); }
 .card.unknown rect.box { fill: var(--paper-2); stroke: var(--unknown); stroke-dasharray: 4 3; }
 .card.unknown.lineal rect.box { stroke: var(--lineal); stroke-width: 2; }
+.card.unknown.lineal.maternal rect.box { stroke: var(--maternal); }
 .card .gender-bar { stroke: none; }
 .card.male .gender-bar { fill: var(--male); }
 .card.female .gender-bar { fill: var(--female); }
@@ -135,7 +139,9 @@ input[type="search"] { width: 9rem; }
 .adopt-label { font: 600 10.5px var(--f-body); fill: var(--indigo); }
 .union-dot { fill: var(--ink-2); }
 .edge.lineal { stroke: var(--lineal); stroke-width: 3; }
+.edge.lineal.maternal { stroke: var(--maternal); }
 .union-dot.lineal { fill: var(--lineal); }
+.union-dot.lineal.maternal { fill: var(--maternal); }
 .skip-label { font: 500 10.5px var(--f-body); fill: var(--unknown); }
 .skip-label-bg { fill: var(--paper); }
 .gen-label { font: 500 11px var(--f-display); fill: var(--ink-2); }
@@ -201,6 +207,8 @@ td .alt { display: block; font-size: 0.75rem; color: var(--ink-2); }
 .sw-ego { border: 2px solid var(--seal); }
 .sw-lineal { border: 2px solid var(--lineal); }
 .ln-lineal { border-top: 3px solid var(--lineal); }
+.sw-maternal { border: 2px solid var(--maternal); }
+.ln-maternal { border-top: 3px solid var(--maternal); }
 .sw-unknown { border: 1px dashed var(--unknown); background: var(--paper); }
 .sw-male { background: var(--male-soft); border: 1px solid var(--line); border-left: 4px solid var(--male); }
 .sw-female { background: var(--female-soft); border: 1px solid var(--line); border-left: 4px solid var(--female); }
