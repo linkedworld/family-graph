@@ -118,13 +118,17 @@ function drawCard(parent, id, p, rel) {
   const unknown = model.isUnknown(id);
   const cls = ['card'];
   if (unknown) cls.push('unknown');
+  if (person.gender === 'M') cls.push('male');
+  else if (person.gender === 'F') cls.push('female');
   if (id === state.ego) cls.push('ego');
   if (id === state.selected) cls.push('selected');
   const g = el('g', { class: cls.join(' '), transform: `translate(${p.x - CARD.w / 2} ${p.y - CARD.h / 2})`, tabindex: 0, role: 'button' }, parent);
   g.dataset.id = id;
   el('rect', { class: 'box', width: CARD.w, height: CARD.h, rx: 3 }, g);
+  // 남녀를 구분하는 왼쪽 색 띠
+  el('rect', { class: 'gender-bar', x: 0.5, y: 0.5, width: 4, height: CARD.h - 1, rx: 2 }, g);
 
-  const name = el('text', { class: 'name', x: 10, y: 22 }, g);
+  const name = el('text', { class: 'name', x: 12, y: 22 }, g);
   name.textContent = model.displayName(id);
   const sub = person.hanja || (model.isNameless(id) ? '이름 미상' : '');
   if (sub) {
@@ -133,15 +137,15 @@ function drawCard(parent, id, p, rel) {
   }
 
   const termText = id === state.ego ? '기준 인물' : rel.term;
-  const term = el('text', { class: 'term', x: 10, y: 44 }, g);
-  const room = CARD.w - 20 - (rel.chon != null ? 34 : 0);
+  const term = el('text', { class: 'term', x: 12, y: 44 }, g);
+  const room = CARD.w - 22 - (rel.chon != null ? 34 : 0);
   term.textContent = fitText(termText, room, 12);
   term.style.fontSize = `${fontFor(termText, room, 12)}px`;
 
   const chon = el('text', { class: 'chon', x: CARD.w - 10, y: 44, 'text-anchor': 'end' }, g);
   chon.textContent = chonText(rel);
 
-  const yr = el('text', { class: 'years', x: 10, y: 63 }, g);
+  const yr = el('text', { class: 'years', x: 12, y: 63 }, g);
   yr.textContent = years(person);
   if (person.gen != null) {
     const gen = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
