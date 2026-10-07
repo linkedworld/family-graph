@@ -179,7 +179,7 @@ function sphereMaterial() {
         c += vColor * vP.y * (0.12 + 0.9 * pow(1.0 - ndv, 1.6)) * (0.85 + 0.15 * sin(uTime * 4.0));
         float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
         c = mix(c, vec3(l) * vec3(0.8, 0.86, 1.0) * 0.7, vP.z);
-        gl_FragColor = vec4(c, 1.0);
+        gl_FragColor = vec4(clamp(c, 0.0, 32.0), 1.0);
       }`,
   });
 }
@@ -203,12 +203,13 @@ function shellMaterial() {
       uniform float uTime;
       varying vec3 vN, vV, vObj, vColor; varying vec4 vP;
       void main() {
-        float ndv = abs(dot(normalize(vN), normalize(vV)));
+        float ndv = clamp(abs(dot(normalize(vN), normalize(vV))), 0.0, 1.0);
         float fres = pow(1.0 - ndv, 2.4);
         float band = smoothstep(0.42, 0.5, abs(fract(vObj.y * 4.0 - uTime * 0.35 + vP.w * 3.0) - 0.5));
         float dots = step(0.86, fract(sin(dot(floor(vObj * 9.0), vec3(12.9898, 78.233, 37.719))) * 43758.5453));
         float a = (fres * 0.85 + band * 0.07 * (0.3 + fres) + dots * 0.05 * fres) * vP.x * (1.0 + vP.y * 0.8);
-        gl_FragColor = vec4(vColor * 1.35 * a, a);
+        a = clamp(a, 0.0, 4.0);
+        gl_FragColor = vec4(vColor * 1.35 * a, min(a, 1.0));
       }`,
   });
 }
@@ -229,7 +230,7 @@ function ringMaterial() {
       uniform float uTime; varying vec3 vColor; varying float vA, vU;
       void main() {
         float s = 0.55 + 0.45 * sin(vU * 3.0 - uTime * 2.2);
-        gl_FragColor = vec4(vColor * (1.2 + 1.8 * s) * vA, 1.0);
+        gl_FragColor = vec4(clamp(vColor * (1.2 + 1.8 * s) * vA, 0.0, 32.0), 1.0);
       }`,
   });
 }
@@ -248,7 +249,7 @@ function edgeMaterial() {
         vP = aParams;
         vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
         vec3 n = normalize(mat3(modelMatrix * instanceMatrix) * normal);
-        vNdv = abs(dot(n, normalize(cameraPosition - wp.xyz)));
+        vNdv = clamp(abs(dot(n, normalize(cameraPosition - wp.xyz))), 0.0, 1.0);
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
@@ -259,7 +260,8 @@ function edgeMaterial() {
         float core = pow(vNdv, 1.3);
         float a = (0.18 + 0.82 * core) * vP.w;
         vec3 c = vCol * (vP.x * (0.55 + 0.45 * core) + pulse * (0.6 + 2.2 * vP.z));
-        gl_FragColor = vec4(c * a, a);
+        a = clamp(a, 0.0, 2.0);
+        gl_FragColor = vec4(clamp(c * a, 0.0, 32.0), min(a, 1.0));
       }`,
   });
 }
@@ -305,7 +307,8 @@ function floorMaterial() {
       uniform float uTime, uScale; varying vec2 vXZ;
       void main() {
         float r = length(vXZ) / uScale;
-        float ang = atan(vXZ.y, vXZ.x) / 6.2831 * 48.0;
+        // 원점에서 atan(0, 0)은 GPU에 따라 NaN이 되므로 살짝 비켜 계산한다.
+        float ang = atan(vXZ.y, vXZ.x + 1e-4) / 6.2831 * 48.0;
         float aaR = fwidth(r * 0.25) * 1.5, aaA = fwidth(ang) * 1.5;
         float rings = 1.0 - smoothstep(0.0, aaR, abs(fract(r * 0.25) - 0.5) - 0.5 + aaR);
         float rays = (1.0 - smoothstep(0.0, aaA, abs(fract(ang) - 0.5) - 0.5 + aaA)) * smoothstep(4.0, 10.0, r);
@@ -313,6 +316,7 @@ function floorMaterial() {
         float fade = exp(-r * 0.028);
         float glow = exp(-r * 0.12) * 0.1;
         float a = ((rings * 0.5 + rays * 0.22) * (0.45 + sweep * 0.9) + glow) * fade;
+        a = clamp(a, 0.0, 1.0);
         gl_FragColor = vec4(vec3(0.25, 0.7, 1.0) * a * 0.32, a);
       }`,
     extensions: { derivatives: true },
@@ -374,25 +378,32 @@ function makePost() {
   const quadScene = new T.Scene();
   quadScene.add(quad);
   const vs = /* glsl */`varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+  // 휴대폰 GPU에서는 셰이더의 작은 오차가 NaN·무한대를 만들 수 있다. 그런 화소 하나가 흐림 단계를 거치며
+  // 큰 검은 네모로 번지므로, 후처리에 들어가는 값은 모두 0 이상 유한한 값으로 바로잡는다.
+  const SANE = /* glsl */`
+    vec3 sane(vec3 c) {
+      if (any(isnan(c)) || any(isinf(c)) || !(c.r == c.r && c.g == c.g && c.b == c.b)) return vec3(0.0);
+      return clamp(c, 0.0, 64.0);
+    }`;
   const rtOpts = { type: T.HalfFloatType, minFilter: T.LinearFilter, magFilter: T.LinearFilter, depthBuffer: false };
   const sceneRT = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: isNarrow() ? 2 : 4 });
   const levels = [0, 1, 2, 3].map(() => ({ a: new T.WebGLRenderTarget(1, 1, rtOpts), b: new T.WebGLRenderTarget(1, 1, rtOpts) }));
   const bright = new T.ShaderMaterial({
     uniforms: { tSrc: { value: null }, uTh: { value: 1.0 } }, vertexShader: vs,
-    fragmentShader: /* glsl */`uniform sampler2D tSrc; uniform float uTh; varying vec2 vUv;
-      void main() { vec3 c = texture2D(tSrc, vUv).rgb; float l = max(c.r, max(c.g, c.b));
+    fragmentShader: /* glsl */`uniform sampler2D tSrc; uniform float uTh; varying vec2 vUv; ${SANE}
+      void main() { vec3 c = sane(texture2D(tSrc, vUv).rgb); float l = max(c.r, max(c.g, c.b));
         gl_FragColor = vec4(c * smoothstep(uTh, uTh + 0.8, l), 1.0); }`,
   });
   const blur = new T.ShaderMaterial({
     uniforms: { tSrc: { value: null }, uDir: { value: new T.Vector2() } }, vertexShader: vs,
-    fragmentShader: /* glsl */`uniform sampler2D tSrc; uniform vec2 uDir; varying vec2 vUv;
+    fragmentShader: /* glsl */`uniform sampler2D tSrc; uniform vec2 uDir; varying vec2 vUv; ${SANE}
       void main() {
         vec3 c = texture2D(tSrc, vUv).rgb * 0.2270270270;
         c += texture2D(tSrc, vUv + uDir * 1.3846153846).rgb * 0.3162162162;
         c += texture2D(tSrc, vUv - uDir * 1.3846153846).rgb * 0.3162162162;
         c += texture2D(tSrc, vUv + uDir * 3.2307692308).rgb * 0.0702702703;
         c += texture2D(tSrc, vUv - uDir * 3.2307692308).rgb * 0.0702702703;
-        gl_FragColor = vec4(c, 1.0); }`,
+        gl_FragColor = vec4(sane(c), 1.0); }`,
   });
   const copy = new T.ShaderMaterial({
     uniforms: { tSrc: { value: null } }, vertexShader: vs,
@@ -407,6 +418,7 @@ function makePost() {
     vertexShader: vs,
     fragmentShader: /* glsl */`
       uniform sampler2D tScene, tB0, tB1, tB2, tB3; uniform float uTime, uStrength; uniform vec2 uRes; varying vec2 vUv;
+      ${SANE}
       vec3 aces(vec3 x) { const float a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14; return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0); }
       vec3 toSRGB(vec3 c) { return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c)); }
       float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
@@ -414,13 +426,13 @@ function makePost() {
         vec2 dc = vUv - 0.5;
         float r2 = dot(dc, dc);
         vec2 off = dc * r2 * 0.012;
-        vec3 c = vec3(texture2D(tScene, vUv + off).r, texture2D(tScene, vUv).g, texture2D(tScene, vUv - off).b);
-        vec3 b = texture2D(tB0, vUv).rgb * 0.9 + texture2D(tB1, vUv).rgb * 0.8 + texture2D(tB2, vUv).rgb * 0.75 + texture2D(tB3, vUv).rgb * 0.7;
+        vec3 c = sane(vec3(texture2D(tScene, vUv + off).r, texture2D(tScene, vUv).g, texture2D(tScene, vUv - off).b));
+        vec3 b = sane(texture2D(tB0, vUv).rgb) * 0.9 + sane(texture2D(tB1, vUv).rgb) * 0.8 + sane(texture2D(tB2, vUv).rgb) * 0.75 + sane(texture2D(tB3, vUv).rgb) * 0.7;
         c += b * uStrength * 0.42;
         c *= 1.08;
         c = aces(c);
         c *= mix(1.0, 0.55, smoothstep(0.12, 0.62, r2 * 1.6));
-        c = toSRGB(c);
+        c = toSRGB(clamp(c, 0.0, 1.0));
         c += (hash(vUv * uRes + fract(uTime) * 100.0) - 0.5) * 0.018;
         gl_FragColor = vec4(c, 1.0);
       }`,
@@ -1295,7 +1307,7 @@ function main() {
   loadDataset(fromHash() || datasets[0]);
   requestAnimationFrame(frame);
   // 테스트·디버그용
-  window.__bubble = { state, nodes, ctl, toggle, fit, setEgo, camera: () => camera };
+  window.__bubble = { state, nodes, ctl, toggle, fit, setEgo, camera: () => camera, scene: () => scene };
 }
 
 main();
