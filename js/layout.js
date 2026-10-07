@@ -19,6 +19,7 @@
   const CARD = { w: 156, h: 90 };
   const COUPLE_GAP = 18;   // 부부 묶음 안 카드 사이 간격
   const LEVEL_STEP = 10;   // 결혼선 층 사이 간격
+  const LEVEL_BASE = 8;    // 카드 아래와 첫 결혼선 사이 여백(카드 밖 오른쪽 아래 +/− 단추 자리)
   const RANK_SEP = 64;     // dagre에 주는 세대 간격(최종 세대 간격은 아래에서 다시 계산)
   const LANE_STEP = 12;    // 자녀선 가로 구간(차선) 사이 간격
   const LANE_PAD = 16;     // 같은 차선에 놓을 두 가로 구간 사이의 최소 거리
@@ -292,7 +293,7 @@
       if (level == null) continue;
       const ps = un.partners.map((p) => pos.get(p));
       const bottom = ps[0].y + CARD.h / 2;
-      const y = bottom + level * LEVEL_STEP;
+      const y = bottom + LEVEL_BASE + level * LEVEL_STEP;
       const x = ps.reduce((s, p) => s + p.x, 0) / ps.length;
       const children = un.children.map((c) => {
         const b = blockOf.get(c.id);
@@ -357,7 +358,7 @@
     }
 
     // 세대 사이 간격 = 위 줄 결혼선 층 + 여백 + 자녀선 차선 + 여백 (최소 MIN_GAP)
-    const lead = (r) => maxLevel[r - 1] * LEVEL_STEP + 20;
+    const lead = (r) => LEVEL_BASE + maxLevel[r - 1] * LEVEL_STEP + 20;
     const rowTop = new Array(n);
     rowTop[0] = MARGIN_Y;
     for (let r = 1; r < n; r++) {

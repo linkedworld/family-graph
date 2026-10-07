@@ -340,14 +340,15 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
   }
 
   if (toggle) {
-    // 오른쪽 아래 단추: +N(숨은 자녀 펼치기) / −(접기)
+    // 카드 밖 오른쪽 아래 글자 단추: +N(숨은 자녀 펼치기) / −(접기). 배경·테두리 없이 글자만 그리고,
+    // 누르기 쉽게 보이지 않는 넓은 영역(hit)을 깐다. 결혼선은 카드 가운데서 LEVEL_BASE 아래로 내려가므로 겹치지 않는다.
     const btn = el('g', { class: `fold-btn${toggle === '−' ? ' open' : ''}`, role: 'button', tabindex: 0,
       'aria-label': toggle === '−' ? '자녀 접기' : `자녀 ${toggle.slice(1)}명 펼치기` }, g);
-    // 휴대폰에서는 손가락으로 누르기 쉽게 크게 그린다.
-    const [bw, bh] = isNarrow() ? [52, 28] : [34, 18];
-    el('rect', { x: CARD.w - bw - 4, y: CARD.h - bh - 3, width: bw, height: bh, rx: bh / 2 }, btn);
-    const bt = el('text', { x: CARD.w - bw / 2 - 4, y: CARD.h - bh / 2 + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle' }, btn);
-    if (isNarrow()) bt.style.fontSize = '15px';
+    const narrow = isNarrow();
+    const [hw, hh] = narrow ? [52, 30] : [40, 20];
+    el('rect', { class: 'hit', x: CARD.w - hw + 6, y: CARD.h - 2, width: hw, height: hh, rx: 4 }, btn);
+    const bt = el('text', { x: CARD.w + 2, y: CARD.h + (narrow ? 15 : 12), 'text-anchor': 'end' }, btn);
+    if (narrow) bt.style.fontSize = '15px';
     bt.textContent = toggle;
     const stop = (ev) => ev.stopPropagation();
     btn.addEventListener('click', (ev) => { stop(ev); if (!state.suppressClick) toggleExpand(id); });

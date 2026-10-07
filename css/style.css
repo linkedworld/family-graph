@@ -155,17 +155,14 @@ input[type="search"] { width: 9rem; }
 .mk-notable { border: 1.4px solid var(--heir); color: var(--heir); background: var(--card); }
 .ln-heir { border-top: 6px double var(--heir); }
 .firstborn-sample { color: var(--heir); }
-.fold-btn { cursor: pointer; }
-.fold-btn rect { fill: var(--indigo); }
-.fold-btn text { font: 700 11px var(--f-body); fill: var(--card); }
-.fold-btn.open rect { fill: var(--card); stroke: var(--indigo); stroke-width: 1.2; }
-.fold-btn.open text { fill: var(--indigo); font-size: 13px; }
-.fold-btn:hover rect, .fold-btn:focus-visible rect { filter: brightness(1.15); }
-.fold-sample {
-  display: inline-block; min-width: 26px; margin-right: 6px; padding: 0 6px; border-radius: 9px; text-align: center;
-  font: 700 0.72rem var(--f-body); color: var(--card); background: var(--indigo);
-}
-.fold-sample.open { color: var(--indigo); background: var(--card); border: 1px solid var(--indigo); }
+.fold-btn { cursor: pointer; outline: none; }
+.fold-btn .hit { fill: transparent; }
+.fold-btn text { font: 700 12px var(--f-body); fill: var(--indigo); }
+.fold-btn.open text { font-size: 14px; fill: var(--ink-2); }
+.fold-btn:hover text, .fold-btn:focus-visible text { fill: var(--seal); text-decoration: underline; }
+.fold-sample { display: inline-block; min-width: 18px; margin-right: 4px; text-align: center;
+  font: 700 0.78rem var(--f-body); color: var(--indigo); }
+.fold-sample.open { color: var(--ink-2); font-size: 0.9rem; }
 .expand-btns button {
   font: 500 0.82rem var(--f-body); color: var(--ink); background: var(--card);
   border: 1px solid var(--line); border-radius: 4px; padding: 5px 9px; cursor: pointer;
