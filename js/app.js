@@ -19,6 +19,9 @@ const state = {
   ego: null, selected: null,
   hideUnknown: false, showInlaws: false, // 외가·처가는 기본으로 숨긴다
   fold: true, // 자손이 이어지지 않는 형제가 많으면 여러 줄로 접는다
+  // 접기·펴기: 기본은 기준 인물의 직계와 그 배우자만 보이고, 나머지 자녀는 접혀 있다.
+  expanded: new Set(), // 자녀를 펼친 사람
+  expandAll: false,
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   lay: null, view: null,
   t: { k: 1, x: 0, y: 0 },
@@ -57,9 +60,75 @@ function years(p) {
 
 // ── 다이어그램 ────────────────────────────────────────────
 
+// 표시 옵션(미상 숨기기, 외가·처가)을 통과하는 사람
+function passesFilters(id) {
+  const { model } = state;
+  if (state.hideUnknown && model.isUnknown(id)) return false;
+  if (!state.showInlaws && !state.core.has(id)) return false;
+  return true;
+}
+
+// 접기·펴기 상태에 따라 보일 사람을 정한다.
+//   직계(조상·자손)는 항상 보이고, 펼친 사람의 자녀가 더해지며, 보이는 사람의 배우자도 보인다.
+function computeShown() {
+  const { model, kin } = state;
+  const rels = new Map();
+  const shown = new Set();
+  for (const [id] of model.persons) {
+    const r = kin.relation(state.ego, id);
+    rels.set(id, r);
+    if (id === state.ego || (r.kind === 'blood' && r.path && (r.path.up === 0 || r.path.down === 0))) shown.add(id);
+  }
+  const lineal = new Set(shown);
+  const queue = [...shown];
+  while (queue.length) {
+    const id = queue.pop();
+    if (!state.expandAll && !state.expanded.has(id)) continue;
+    for (const c of model.children(id, 'all')) if (!shown.has(c)) { shown.add(c); queue.push(c); }
+  }
+  for (const id of [...shown]) for (const s of model.spouses(id)) shown.add(s.id);
+  return { shown, lineal, rels };
+}
+
+// 접혀 있는 사람이 보이도록 그 사람의 조상을 따라 펼친다.
+function reveal(id) {
+  const { model } = state;
+  if (!state.core.has(id) && !state.showInlaws) { state.showInlaws = true; $('showInlaws').checked = true; }
+  if (model.isUnknown(id) && state.hideUnknown) { state.hideUnknown = false; $('hideUnknown').checked = false; }
+  const seen = new Set();
+  const up = (x) => {
+    for (const p of [...model.parents(x, 'legal'), ...model.parents(x, 'birth')]) {
+      if (seen.has(p)) continue;
+      seen.add(p);
+      state.expanded.add(p);
+      up(p);
+    }
+  };
+  up(id);
+  // 배우자로만 이어진 사람(예: 며느리)은 그 배우자 쪽 길을 펼친다.
+  for (const s of model.spouses(id)) up(s.id);
+}
+
+function toggleExpand(id) {
+  if (state.expanded.has(id) || state.expandAll) {
+    if (state.expandAll) {
+      // '모두 펼치기' 상태에서 하나를 접으면, 지금 보이는 사람을 펼친 상태로 옮긴 뒤 그 사람만 접는다.
+      state.expandAll = false;
+      for (const p of state.shown) state.expanded.add(p);
+    }
+    state.expanded.delete(id);
+  } else {
+    state.expanded.add(id);
+  }
+  render();
+  renderRelations();
+}
+
 function render({ refit = false } = {}) {
   const { model, kin } = state;
-  state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core });
+  const { shown, lineal: linealAll, rels: allRels } = computeShown();
+  state.shown = shown;
+  state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core, keep: shown });
   state.view.fold = state.fold;
   state.lay = layout(state.view);
   const { pos } = state.lay;
@@ -74,7 +143,7 @@ function render({ refit = false } = {}) {
   // 기준 인물의 직계(조상·자손). 족보 계통(양가) 기준 혈족 중 위로만 또는 아래로만 이어진 사람을
   // 부계(P: 중간에 남자만 거침 — 아버지·할아버지와 그 부인, 아들 계통 자손)와
   // 모계(M: 어머니 쪽 조상, 딸을 거친 자손)로 나눈다. 표시 범위는 '직계 표시' 설정을 따른다.
-  const rels = new Map(state.view.persons.map((id) => [id, kin.relation(state.ego, id)]));
+  const rels = allRels;
   const line = new Map();
   if (state.lineMode !== 'none') {
     for (const id of state.view.persons) {
@@ -149,8 +218,25 @@ function render({ refit = false } = {}) {
 
   gEdges.appendChild(gLineal);
 
+  // 접기·펴기 단추: 숨은 자녀 수(+N), 펼친 자녀가 있으면 접기(−)
+  // 단추는 부부 중 아버지 카드에만 붙인다(아버지가 화면에 없을 때만 어머니 카드에).
+  const owner = (child, parentId) => {
+    for (const mode of ['legal', 'birth']) {
+      const f = model.father(child, mode), mo = model.mother(child, mode);
+      if (f === parentId || mo === parentId) return f && shown.has(f) && passesFilters(f) ? f : mo;
+    }
+    return parentId;
+  };
+  const toggles = new Map();
   for (const id of state.view.persons) {
-    drawCard(gNodes, id, pos.get(id), rels.get(id), line.get(id));
+    const kids = model.children(id, 'all').filter((c) => passesFilters(c) && owner(c, id) === id);
+    const hidden = kids.filter((c) => !shown.has(c)).length;
+    const opened = (state.expandAll || state.expanded.has(id)) && kids.some((c) => shown.has(c) && !linealAll.has(c));
+    if (hidden) toggles.set(id, `+${hidden}`);
+    else if (opened) toggles.set(id, '−');
+  }
+  for (const id of state.view.persons) {
+    drawCard(gNodes, id, pos.get(id), rels.get(id), line.get(id), toggles.get(id));
   }
 
   applyTransform();
@@ -165,7 +251,7 @@ function birthOrderShown(id) {
   return order;
 }
 
-function drawCard(parent, id, p, rel, isLineal) {
+function drawCard(parent, id, p, rel, isLineal, toggle) {
   const { model } = state;
   const person = model.get(id);
   const unknown = model.isUnknown(id);
@@ -211,6 +297,22 @@ function drawCard(parent, id, p, rel, isLineal) {
     const t = el('text', { class: 'order', x: 12, y: 81 }, g);
     t.textContent = fitText(order.full, CARD.w - 22, 11);
     t.style.fontSize = `${fontFor(order.full, CARD.w - 22, 11)}px`;
+  }
+
+  if (toggle) {
+    // 오른쪽 아래 단추: +N(숨은 자녀 펼치기) / −(접기)
+    const btn = el('g', { class: `fold-btn${toggle === '−' ? ' open' : ''}`, role: 'button', tabindex: 0,
+      'aria-label': toggle === '−' ? '자녀 접기' : `자녀 ${toggle.slice(1)}명 펼치기` }, g);
+    // 휴대폰에서는 손가락으로 누르기 쉽게 크게 그린다.
+    const [bw, bh] = isNarrow() ? [52, 28] : [34, 18];
+    el('rect', { x: CARD.w - bw - 4, y: CARD.h - bh - 3, width: bw, height: bh, rx: bh / 2 }, btn);
+    const bt = el('text', { x: CARD.w - bw / 2 - 4, y: CARD.h - bh / 2 + 1, 'text-anchor': 'middle', 'dominant-baseline': 'middle' }, btn);
+    if (isNarrow()) bt.style.fontSize = '15px';
+    bt.textContent = toggle;
+    const stop = (ev) => ev.stopPropagation();
+    btn.addEventListener('click', (ev) => { stop(ev); if (!state.suppressClick) toggleExpand(id); });
+    btn.addEventListener('dblclick', stop);
+    btn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { stop(ev); ev.preventDefault(); toggleExpand(id); } });
   }
 
   if (id === state.ego) {
@@ -457,14 +559,18 @@ function renderDetail() {
 
 function renderRelations() {
   const { model, kin } = state;
-  const ids = state.view.nodes.filter((n) => n.kind === 'person' && n.id !== state.ego).map((n) => n.id);
+  // 접혀 있는 사람도 목록에 보이고, 누르면 그 사람까지 펼친다.
+  const ids = [...model.persons.keys()].filter((id) => id !== state.ego && passesFilters(id));
   const rows = ids.map((id) => ({ id, r: kin.relation(state.ego, id) }));
   rows.sort((a, b) => (KIND_ORDER[a.r.kind] - KIND_ORDER[b.r.kind]) ||
     ((a.r.chon ?? 99) - (b.r.chon ?? 99)) ||
     (parseInt(model.get(a.id).birth, 10) || 9999) - (parseInt(model.get(b.id).birth, 10) || 9999));
   $('relRows').replaceChildren(...rows.map(({ id, r }) => h('tr', {
-    class: model.isUnknown(id) ? 'is-unknown' : '',
-    onclick: () => { select(id); centerOn(id); if (isNarrow()) setSheet(false); },
+    class: [model.isUnknown(id) ? 'is-unknown' : '', state.shown.has(id) ? '' : 'is-folded'].join(' ').trim(),
+    onclick: () => {
+      if (!state.shown.has(id)) { reveal(id); render(); renderRelations(); }
+      select(id); centerOn(id); if (isNarrow()) setSheet(false);
+    },
   },
   h('td', {}, model.displayName(id)),
   h('td', {}, r.term, r.alt ? h('span', { class: 'alt' }, r.alt) : null),
@@ -479,6 +585,8 @@ function loadDataset(data) {
   state.data = data;
   state.model = model;
   state.kin = new Kinship(model);
+  state.expanded = new Set();
+  state.expandAll = false;
 
   let root = data.meta.subject;
   while (model.father(root)) root = model.father(root);
@@ -546,9 +654,8 @@ function main() {
       ids.find((id) => personLabel(id).includes(q) || (model.get(id).hanja || '').includes(q));
     if (!hit) return;
     if (!state.lay.pos.has(hit)) {
-      // 숨김 옵션 때문에 안 보이는 인물이면 옵션을 풀어서 보여 준다.
-      state.hideUnknown = false; $('hideUnknown').checked = false;
-      state.showInlaws = true; $('showInlaws').checked = true;
+      // 접혀 있거나 숨김 옵션 때문에 안 보이는 인물이면 그 사람까지 펼쳐서 보여 준다.
+      reveal(hit);
       render(); renderRelations();
     }
     select(hit);
@@ -556,6 +663,15 @@ function main() {
   });
   $('hideUnknown').addEventListener('change', (ev) => {
     state.hideUnknown = ev.target.checked;
+    render(); centerOn(state.ego); renderRelations();
+  });
+  $('expandAll').addEventListener('click', () => {
+    state.expandAll = true;
+    render(); centerOn(state.ego); renderRelations();
+  });
+  $('collapseAll').addEventListener('click', () => {
+    state.expandAll = false;
+    state.expanded.clear();
     render(); centerOn(state.ego); renderRelations();
   });
   $('fold').addEventListener('change', (ev) => {
