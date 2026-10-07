@@ -5,14 +5,15 @@
 
 ## 실행
 
-빌드 과정이 없는 정적 사이트입니다. 데이터를 `fetch`로 읽기 때문에 로컬 웹 서버로 열어야 합니다.
+서버도 빌드도 필요 없는 순수 정적 웹입니다. **`index.html`을 브라우저로 바로 열면** 됩니다(`file://`).
+폴더째 GitHub Pages, Netlify 같은 정적 호스팅에 올려도 그대로 동작합니다.
 
-```bash
-python3 -m http.server 8000
-# http://localhost:8000 접속
-```
+- ES 모듈과 `fetch`를 쓰지 않고, 일반 `<script>`를 순서대로 읽습니다(`file://`에서도 막히지 않음).
+- 데이터는 `data/yi-hwang.js`가 `window.GENEALOGY_DATA`에 넣어 줍니다.
+- 배치 라이브러리 dagre는 `vendor/`에 포함되어 있어 인터넷 없이도 열립니다.
+  인터넷이 없으면 웹 글꼴만 시스템 글꼴로 바뀝니다.
 
-테스트(Node 18 이상):
+엔진 테스트(개발용, Node 18 이상 · 선택 사항):
 
 ```bash
 npm test
@@ -35,17 +36,20 @@ npm test
 |---|---|
 | `index.html`, `css/style.css` | 화면 |
 | `js/app.js` | 화면 동작(다이어그램, 상세 패널, 관계표, 확대·이동) |
-| `js/model.js` | JSON을 그래프 모델로 변환, 미상 인물 생성 |
+| `js/model.js` | 가계 데이터를 그래프 모델로 변환, 미상 인물 생성 |
 | `js/kinship.js` | 호칭·촌수 계산 엔진 |
 | `js/layout.js` | 표시할 노드·간선 구성(숨김 처리 포함)과 dagre 배치 |
-| `data/yi-hwang.json` | 이황 가계 데이터 목업 |
+| `data/yi-hwang.js` | 이황 가계 데이터 목업 (`window.GENEALOGY_DATA`) |
+| `vendor/dagre.min.js` | 그래프 배치 라이브러리 dagre 0.8.5 (MIT, `vendor/dagre.LICENSE`) |
 | `docs/kinship-terms.md` | 호칭·촌수 규칙 정리 |
 | `tests/kinship.test.mjs` | 엔진 테스트 (이황 데이터 + 가상 가족) |
 
 ## 데이터 형식
 
-```jsonc
-{
+다른 인물을 추가하려면 같은 형식의 `data/<인물>.js`를 만들고 `index.html`의 데이터 `<script>`를 바꾸면 됩니다.
+
+```js
+window.GENEALOGY_DATA = {
   "meta": { "subject": "yi_hwang", "sources": { "wiki_yihwang": { "title": "...", "url": "..." } } },
   "persons": [
     {
@@ -66,7 +70,7 @@ npm test
     // 이안도의 11대손이 이충호라는 기록만 있을 때, 사이의 10세대를 미상으로 채운다.
     { "id": "gap_jongson", "ancestor": "yi_ando", "descendant": "yi_chungho", "generations": 11, "confidence": "추정" }
   ]
-}
+};
 ```
 
 ## 이황 가계 데이터의 범위와 출처

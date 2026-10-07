@@ -74,7 +74,12 @@
     </aside>
   </main>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dagre/0.8.5/dagre.min.js"></script>
-<script type="module" src="js/app.js"></script>
+<!-- 서버 없이 index.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다. -->
+<script src="vendor/dagre.min.js"></script>
+<script src="data/yi-hwang.js"></script>
+<script src="js/model.js"></script>
+<script src="js/kinship.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

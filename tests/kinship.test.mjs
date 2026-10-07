@@ -1,10 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { buildModel } from '../js/model.js';
-import { Kinship } from '../js/kinship.js';
+import vm from 'node:vm';
 
-const yiHwang = JSON.parse(readFileSync(new URL('../data/yi-hwang.json', import.meta.url), 'utf8'));
+// 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
+const ctx = vm.createContext({ window: {} });
+ctx.globalThis = ctx;
+ctx.window = ctx;
+for (const f of ['data/yi-hwang.js', 'js/model.js', 'js/kinship.js']) {
+  vm.runInContext(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), ctx, { filename: f });
+}
+const { buildModel, Kinship } = ctx.Genealogy;
+const yiHwang = ctx.GENEALOGY_DATA;
 
 function rel(k, ego, target) {
   const r = k.relation(ego, target);

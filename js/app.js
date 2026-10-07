@@ -1,8 +1,9 @@
-import { buildModel } from './model.js';
-import { Kinship } from './kinship.js';
-import { buildView, layout, coreSet, CARD } from './layout.js';
+(function () {
+'use strict';
 
-const DATA_URL = 'data/yi-hwang.json';
+const { buildModel, Kinship, buildView, layout, coreSet, CARD } = window.Genealogy;
+
+
 const SVGNS = 'http://www.w3.org/2000/svg';
 const KIND_ORDER = { self: 0, blood: 1, spouse: 2, affinal: 3, sadon: 4, distant: 5, none: 6 };
 
@@ -233,6 +234,7 @@ function setEgo(id) {
   state.selected = id;
   $('ego').value = id;
   render();
+  centerOn(id);
   renderDetail();
   renderRelations();
 }
@@ -314,10 +316,10 @@ function renderRelations() {
 
 // ── 시작 ────────────────────────────────────────────────
 
-async function main() {
-  const res = await fetch(DATA_URL);
-  if (!res.ok) throw new Error(`데이터를 불러오지 못했습니다 (${res.status})`);
-  const data = await res.json();
+function main() {
+  // data/*.js 파일이 window.GENEALOGY_DATA에 넣어 둔 데이터를 쓴다(서버·fetch 불필요).
+  const data = window.GENEALOGY_DATA;
+  if (!data) throw new Error('가계 데이터(data/yi-hwang.js)를 불러오지 못했습니다');
   const model = buildModel(data);
   state.model = model;
   state.kin = new Kinship(model);
@@ -356,7 +358,10 @@ async function main() {
   renderRelations();
 }
 
-main().catch((err) => {
-  $('detail').replaceChildren(h('p', {}, `${err.message}. 로컬에서는 'python3 -m http.server'로 실행해 주세요.`));
+try {
+  main();
+} catch (err) {
+  $('detail').replaceChildren(h('p', {}, `${err.message}. index.html과 같은 폴더의 js/, data/, vendor/ 파일이 모두 있는지 확인해 주세요.`));
   console.error(err);
-});
+}
+})();
