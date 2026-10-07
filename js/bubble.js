@@ -35,6 +35,8 @@ const state = {
   data: null, model: null, kin: null, root: null, ego: null, selected: null, hovered: null,
   lineage: new Set(), expanded: new Set(), notable: new Set(),
   showSpouses: true, hideUnknown: false, autoRotate: !reduceMotion,
+  descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
+  axisLine: [],
   rels: new Map(), trunk: new Set(),
 };
 
@@ -86,6 +88,33 @@ function reveal(id) {
   if (hiddenPerson(a)) { state.hideUnknown = false; $('hideUnknown').checked = false; }
 }
 
+// 직계 자손 축에 세울 줄: 기준 자리에서 대를 잇는 아들(종통 계승자, 없으면 맏이)을 따라 내려간다.
+// 직계 자손은 여러 갈래라 모두를 한 축에 세울 수 없으므로 대를 잇는 한 줄만 세우고,
+// 나머지 자손은 그 줄의 각 사람 둘레로 퍼진다.
+function descLine(anchor) {
+  const out = [];
+  const seen = new Set([anchor]);
+  for (let cur = anchor; ;) {
+    const ks = kids(cur).map((k) => k.id);
+    if (!ks.length) break;
+    const h = state.model.heir(cur);
+    const next = ks.includes(h) ? h : ks[0];
+    if (seen.has(next)) break;
+    seen.add(next);
+    out.push(next);
+    cur = next;
+  }
+  return out;
+}
+// 축 옵션을 켜면 줄이 끝까지 보이도록 줄 위의 사람들을 펼친다.
+function expandDescLine() {
+  const a = anchorOf(state.ego);
+  if (!state.descAxis || !a) return;
+  state.expanded.add(a);
+  const line = descLine(a);
+  line.slice(0, -1).forEach((id) => state.expanded.add(id));
+}
+
 function relOf(id) {
   if (!state.rels.has(id)) state.rels.set(id, state.kin.relation(state.ego, id));
   return state.rels.get(id);
@@ -116,7 +145,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 // ── 3D 장면 ──────────────────────────────────────────────
 let renderer, scene, camera, post;
-let spheres, shells, rings, edges, genLines, floor, dust, sky;
+let spheres, shells, rings, edges, genLines, floor, dust, sky, axis;
 const canvas = $('gl');
 
 // 3D 값 잡음(구슬 속 흐름, 성운)
@@ -262,6 +291,33 @@ function edgeMaterial() {
         vec3 c = vCol * (vP.x * (0.55 + 0.45 * core) + pulse * (0.6 + 2.2 * vP.z));
         a = clamp(a, 0.0, 2.0);
         gl_FragColor = vec4(clamp(c * a, 0.0, 32.0), min(a, 1.0));
+      }`,
+  });
+}
+
+// 가운데 축 빛기둥(직계 자손 축 옵션): 가는 금빛 기둥에 빛 마디가 아래로 흐른다.
+function axisMaterial() {
+  return new T.ShaderMaterial({
+    uniforms: { uTime, uVis: { value: 0 } },
+    transparent: true, depthWrite: false, blending: T.AdditiveBlending,
+    vertexShader: /* glsl */`
+      varying float vY, vNdv;
+      void main() {
+        vY = position.y + 0.5;
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vec3 n = normalize(mat3(modelMatrix) * normal);
+        vNdv = clamp(abs(dot(n, normalize(cameraPosition - wp.xyz))), 0.0, 1.0);
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: /* glsl */`
+      uniform float uTime, uVis; varying float vY, vNdv;
+      void main() {
+        float core = pow(vNdv, 2.0);
+        float p = fract(vY * 9.0 + uTime * 0.45);
+        float pulse = smoothstep(0.0, 0.06, p) * (1.0 - smoothstep(0.06, 0.4, p));
+        float ends = smoothstep(0.0, 0.04, vY) * smoothstep(1.0, 0.96, vY);
+        float a = clamp((0.12 + 0.6 * core + pulse * 0.5 * core) * ends * uVis, 0.0, 1.0);
+        gl_FragColor = vec4(vec3(1.0, 0.78, 0.36) * a * 1.6, a);
       }`,
   });
 }
@@ -502,6 +558,12 @@ function initGL() {
   genLines.frustumCulled = false;
   scene.add(genLines);
 
+  axis = new T.Mesh(new T.CylinderGeometry(1, 1, 1, 20, 1, true), axisMaterial());
+  axis.frustumCulled = false;
+  axis.renderOrder = 1;
+  axis.visible = false;
+  scene.add(axis);
+
   post = makePost();
   return true;
 }
@@ -529,6 +591,8 @@ function rebuild({ instant = false } = {}) {
   state.rels.clear();
   const anchor = anchorOf(state.ego);
   state.trunk = new Set(anchor ? [anchor, ...ancestorsInTree(anchor)] : [state.root]);
+  state.axisLine = state.descAxis && anchor ? descLine(anchor) : [];
+  for (const id of state.axisLine) state.trunk.add(id);
 
   // 보일 사람: 시조부터, 펼친 사람의 자녀를 따라 내려간다.
   const seen = new Set();
@@ -628,6 +692,7 @@ function simulate(dt) {
       }
     }
     for (const n of persons) {
+      if (n.trunk) continue; // 축에 선 사람은 아래에서 축으로 고정한다
       n.vel.x = (n.vel.x + n.fx * dt * a) * Math.exp(-dt * 5);
       n.vel.z = (n.vel.z + n.fz * dt * a) * Math.exp(-dt * 5);
       const sp = Math.hypot(n.vel.x, n.vel.z), max = 60;
@@ -637,7 +702,8 @@ function simulate(dt) {
   }
   for (const n of persons) {
     n.pos.y += (-n.depth * GEN_H - n.pos.y) * yRate;
-    if (n.trunk) { const k = 1 - Math.exp(-dt * 6); n.pos.x -= n.pos.x * k; n.pos.z -= n.pos.z * k; }
+    // 축에 선 사람은 밀려나지 않게 속도를 버리고 축으로 끌어온다.
+    if (n.trunk) { const k = 1 - Math.exp(-dt * 6); n.pos.x -= n.pos.x * k; n.pos.z -= n.pos.z * k; n.vel.x = 0; n.vel.z = 0; }
   }
   // 배우자: 짝 옆(가지 방향과 직각)에 붙는다.
   for (const n of persons) {
@@ -812,6 +878,18 @@ function writeInstances() {
   }
   genLines.geometry.setAttribute('position', new T.BufferAttribute(arr.subarray(0, o), 3));
   genLines.geometry.attributes.position.needsUpdate = true;
+
+  // 가운데 축 빛기둥: 시조 위에서 축에 선 맨 아래 사람 밑까지
+  const av = axis.material.uniforms.uVis;
+  av.value += ((state.descAxis ? 1 : 0) - av.value) * 0.06;
+  axis.visible = av.value > 0.01;
+  if (axis.visible) {
+    let bottom = 0;
+    for (const n of order) if (n.trunk && n.alive && n.kind === 'person') bottom = Math.min(bottom, n.pos.y);
+    const top = 4, bot = bottom - 5;
+    axis.position.set(0, (top + bot) / 2, 0);
+    axis.scale.set(0.09, top - bot, 0.09);
+  }
 
   // 바닥은 가장 아래 세대 밑에 둔다.
   const fy = -(state.maxDepth + 1.2) * GEN_H;
@@ -1170,6 +1248,7 @@ function setEgo(id) {
   reveal(id);
   const a = anchorOf(id);
   if (a) state.expanded.add(a);
+  expandDescLine();
   rebuild();
   setTimeout(() => flyTo(nodes.get(a || id), true), 350);
 }
@@ -1203,6 +1282,7 @@ function loadDataset(data) {
   reveal(state.ego);
   const a = anchorOf(state.ego);
   if (a) state.expanded.add(a);
+  expandDescLine();
 
   for (const n of nodes.values()) removeLabel(n);
   nodes.clear();
@@ -1256,6 +1336,7 @@ function frame(now) {
 }
 
 function main() {
+  try { state.descAxis = localStorage.getItem('genealogy.descAxis') === '1'; } catch (err) { /* 저장 불가: 기본값 */ }
   const datasets = window.GENEALOGY_DATASETS || [];
   if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
   if (!initGL()) return;
@@ -1284,6 +1365,14 @@ function main() {
   $('hideUnknown').addEventListener('change', (e) => { state.hideUnknown = e.target.checked; rebuild(); });
   $('autoRotate').checked = state.autoRotate;
   $('autoRotate').addEventListener('change', (e) => { state.autoRotate = e.target.checked; });
+  $('descAxis').checked = state.descAxis;
+  $('descAxis').addEventListener('change', (e) => {
+    state.descAxis = e.target.checked;
+    try { localStorage.setItem('genealogy.descAxis', state.descAxis ? '1' : '0'); } catch (err) { /* 저장 불가: 무시 */ }
+    expandDescLine();
+    rebuild();
+    setTimeout(() => fit(), 900);
+  });
   $('expandAll').addEventListener('click', () => {
     for (const id of state.lineage) state.expanded.add(id);
     rebuild();
@@ -1292,6 +1381,7 @@ function main() {
   $('collapseAll').addEventListener('click', () => {
     state.expanded = new Set([state.root]);
     reveal(state.ego);
+    expandDescLine();
     rebuild();
     setTimeout(() => fit(), 600);
   });
