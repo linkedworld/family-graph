@@ -11,6 +11,11 @@
   --indigo-soft: #dfe5f0;
   --seal: #b0382c;
   --unknown: #87918c;
+  /* 남녀 구분: 청홍(靑紅). 띠는 진하게, 카드 바탕은 옅게 */
+  --male: #33688a;
+  --male-soft: #eaf1f5;
+  --female: #a8456a;
+  --female-soft: #f7ecf0;
 
   --f-display: "Noto Serif KR", "Nanum Myeongjo", "Batang", serif;
   --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
@@ -20,12 +25,14 @@
   :root:not([data-theme="light"]) {
     --paper: #131816; --paper-2: #1a201e; --card: #212826; --ink: #e4eae6; --ink-2: #9ba8a2;
     --line: #3d4844; --indigo: #93abdb; --indigo-soft: #26314a; --seal: #e2725f; --unknown: #6f7a75;
+    --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --paper: #131816; --paper-2: #1a201e; --card: #212826; --ink: #e4eae6; --ink-2: #9ba8a2;
   --line: #3d4844; --indigo: #93abdb; --indigo-soft: #26314a; --seal: #e2725f; --unknown: #6f7a75;
+  --male: #7db3d4; --male-soft: #1f2b32; --female: #e391ae; --female-soft: #32232a;
   color-scheme: dark;
 }
 
@@ -98,7 +105,13 @@ input[type="search"] { width: 9rem; }
 .card:hover rect.box { stroke: var(--indigo); }
 .card.selected rect.box { stroke: var(--indigo); stroke-width: 2; }
 .card.ego rect.box { stroke: var(--seal); stroke-width: 2; }
+.card.male rect.box { fill: var(--male-soft); }
+.card.female rect.box { fill: var(--female-soft); }
 .card.unknown rect.box { fill: var(--paper-2); stroke: var(--unknown); stroke-dasharray: 4 3; }
+.card .gender-bar { stroke: none; }
+.card.male .gender-bar { fill: var(--male); }
+.card.female .gender-bar { fill: var(--female); }
+.card.unknown .gender-bar { opacity: 0.55; }
 .card .name { font: 700 15px var(--f-display); fill: var(--ink); }
 .card.unknown .name { fill: var(--unknown); font-weight: 500; }
 .card .hanja { font: 500 11px var(--f-display); fill: var(--ink-2); }
@@ -180,6 +193,8 @@ td .alt { display: block; font-size: 0.75rem; color: var(--ink-2); }
 .sw { display: inline-block; width: 18px; height: 12px; margin-right: 8px; vertical-align: -1px; border-radius: 2px; background: var(--card); }
 .sw-ego { border: 2px solid var(--seal); }
 .sw-unknown { border: 1px dashed var(--unknown); background: var(--paper); }
+.sw-male { background: var(--male-soft); border: 1px solid var(--line); border-left: 4px solid var(--male); }
+.sw-female { background: var(--female-soft); border: 1px solid var(--line); border-left: 4px solid var(--female); }
 .ln { display: inline-block; width: 22px; margin-right: 8px; vertical-align: middle; border-top: 1.5px solid var(--ink-2); }
 .ln-dot { border-top-style: dotted; }
 .ln-dash { border-top-style: dashed; border-top-color: var(--unknown); }
