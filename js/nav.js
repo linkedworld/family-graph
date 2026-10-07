@@ -5,8 +5,8 @@
   'use strict';
 
   const PAGES = [
-    { id: 'tree', href: 'index.html', title: '가계도', desc: '카드로 보는 계보도 · 호칭과 촌수' },
-    { id: 'bubble', href: 'bubble.html', title: '버블 가계도', desc: '3D 구슬로 보는 자손의 관계망' },
+    { id: 'bubble', href: 'index.html', title: '버블 가계도', desc: '3D 구슬로 보는 자손의 관계망 (첫 화면)' },
+    { id: 'tree', href: 'tree.html', title: '가계도', desc: '카드로 보는 계보도 · 호칭과 촌수' },
   ];
   const ROOT = '역사 인물 가계도';
 

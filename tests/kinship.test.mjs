@@ -225,9 +225,9 @@ test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)',
   assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
 });
 
-test('index.html·bubble.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+test('index.html·tree.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
   const all = new Set();
-  for (const page of ['index.html', 'bubble.html']) {
+  for (const page of ['index.html', 'tree.html']) {
     const html = readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
     const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
     assert.ok(refs.length >= 8, `${page}: 로컬 자원 ${refs.length}개`);
