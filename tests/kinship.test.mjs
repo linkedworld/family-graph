@@ -158,6 +158,45 @@ test('다산 정약용', () => {
   assert.deepEqual(rel(k, 'jeong_sister', E), ['오라비', 2]);
 });
 
+test('양자(출계): 양가 기준 호칭과 생가 표시', () => {
+  const m = buildModel(dataset('jeong-yakyong'));
+  const k = new Kinship(m);
+  // 정재운은 작은할아버지 정지열의 양자
+  assert.equal(m.father('jeong_jaeun'), 'jeong_jiyeol');
+  assert.equal(m.father('jeong_jaeun', 'birth'), 'jeong_jihae');
+  assert.ok(m.children('jeong_jiyeol').includes('jeong_jaeun'));
+  assert.ok(!m.children('jeong_jihae').includes('jeong_jaeun'));
+  assert.ok(m.children('jeong_jihae', 'all').includes('jeong_jaeun'));
+
+  assert.deepEqual(rel(k, 'jeong_jaeun', 'jeong_jiyeol'), ['양부', 1]);
+  assert.deepEqual(rel(k, 'jeong_jaeun', 'jeong_jihae'), ['생부', 1]);
+  assert.deepEqual(rel(k, 'jeong_jiyeol', 'jeong_jaeun'), ['양자', 1]);
+  assert.deepEqual(rel(k, 'jeong_jihae', 'jeong_jaeun'), ['출계한 아들', 1]);
+  // 정약용에게 출계한 숙부는 양가 기준 종숙(5촌), 생가 기준 숙부(3촌)
+  const r = k.relation('jeong_yakyong', 'jeong_jaeun');
+  assert.deepEqual([r.term, r.chon], ['종숙', 5]);
+  assert.match(r.detail, /생가 기준 숙부 3촌/);
+  // 정문섭은 생부 정대무, 양부 정대림. 정약용에게는 어느 쪽으로도 증손자
+  const mun = k.relation('jeong_yakyong', 'jeong_munseop');
+  assert.deepEqual([mun.term, mun.chon, mun.detail], ['증손자', 3, null]);
+  assert.deepEqual(rel(k, 'jeong_daemu', 'jeong_munseop'), ['출계한 아들', 1]);
+
+  const ks = new Kinship(buildModel(dataset('yi-sunsin')));
+  assert.deepEqual(rel(ks, 'yi_ye', 'yi_jiseok'), ['양자', 1]);
+  assert.deepEqual(rel(ks, 'yi_hoe', 'yi_jiseok'), ['출계한 아들', 1]);
+  const bro = ks.relation('yi_jibaek', 'yi_jiseok');
+  assert.equal(bro.term, '종형제');
+  assert.match(bro.detail, /생가 기준 아우 2촌/);
+});
+
+test('양자 데이터 검사: 잘못된 입양은 오류', () => {
+  const base = dataset('yi-sunsin');
+  const bad = { ...base, adoptions: [{ id: 'x', child: 'yi_jiseok', union: 'u_hoe' }] };
+  assert.throws(() => buildModel(bad), /same as birth parents/);
+  const twice = { ...base, adoptions: [...base.adoptions, { id: 'y', child: 'yi_jiseok', union: 'u_jeong' }] };
+  assert.throws(() => buildModel(twice), /adopted twice/);
+});
+
 // ── 가상의 가족으로 일반 호칭 검증 ─────────────────────────────
 //
 //            gf ─ gm                       mgf ─ mgm

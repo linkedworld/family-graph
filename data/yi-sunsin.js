@@ -74,7 +74,7 @@
     { "id": "yi_jibaek", "name": "이지백", "hanja": "李之白", "gender": "M", "clan": "덕수 이씨", "sibIndex": 1,
       "sources": ["wiki_sunsin"] },
     { "id": "yi_jiseok", "name": "이지석", "hanja": "李之晳", "gender": "M", "clan": "덕수 이씨", "sibIndex": 2,
-      "note": "숙부 이예의 양자로 입적(출계). 이 목업에서는 생가 기준으로 표시.", "sources": ["wiki_sunsin"] },
+      "note": "숙부 이예의 양자로 입적(출계).", "sources": ["wiki_sunsin"] },
     { "id": "yi_hoe_daughter", "name": null, "gender": "F", "clan": "덕수 이씨", "sibIndex": 3,
       "note": "이회의 딸. 윤헌징(尹獻徵)에게 출가.", "sources": ["wiki_sunsin"] },
 
@@ -136,6 +136,10 @@
     { "id": "u_hongbi", "husband": "hong_bi", "wife": "yi_sunsin_daughter", "children": [] },
     { "id": "u_kim_chunyeo", "husband": "kim_chunyeo", "wife": null, "children": ["suncheon_kim"] },
     { "id": "u_hun", "husband": "yi_hun", "wife": "suncheon_kim", "children": ["yi_jigu"] }
+  ],
+
+  "adoptions": [
+    { "id": "ad_jiseok", "child": "yi_jiseok", "union": "u_ye", "note": "자녀가 없던 숙부 이예의 양자로 입적", "sources": ["wiki_sunsin"] }
   ],
 
   "lineageGaps": []

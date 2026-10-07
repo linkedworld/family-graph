@@ -1,9 +1,14 @@
-// 가계 데이터(window.GENEALOGY_DATA)를 탐색 가능한 그래프 모델로 만든다.
+// 가계 데이터(window.GENEALOGY_DATASETS의 한 항목)를 탐색 가능한 그래프 모델로 만든다.
 //
 // - 혼인(union)의 한쪽 배우자가 null이면, 자녀가 있는 경우 반드시 존재해야 하는
 //   상대(대개 어머니)를 '미상' 인물로 자동 생성한다.
 // - lineageGaps(중간 세대가 기록에 없는 직계)는 빠진 세대 수만큼 '미상' 인물을 생성해
 //   조상과 후손을 이어 준다.
+// - adoptions(양자·출계)는 생가 혼인(parentUnion)과 별도로 양가 혼인(adoptiveUnion)을 기록한다.
+//   부모·자녀를 물을 때 mode로 어느 쪽을 볼지 고른다.
+//     'legal': 족보의 계통(양자는 양가 기준). 기본값.
+//     'birth': 혈연(생가 기준).
+//     'all'  : 둘 다(자녀 목록에서만 의미가 있음).
 // 서버 없이 file://로도 열리도록 모듈 대신 전역 Genealogy 객체에 등록한다.
 (function (G) {
   'use strict';
@@ -15,20 +20,20 @@
     const unions = new Map();
 
     for (const raw of data.persons) {
-      persons.set(raw.id, { ...raw, parentUnion: null, spouseUnions: [] });
+      persons.set(raw.id, { ...raw, parentUnion: null, adoptiveUnion: null, spouseUnions: [] });
     }
 
     const addPlaceholder = (id, gender, note, extra = {}) => {
       const p = {
         id, name: null, gender, placeholder: true, note,
-        parentUnion: null, spouseUnions: [], ...extra,
+        parentUnion: null, adoptiveUnion: null, spouseUnions: [], ...extra,
       };
       persons.set(id, p);
       return p;
     };
 
     const addUnion = (u) => {
-      const union = { type: '정실', order: 1, children: [], ...u };
+      const union = { type: '정실', order: 1, children: [], adoptees: [], ...u };
       unions.set(union.id, union);
       for (const pid of [union.husband, union.wife]) {
         if (pid) must(persons, pid, `union ${union.id}`).spouseUnions.push(union.id);
@@ -74,6 +79,18 @@
         children: [desc.id], gap: gap.id });
     }
 
+    for (const ad of data.adoptions || []) {
+      const child = must(persons, ad.child, `adoption ${ad.id}`);
+      const union = unions.get(ad.union);
+      if (!union) throw new Error(`adoption ${ad.id}: unknown union "${ad.union}"`);
+      if (!child.parentUnion) throw new Error(`adoption ${ad.id}: ${ad.child} has no birth parents`);
+      if (child.adoptiveUnion) throw new Error(`adoption ${ad.id}: ${ad.child} adopted twice`);
+      if (union.id === child.parentUnion) throw new Error(`adoption ${ad.id}: same as birth parents`);
+      child.adoptiveUnion = union.id;
+      child.adoption = ad;
+      union.adoptees.push(child.id);
+    }
+
     return new Model(data.meta || {}, persons, unions);
   }
 
@@ -88,28 +105,45 @@
       this.meta = meta;
       this.persons = persons;
       this.unions = unions;
+      this.hasAdoptions = [...unions.values()].some((u) => u.adoptees.length > 0);
     }
 
     get(id) { return this.persons.get(id); }
 
-    father(id) {
-      const u = this.unions.get(this.get(id)?.parentUnion);
-      return u?.husband ?? null;
+    // 부모가 되는 혼인. 양자는 'legal'에서 양가, 'birth'에서 생가 혼인을 돌려준다.
+    parentUnionOf(id, mode = 'legal') {
+      const p = this.get(id);
+      if (!p) return null;
+      return (mode === 'legal' && p.adoptiveUnion) || p.parentUnion;
     }
 
-    mother(id) {
-      const u = this.unions.get(this.get(id)?.parentUnion);
-      return u?.wife ?? null;
+    father(id, mode = 'legal') {
+      return this.unions.get(this.parentUnionOf(id, mode))?.husband ?? null;
     }
 
-    parents(id) {
-      return [this.father(id), this.mother(id)].filter(Boolean);
+    mother(id, mode = 'legal') {
+      return this.unions.get(this.parentUnionOf(id, mode))?.wife ?? null;
     }
 
-    children(id) {
+    parents(id, mode = 'legal') {
+      return [this.father(id, mode), this.mother(id, mode)].filter(Boolean);
+    }
+
+    // 혼인 하나의 자녀. 'legal'은 출계한 자녀를 빼고 들어온 양자를 더한다.
+    unionChildren(u, mode = 'legal') {
+      if (mode === 'birth') return u.children;
+      if (mode === 'all') return [...u.children, ...u.adoptees];
+      return [...u.children.filter((c) => !this.get(c).adoptiveUnion), ...u.adoptees];
+    }
+
+    children(id, mode = 'legal') {
       const out = [];
-      for (const uid of this.get(id).spouseUnions) out.push(...this.unions.get(uid).children);
+      for (const uid of this.get(id).spouseUnions) out.push(...this.unionChildren(this.unions.get(uid), mode));
       return out;
+    }
+
+    isAdopted(id) {
+      return !!this.get(id).adoptiveUnion;
     }
 
     spouses(id) {
