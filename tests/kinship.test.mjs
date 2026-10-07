@@ -191,8 +191,9 @@ test('양자(출계): 양가 기준 호칭과 생가 표시', () => {
   const ks = new Kinship(buildModel(dataset('yi-sunsin')));
   assert.deepEqual(rel(ks, 'yi_ye', 'yi_jiseok'), ['양자', 1]);
   assert.deepEqual(rel(ks, 'yi_hoe', 'yi_jiseok'), ['출계한 아들', 1]);
+  // 이지백(1596)과 이지석(1612): 양가 기준 사촌 동생, 생가 기준 아우
   const bro = ks.relation('yi_jibaek', 'yi_jiseok');
-  assert.equal(bro.term, '종형제');
+  assert.equal(bro.term, '종제');
   assert.match(bro.detail, /생가 기준 아우 2촌/);
 });
 
