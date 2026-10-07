@@ -13,7 +13,7 @@ const svg = $('tree');
 const state = {
   model: null, kin: null, core: null,
   ego: null, selected: null,
-  hideUnknown: false, showInlaws: true,
+  hideUnknown: false, showInlaws: false, // 외가·처가는 기본으로 숨긴다
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   lay: null, view: null,
   t: { k: 1, x: 0, y: 0 },
@@ -342,6 +342,9 @@ function setEgo(id) {
   state.ego = id;
   state.selected = id;
   $('ego').value = id;
+  // 숨김 옵션 때문에 기준 인물이 안 보이면 옵션을 풀어서 보여 준다.
+  if (!state.core.has(id) && !state.showInlaws) { state.showInlaws = true; $('showInlaws').checked = true; }
+  if (state.model.isUnknown(id) && state.hideUnknown) { state.hideUnknown = false; $('hideUnknown').checked = false; }
   render();
   centerOn(id);
   if (isNarrow()) setSheet(false); // 휴대폰에서는 시트를 닫아 바뀐 호칭을 바로 보이게 한다
