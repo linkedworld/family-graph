@@ -4,14 +4,16 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
+const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/jeong-yakyong.js'];
 const ctx = vm.createContext({ window: {} });
 ctx.globalThis = ctx;
 ctx.window = ctx;
-for (const f of ['data/yi-hwang.js', 'js/model.js', 'js/kinship.js']) {
+for (const f of [...DATA_FILES, 'js/model.js', 'js/kinship.js']) {
   vm.runInContext(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), ctx, { filename: f });
 }
 const { buildModel, Kinship } = ctx.Genealogy;
-const yiHwang = ctx.GENEALOGY_DATA;
+const dataset = (id) => ctx.GENEALOGY_DATASETS.find((d) => d.meta.id === id);
+const yiHwang = dataset('yi-hwang');
 
 function rel(k, ego, target) {
   const r = k.relation(ego, target);
@@ -87,6 +89,73 @@ test('다른 기준 인물: 손자 이안도, 서자 이적, 며느리 허씨', 
   assert.deepEqual(rel(k, 'gimhae_heo', 'uiseong_kim'), ['시전모', 1]);
   assert.equal(k.relation('gimhae_heo', 'andong_gwon').term, '후처');
   assert.equal(k.relation('andong_gwon', 'gimhae_heo').term, '전처');
+});
+
+test('모든 가계도 데이터: 형식 검사', () => {
+  assert.equal(ctx.GENEALOGY_DATASETS.length, DATA_FILES.length);
+  const ids = new Set();
+  for (const d of ctx.GENEALOGY_DATASETS) {
+    assert.ok(!ids.has(d.meta.id), `중복 id ${d.meta.id}`);
+    ids.add(d.meta.id);
+    const m = buildModel(d); // 잘못된 참조가 있으면 예외
+    assert.ok(m.get(d.meta.subject), `${d.meta.id}: subject 없음`);
+    for (const [, p] of m.persons) {
+      for (const s of p.sources || []) assert.ok(d.meta.sources[s], `${d.meta.id}/${p.id}: 출처 ${s} 없음`);
+    }
+    // 기준 인물에서 모든 인물의 관계를 계산할 수 있어야 한다.
+    const k = new Kinship(m);
+    for (const [id] of m.persons) assert.notEqual(k.relation(d.meta.subject, id).kind, 'none', `${d.meta.id}/${id}`);
+  }
+});
+
+test('율곡 이이', () => {
+  const k = new Kinship(buildModel(dataset('yi-i')));
+  const E = 'yi_i';
+  assert.deepEqual(rel(k, E, 'shin_saimdang'), ['모', 1]);
+  assert.deepEqual(rel(k, E, 'shin_myeonghwa'), ['외조부', 2]);
+  assert.deepEqual(rel(k, E, 'yi_uimu'), ['종증조부', 5]);
+  assert.deepEqual(rel(k, E, 'yi_gi'), ['재종조부', 6]);
+  assert.deepEqual(rel(k, E, 'myeongsin_son'), ['고조부', 4]);
+  assert.deepEqual(rel(k, E, 'yi_maechang'), ['누나', 2]);
+  assert.deepEqual(rel(k, E, 'jo_jun'), ['생질', 3]);
+  assert.deepEqual(rel(k, E, 'deoksan_hwang'), ['제수', 2]);
+  assert.deepEqual(rel(k, E, 'kwon_seomo'), ['서모', 1]);
+  assert.deepEqual(rel(k, E, 'kim_jip'), ['사위', 1]);
+  assert.equal(k.relation(E, 'kim_jangsaeng').term, '사돈');
+  assert.equal(k.relation(E, 'lee_saon').term, '어머니의 외조부');
+  // 아버지 이원수 기준으로 이기는 당숙(종숙)
+  assert.deepEqual(rel(k, 'yi_wonsu', 'yi_gi'), ['종숙', 5]);
+});
+
+test('충무공 이순신', () => {
+  const k = new Kinship(buildModel(dataset('yi-sunsin')));
+  const E = 'yi_sunsin';
+  assert.deepEqual(rel(k, E, 'yi_huisin'), ['형', 2]);
+  assert.deepEqual(rel(k, E, 'yi_wan'), ['조카', 3]);
+  assert.deepEqual(rel(k, E, 'byeon_seong'), ['진외조부', 3]);
+  assert.deepEqual(rel(k, E, 'bang_jin'), ['장인', 1]);
+  assert.deepEqual(rel(k, E, 'bang_junggyu'), ['처조부', 2]);
+  assert.deepEqual(rel(k, E, 'haeju_oh'), ['첩', 0]);
+  assert.equal(k.relation(E, 'hong_gasin').term, '사돈');
+  // 이완과 서자 이신은 사촌
+  assert.deepEqual(rel(k, 'yi_wan', 'yi_sin'), ['종형제', 4]); // 이신의 생년 미상이라 손위·손아래를 정하지 않음
+});
+
+test('다산 정약용', () => {
+  const k = new Kinship(buildModel(dataset('jeong-yakyong')));
+  const E = 'jeong_yakyong';
+  assert.deepEqual(rel(k, E, 'jeong_yakhyeon'), ['이복형', 2]);
+  assert.deepEqual(rel(k, E, 'uiryeong_nam'), ['전모', 1]);
+  assert.deepEqual(rel(k, E, 'yun_duseo'), ['외증조부', 3]);
+  assert.deepEqual(rel(k, E, 'yun_seondo'), ['외6대조부', 6]);
+  assert.deepEqual(rel(k, E, 'jeong_sister'), ['누이', 2]);
+  assert.deepEqual(rel(k, E, 'yi_seunghun'), ['매부', 2]);
+  assert.deepEqual(rel(k, E, 'hwang_sayeong'), ['질서', 3]);
+  assert.deepEqual(rel(k, E, 'jeong_jiyeol'), ['종조부', 4]);
+  assert.deepEqual(rel(k, E, 'jeong_yakhoeng'), ['이복아우', 2]);
+  assert.equal(k.relation(E, 'yi_byeok').term, '형수의 남자 형제');
+  // 누이 입장에서 정약용은 오라비(손위·손아래 미상)
+  assert.deepEqual(rel(k, 'jeong_sister', E), ['오라비', 2]);
 });
 
 // ── 가상의 가족으로 일반 호칭 검증 ─────────────────────────────

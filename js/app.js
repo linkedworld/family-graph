@@ -316,11 +316,10 @@ function renderRelations() {
 
 // ── 시작 ────────────────────────────────────────────────
 
-function main() {
-  // data/*.js 파일이 window.GENEALOGY_DATA에 넣어 둔 데이터를 쓴다(서버·fetch 불필요).
-  const data = window.GENEALOGY_DATA;
-  if (!data) throw new Error('가계 데이터(data/yi-hwang.js)를 불러오지 못했습니다');
+// 가계도 하나를 불러와 화면 전체를 다시 그린다.
+function loadDataset(data) {
   const model = buildModel(data);
+  state.data = data;
   state.model = model;
   state.kin = new Kinship(model);
 
@@ -330,18 +329,44 @@ function main() {
   state.ego = data.meta.subject;
   state.selected = data.meta.subject;
 
+  document.title = data.meta.title;
   $('title').textContent = data.meta.title;
   $('subtitle').textContent = `${data.meta.clan} · 목업 데이터 · ${data.meta.updated}`;
   $('sources').replaceChildren(...Object.values(data.meta.sources).map((s) =>
     h('li', {}, h('a', { href: s.url, target: '_blank', rel: 'noopener' }, s.title))));
 
-  const sel = $('ego');
-  sel.replaceChildren(...[...model.persons.keys()]
+  $('ego').replaceChildren(...[...model.persons.keys()]
     .filter((id) => !model.isUnknown(id))
     .map((id) => h('option', { value: id }, personLabel(id))));
-  sel.value = state.ego;
-  sel.addEventListener('change', () => setEgo(sel.value));
+  $('ego').value = state.ego;
+  $('dataset').value = data.meta.id;
 
+  render();
+  centerOn(state.ego, 0.9);
+  renderDetail();
+  renderRelations();
+}
+
+function main() {
+  // data/*.js 파일들이 window.GENEALOGY_DATASETS에 넣어 둔 가계도를 쓴다(서버·fetch 불필요).
+  const datasets = window.GENEALOGY_DATASETS || [];
+  if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
+  const byId = new Map(datasets.map((d) => [d.meta.id, d]));
+
+  // 선택 목록에는 "다산 정약용"처럼 짧은 이름만 보인다.
+  const shortName = (d) => d.meta.title.replace(/\(.*?\)/g, '').replace(/가계도$/, '').trim();
+  $('dataset').replaceChildren(...datasets.map((d) => h('option', { value: d.meta.id }, shortName(d))));
+  // 주소 끝의 #yi-i 처럼 가계도 id를 붙이면 그 가계도로 바로 연다.
+  const fromHash = () => byId.get(decodeURIComponent(location.hash.slice(1)));
+  $('dataset').addEventListener('change', (ev) => {
+    location.hash = ev.target.value;
+  });
+  window.addEventListener('hashchange', () => {
+    const d = fromHash();
+    if (d && d !== state.data) loadDataset(d);
+  });
+
+  $('ego').addEventListener('change', (ev) => setEgo(ev.target.value));
   $('hideUnknown').addEventListener('change', (ev) => {
     state.hideUnknown = ev.target.checked;
     render(); centerOn(state.ego); renderRelations();
@@ -352,10 +377,7 @@ function main() {
   });
 
   setupPanZoom();
-  render();
-  centerOn(state.ego, 0.9);
-  renderDetail();
-  renderRelations();
+  loadDataset(fromHash() || datasets[0]);
 }
 
 try {

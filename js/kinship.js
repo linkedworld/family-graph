@@ -48,13 +48,14 @@
     return ['', '', '손', '증손', '현손'][n] || `${n}대손`;
   }
 
+  // 손위·손아래를 모르면 나이와 무관한 말(형제, 누이, 오라비, 자매)을 쓴다.
   function siblingWord(egoG, tG, older) {
     if (tG === 'M') {
-      if (older == null) return '형제';
+      if (older == null) return egoG === 'F' ? '오라비' : '형제';
       if (egoG === 'F') return older ? '오빠' : '남동생';
       return older ? '형' : '아우';
     }
-    if (older == null) return '자매';
+    if (older == null) return egoG === 'F' ? '자매' : '누이';
     if (egoG === 'F') return older ? '언니' : '여동생';
     return older ? '누나' : '누이동생';
   }
@@ -257,11 +258,19 @@
           if (!r1 || r1.described || r1.composite) continue;
           const r2 = this.blood(pivot, target);
           if (!r2 || r2.described || r2.chon < minTail) continue;
+          // 부·모처럼 한 글자 호칭은 아버지·어머니로 풀어 쓴다.
+          const head = r1.chon === 1 ? r1.alt : r1.term;
           const tail = r2.chon === 1 ? r2.alt : r2.term;
-          return `${r1.term}의 ${tail}`;
+          return `${head}의 ${tail}`;
         }
       }
       return null;
+    }
+
+    siblings(id) {
+      const out = new Set();
+      for (const p of this.m.parents(id)) for (const c of this.m.children(p)) if (c !== id) out.add(c);
+      return [...out];
     }
 
     halfSibling(a, b) {
@@ -321,13 +330,20 @@
         }
       }
 
-      // 인척의 부모: "전모의 아버지"처럼 한 단계만 이어 붙인다.
+      // 인척의 부모·형제: "전모의 아버지", "형수의 남자 형제"처럼 한 단계만 이어 붙인다.
       if (depth === 0) {
         for (const c of this.m.children(target)) {
           const r = this.relation(ego, c, 1);
           if (['affinal', 'spouse', 'sadon'].includes(r.kind)) {
             return { kind: 'distant', chon: null,
               term: `${r.term}의 ${this.gender(target) === 'F' ? '어머니' : '아버지'}`, alt: null, detail: null };
+          }
+        }
+        for (const sib of this.siblings(target)) {
+          const r = this.relation(ego, sib, 1);
+          if (['affinal', 'spouse'].includes(r.kind)) {
+            return { kind: 'distant', chon: null,
+              term: `${r.term}의 ${this.gender(target) === 'F' ? '여자 형제' : '남자 형제'}`, alt: null, detail: null };
           }
         }
       }
@@ -430,7 +446,7 @@
       const base = t.replace(/^이(복|부)/, '');
       if (egoG === 'M') {
         // 아내 입장의 호칭(오빠·언니 등)을 남편 입장의 인척 호칭으로 바꾼다.
-        const map = { 부: ['장인', '빙부'], 모: ['장모', '빙모'], 오빠: ['처남', null], 남동생: ['처남', null],
+        const map = { 부: ['장인', '빙부'], 모: ['장모', '빙모'], 오빠: ['처남', null], 남동생: ['처남', null], 오라비: ['처남', null],
           형제: ['처남', null], 언니: ['처형', null], 여동생: ['처제', null], 자매: ['처형제', null] };
         if (map[base]) return { term: map[base][0], alt: map[base][1], detail: `아내의 ${say}` };
         if (r.path.up === 0 && r.path.down === 1) return { term: t === '딸' ? '의붓딸' : '의붓아들', alt: '전실 소생', detail: `아내의 ${say}` };
@@ -438,7 +454,7 @@
         return { term: `처${t}`, alt: null, detail: `아내의 ${say}` };
       }
       const map = { 부: ['시아버지', '시부'], 모: ['시어머니', '시모'], 형: ['아주버니', '시숙'], 아우: ['시동생', '시숙'],
-        형제: ['시숙', null], 누나: ['시누이', '형님'], 누이동생: ['시누이', '아가씨'], 자매: ['시누이', null] };
+        형제: ['시숙', null], 누나: ['시누이', '형님'], 누이동생: ['시누이', '아가씨'], 누이: ['시누이', null], 자매: ['시누이', null] };
       if (map[base]) return { term: map[base][0], alt: map[base][1], detail: `남편의 ${say}` };
       if (r.path.up === 0 && r.path.down === 1) return { term: t === '딸' ? '의붓딸' : '의붓아들', alt: '전처 소생', detail: `남편의 ${say}` };
       return { term: `시${t}`, alt: null, detail: `남편의 ${say}` };

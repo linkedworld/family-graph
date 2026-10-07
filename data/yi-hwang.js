@@ -1,6 +1,6 @@
-// 퇴계 이황 가계 데이터 목업.
-// 서버 없이 file://로 열 수 있도록 JSON 대신 전역 변수에 넣는다. 형식은 README의 '데이터 형식' 참고.
-window.GENEALOGY_DATA = {
+// 퇴계 이황 가계 데이터 목업. 형식은 README의 '데이터 형식' 참고.
+// 서버 없이 file://로 열 수 있도록 JSON 대신 전역 목록에 넣는다.
+(window.GENEALOGY_DATASETS = window.GENEALOGY_DATASETS || []).push({
   "meta": {
     "id": "yi-hwang",
     "title": "퇴계 이황(退溪 李滉) 가계도",
@@ -378,4 +378,4 @@ window.GENEALOGY_DATA = {
       "note": "이충호는 이황의 13대손(이안도의 11대손)으로 전한다. 종손 계통으로 추정되나 중간 10대의 인물은 이 목업에 수록하지 않아 '미상'으로 자동 생성된다."
     }
   ]
-};
+});

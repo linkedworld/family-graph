@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>퇴계 이황 가계도</title>
+<title>한국 역사 인물 가계도</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -17,6 +17,10 @@
       <p class="sub" id="subtitle">진성 이씨 · 목업 데이터</p>
     </div>
     <div class="controls">
+      <label class="field" for="dataset">
+        <span class="label">가계도</span>
+        <select id="dataset"></select>
+      </label>
       <label class="field" for="ego">
         <span class="label">기준 인물</span>
         <select id="ego"></select>
@@ -76,7 +80,11 @@
 </div>
 <!-- 서버 없이 index.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다. -->
 <script src="vendor/dagre.min.js"></script>
+<!-- 가계도 데이터: 파일 하나가 window.GENEALOGY_DATASETS에 가계도 하나를 추가한다. 순서대로 선택 목록에 나온다. -->
 <script src="data/yi-hwang.js"></script>
+<script src="data/yi-i.js"></script>
+<script src="data/yi-sunsin.js"></script>
+<script src="data/jeong-yakyong.js"></script>
 <script src="js/model.js"></script>
 <script src="js/kinship.js"></script>
 <script src="js/layout.js"></script>
