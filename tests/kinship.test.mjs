@@ -104,7 +104,14 @@ test('모든 가계도 데이터: 형식 검사', () => {
     }
     // 기준 인물에서 모든 인물의 관계를 계산할 수 있어야 한다.
     const k = new Kinship(m);
-    for (const [id] of m.persons) assert.notEqual(k.relation(d.meta.subject, id).kind, 'none', `${d.meta.id}/${id}`);
+    for (const [id] of m.persons) {
+      const r = k.relation(d.meta.subject, id);
+      assert.notEqual(r.kind, 'none', `${d.meta.id}/${id}`);
+      // 방계 혈족은 10촌까지만 싣는다(직계 조상·후손은 예외).
+      if (r.kind === 'blood' && r.path && r.path.up > 0 && r.path.down > 0) {
+        assert.ok(r.chon <= 10, `${d.meta.id}/${id}: 방계 ${r.chon}촌`);
+      }
+    }
   }
 });
 
