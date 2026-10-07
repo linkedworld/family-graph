@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>퇴계 이황 가계도</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="brand">
+      <h1 id="title">퇴계 이황 가계도</h1>
+      <p class="sub" id="subtitle">진성 이씨 · 목업 데이터</p>
+    </div>
+    <div class="controls">
+      <label class="field" for="ego">
+        <span class="label">기준 인물</span>
+        <select id="ego"></select>
+      </label>
+      <label class="toggle" for="hideUnknown">
+        <input type="checkbox" id="hideUnknown">
+        <span>미상 인물 숨기기</span>
+      </label>
+      <label class="toggle" for="showInlaws">
+        <input type="checkbox" id="showInlaws" checked>
+        <span>외가·처가 표시</span>
+      </label>
+    </div>
+  </header>
+
+  <main class="body">
+    <section class="stage" aria-label="가계도">
+      <svg id="tree" role="img" aria-label="가계도 다이어그램"></svg>
+      <div class="zoom" role="group" aria-label="확대·축소">
+        <button type="button" id="zoomIn" aria-label="확대">＋</button>
+        <button type="button" id="zoomOut" aria-label="축소">－</button>
+        <button type="button" id="zoomFit">맞춤</button>
+      </div>
+      <p class="hint">카드를 누르면 상세 정보, 두 번 누르면 기준 인물로 바뀝니다.</p>
+    </section>
+
+    <aside class="panel">
+      <section id="detail" class="detail" aria-live="polite"></section>
+
+      <section class="relations">
+        <h2>기준 인물과의 관계</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>인물</th><th>호칭</th><th class="num">촌수</th></tr></thead>
+            <tbody id="relRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="legend">
+        <h2>보는 법</h2>
+        <ul>
+          <li><span class="sw sw-ego"></span>기준 인물</li>
+          <li><span class="sw sw-unknown"></span>미상: 기록은 없지만 관계상 반드시 있는 인물</li>
+          <li><span class="ln ln-solid"></span>정실·계실 혼인, 친자 관계</li>
+          <li><span class="ln ln-dot"></span>첩(소실)과의 관계</li>
+          <li><span class="ln ln-dash"></span>중간 세대를 건너뛴 직계(미상 숨김 시)</li>
+        </ul>
+      </section>
+
+      <section class="sources">
+        <h2>자료 출처</h2>
+        <ul id="sources"></ul>
+      </section>
+    </aside>
+  </main>
+</div>
+<!-- 서버 없이 index.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다. -->
+<script src="vendor/dagre.min.js"></script>
+<script src="data/yi-hwang.js"></script>
+<script src="js/model.js"></script>
+<script src="js/kinship.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
