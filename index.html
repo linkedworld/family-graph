@@ -8,14 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/bubble.css?v=20261007-13">
-<link rel="stylesheet" href="css/nav.css?v=20261007-13">
+<link rel="stylesheet" href="css/bubble.css?v=20261007-14">
+<link rel="stylesheet" href="css/nav.css?v=20261007-14">
 </head>
 <body>
 <main class="space" id="space" aria-label="버블 가계도 3D 화면">
   <canvas id="gl" aria-label="3D 구슬 가계도. 구슬을 누르면 자손을 펼치거나 접습니다."></canvas>
   <div id="labels" class="labels" aria-hidden="true"></div>
   <div id="tip" class="tip" hidden></div>
+  <!-- 길게 누르기 표시: 누른 자리에 원이 차오른다 -->
+  <div id="pressRing" class="press-ring" hidden aria-hidden="true">
+    <svg viewBox="0 0 88 88"><circle class="track" cx="44" cy="44" r="36"/><circle class="prog" cx="44" cy="44" r="36"/></svg>
+  </div>
 
   <header class="hud-top">
     <div class="brand">
@@ -34,6 +38,7 @@
       <div class="chips" role="group" aria-label="표시">
         <label class="chip"><input type="checkbox" id="showSpouses" checked><span>배우자</span></label>
         <label class="chip"><input type="checkbox" id="hideUnknown"><span>미상 숨기기</span></label>
+        <label class="chip" title="켜면 구슬을 누르기만 해도 자녀를 펼치거나 접습니다. 끄면 누르기는 정보만 보이고, 길게 누르면 펼치거나 접습니다"><input type="checkbox" id="tapExpand" checked><span>탭으로 펼치기</span></label>
         <label class="chip" title="대를 잇는 맏아들의 흐름(종통)을 청록 겹선과 宗 표시로 보여 줍니다"><input type="checkbox" id="showHeir" checked><span>종통 표시</span></label>
         <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
         <label class="chip" title="기준 인물 아래로 대를 잇는 직계 자손(종통 계승자, 없으면 맏이)도 가운데 축에 세웁니다"><input type="checkbox" id="descAxis"><span>직계 자손 축</span></label>
@@ -67,7 +72,7 @@
   <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
   <div class="stagebar" role="toolbar" aria-label="버블 가계도 도구">
     <nav class="navmenu sb-left" data-page="bubble" aria-label="페이지"></nav>
-    <div class="sb-mid"><p class="hint">끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기</p></div>
+    <div class="sb-mid"><p class="hint" id="hint">끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기</p></div>
     <div class="zoom sb-right" role="group" aria-label="확대·축소">
       <button type="button" id="zoomIn" aria-label="확대">＋</button>
       <button type="button" id="zoomOut" aria-label="축소">－</button>
@@ -76,14 +81,14 @@
   </div>
 </main>
 <!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 tree.html과 같은 캐시 무효화 버전(테스트가 확인). -->
-<script src="vendor/three.min.js?v=20261007-13"></script>
-<script src="data/yi-hwang.js?v=20261007-13"></script>
-<script src="data/yi-i.js?v=20261007-13"></script>
-<script src="data/yi-sunsin.js?v=20261007-13"></script>
-<script src="data/jeong-yakyong.js?v=20261007-13"></script>
-<script src="js/nav.js?v=20261007-13"></script>
-<script src="js/model.js?v=20261007-13"></script>
-<script src="js/kinship.js?v=20261007-13"></script>
-<script src="js/bubble.js?v=20261007-13"></script>
+<script src="vendor/three.min.js?v=20261007-14"></script>
+<script src="data/yi-hwang.js?v=20261007-14"></script>
+<script src="data/yi-i.js?v=20261007-14"></script>
+<script src="data/yi-sunsin.js?v=20261007-14"></script>
+<script src="data/jeong-yakyong.js?v=20261007-14"></script>
+<script src="js/nav.js?v=20261007-14"></script>
+<script src="js/model.js?v=20261007-14"></script>
+<script src="js/kinship.js?v=20261007-14"></script>
+<script src="js/bubble.js?v=20261007-14"></script>
 </body>
 </html>
