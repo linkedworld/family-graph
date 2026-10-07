@@ -110,12 +110,25 @@
   }
 
   class Kinship {
-    constructor(model) {
+    // mode 'legal'은 족보 계통(양자는 양가 기준), 'birth'는 생가 혈연 기준으로 계산한다.
+    constructor(model, mode = 'legal') {
       this.m = model;
+      this.mode = mode;
       this._anc = new Map();
+      this._birth = null;
     }
 
     gender(id) { return this.m.get(id).gender; }
+    father(id) { return this.m.father(id, this.mode); }
+    mother(id) { return this.m.mother(id, this.mode); }
+    parents(id) { return this.m.parents(id, this.mode); }
+    children(id) { return this.m.children(id, this.mode); }
+    parentUnion(id) { return this.m.parentUnionOf(id, this.mode); }
+
+    birthKin() {
+      if (!this._birth) this._birth = new Kinship(this.m, 'birth');
+      return this._birth;
+    }
 
     // id 자신(거리 0)과 모든 조상까지의 최단 경로. 아버지 쪽을 먼저 탐색한다.
     ancestors(id) {
@@ -125,7 +138,7 @@
       while (queue.length) {
         const cur = queue.shift();
         const { dist, path } = out.get(cur);
-        for (const p of [this.m.father(cur), this.m.mother(cur)]) {
+        for (const p of [this.father(cur), this.mother(cur)]) {
           if (p && !out.has(p)) {
             out.set(p, { dist: dist + 1, path: [...path, p] });
             queue.push(p);
@@ -139,8 +152,8 @@
     // 나이 비교: a가 b보다 손위면 true, 손아래면 false, 알 수 없으면 null.
     isOlder(a, b) {
       const pa = this.m.get(a), pb = this.m.get(b);
-      if (pa.parentUnion && pb.parentUnion &&
-          this.m.father(a) === this.m.father(b) && pa.sibIndex != null && pb.sibIndex != null) {
+      if (this.parentUnion(a) && this.parentUnion(b) &&
+          this.father(a) === this.father(b) && pa.sibIndex != null && pb.sibIndex != null) {
         return pa.sibIndex < pb.sibIndex;
       }
       const ya = parseInt(pa.birth, 10), yb = parseInt(pb.birth, 10);
@@ -269,19 +282,54 @@
 
     siblings(id) {
       const out = new Set();
-      for (const p of this.m.parents(id)) for (const c of this.m.children(p)) if (c !== id) out.add(c);
+      for (const p of this.parents(id)) for (const c of this.children(p)) if (c !== id) out.add(c);
       return [...out];
     }
 
     halfSibling(a, b) {
-      const ua = this.m.get(a).parentUnion, ub = this.m.get(b).parentUnion;
+      const ua = this.parentUnion(a), ub = this.parentUnion(b);
       if (!ua || !ub || ua === ub) return null;
-      if (this.m.father(a) === this.m.father(b)) return '이복';
-      if (this.m.mother(a) === this.m.mother(b)) return '이부';
+      if (this.father(a) === this.father(b)) return '이복';
+      if (this.mother(a) === this.mother(b)) return '이부';
       return null;
     }
 
-    relation(ego, target, depth = 0) {
+    // 양자 관계를 함께 보여 준다. 대표 호칭은 족보 계통(양가) 기준이고,
+    // 생가 기준 관계가 다르면 detail에 덧붙인다. 생가·양가 부모와 자녀는 생부·양부·양자처럼 부른다.
+    relation(ego, target) {
+      const legal = this.coreRelation(ego, target, 0);
+      if (this.mode !== 'legal' || !this.m.hasAdoptions || ego === target) return legal;
+      const tG = this.gender(target);
+      const egoAdopted = this.m.isAdopted(ego), targetAdopted = this.m.isAdopted(target);
+      const F = tG === 'F';
+      if (egoAdopted && this.m.parents(ego, 'birth').includes(target)) {
+        return { kind: 'blood', chon: 1, term: F ? '생모' : '생부', alt: F ? '본생모' : '본생부',
+          detail: `출계 전의 ${F ? '어머니' : '아버지'} · 양가 기준 ${legal.term}`, adoption: true };
+      }
+      if (egoAdopted && this.parents(ego).includes(target)) {
+        return { ...legal, term: F ? '양모' : '양부', alt: F ? '어머니' : '아버지',
+          detail: '양자로 들어간 집의 부모', adoption: true };
+      }
+      if (targetAdopted && this.m.parents(target, 'birth').includes(ego)) {
+        return { kind: 'blood', chon: 1, term: `출계한 ${F ? '딸' : '아들'}`, alt: '생가 자녀',
+          detail: `다른 집 양자로 감 · 양가 기준 ${legal.term}`, adoption: true };
+      }
+      if (targetAdopted && this.parents(target).includes(ego)) {
+        return { ...legal, term: F ? '양녀' : '양자', alt: F ? null : '계자(繼子)',
+          detail: '대를 잇기 위해 들인 자녀', adoption: true };
+      }
+      const birth = this.birthKin().coreRelation(ego, target, 0);
+      if (birth.kind === 'blood' && (birth.term !== legal.term || birth.chon !== legal.chon)) {
+        const note = `생가 기준 ${birth.term}${birth.chon != null ? ` ${birth.chon}촌` : ''}`;
+        if (['blood', 'spouse', 'affinal', 'sadon'].includes(legal.kind)) {
+          return { ...legal, detail: legal.detail ? `${legal.detail} · ${note}` : note, adoption: true };
+        }
+        return { ...birth, term: `생가 ${birth.term}`, detail: '양가 기준으로는 혈연이 없음', adoption: true };
+      }
+      return legal;
+    }
+
+    coreRelation(ego, target, depth = 0) {
       if (ego === target) return { kind: 'self', term: '본인', alt: '기준 인물', chon: null, detail: null };
 
       const b = this.blood(ego, target);
@@ -320,9 +368,9 @@
       }
 
       // 사돈: 자녀의 배우자의 부모
-      for (const c of this.m.children(ego)) {
+      for (const c of this.children(ego)) {
         for (const cs of this.m.spouses(c)) {
-          if (this.m.parents(cs.id).includes(target)) {
+          if (this.parents(cs.id).includes(target)) {
             return { kind: 'sadon', chon: null, term: '사돈',
               alt: this.gender(target) === 'F' ? '안사돈' : '바깥사돈',
               detail: `${descTerm(1, this.gender(c))}의 배우자의 부모` };
@@ -332,15 +380,15 @@
 
       // 인척의 부모·형제: "전모의 아버지", "형수의 남자 형제"처럼 한 단계만 이어 붙인다.
       if (depth === 0) {
-        for (const c of this.m.children(target)) {
-          const r = this.relation(ego, c, 1);
+        for (const c of this.children(target)) {
+          const r = this.coreRelation(ego, c, 1);
           if (['affinal', 'spouse', 'sadon'].includes(r.kind)) {
             return { kind: 'distant', chon: null,
               term: `${r.term}의 ${this.gender(target) === 'F' ? '어머니' : '아버지'}`, alt: null, detail: null };
           }
         }
         for (const sib of this.siblings(target)) {
-          const r = this.relation(ego, sib, 1);
+          const r = this.coreRelation(ego, sib, 1);
           if (['affinal', 'spouse'].includes(r.kind)) {
             return { kind: 'distant', chon: null,
               term: `${r.term}의 ${this.gender(target) === 'F' ? '여자 형제' : '남자 형제'}`, alt: null, detail: null };
@@ -431,7 +479,7 @@
       const seen = new Set();
       while (cur && !seen.has(cur)) {
         seen.add(cur);
-        const u = this.m.unions.get(this.m.get(cur).parentUnion);
+        const u = this.m.unions.get(this.parentUnion(cur));
         if (!u) return null;
         if (u.husband === rid || u.wife === rid) return u;
         cur = u.husband;
@@ -500,10 +548,10 @@
         const cur = queue.shift();
         if (cur === target) break;
         const edges = [];
-        const f = this.m.father(cur), mo = this.m.mother(cur);
+        const f = this.father(cur), mo = this.mother(cur);
         if (f) edges.push([f, '아버지']);
         if (mo) edges.push([mo, '어머니']);
-        for (const c of this.m.children(cur)) edges.push([c, this.gender(c) === 'F' ? '딸' : '아들']);
+        for (const c of this.children(cur)) edges.push([c, this.gender(c) === 'F' ? '딸' : '아들']);
         for (const s of this.m.spouses(cur)) edges.push([s.id, this.gender(s.id) === 'F' ? '아내' : '남편']);
         for (const [n, label] of edges) {
           if (!prev.has(n)) { prev.set(n, [cur, label]); queue.push(n); }

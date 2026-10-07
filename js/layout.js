@@ -2,6 +2,7 @@
 //
 // 숨겨진 인물(미상 숨기기, 외가·처가 끄기)이 계보 중간에 있으면, 그 아래에서 처음
 // 보이는 후손을 위쪽 혼인 노드에 바로 잇고 건너뛴 세대 수를 기록한다.
+// 양자는 양가 혼인에서 내려오는 선(adopt)과 생가 혼인에서 내려오는 선(adoptedOut)을 함께 그린다.
 // 서버 없이 file://로도 열리도록 모듈 대신 전역 Genealogy 객체에 등록한다.
 (function (G) {
   'use strict';
@@ -17,7 +18,7 @@
       const id = stack.pop();
       if (core.has(id)) continue;
       core.add(id);
-      stack.push(...model.children(id));
+      stack.push(...model.children(id, 'all'));
     }
     for (const id of [...core]) for (const s of model.spouses(id)) core.add(s.id);
     return core;
@@ -41,7 +42,7 @@
       for (const uid of model.get(cid).spouseUnions) {
         const u = model.unions.get(uid);
         if (unionVisible(u)) continue;
-        for (const gc of u.children) {
+        for (const gc of model.unionChildren(u, 'all')) {
           if (visible(gc)) out.push({ id: gc, skipped: depth });
           else descendThrough(gc, depth + 1, out);
         }
@@ -55,8 +56,10 @@
       for (const p of [u.husband, u.wife]) {
         if (p && visible(p)) edges.push({ from: p, to: uid, kind: 'partner', union: u, partner: p });
       }
-      for (const c of u.children) {
-        if (visible(c)) edges.push({ from: uid, to: c, kind: 'child', union: u, gap: !!u.gap });
+      for (const c of model.unionChildren(u, 'all')) {
+        const adopt = u.adoptees.includes(c);
+        const adoptedOut = !adopt && model.isAdopted(c);
+        if (visible(c)) edges.push({ from: uid, to: c, kind: 'child', union: u, gap: !!u.gap, adopt, adoptedOut });
         else for (const d of descendThrough(c, 1, [])) {
           edges.push({ from: uid, to: d.id, kind: 'child', union: u, skipped: d.skipped });
         }
@@ -74,7 +77,9 @@
       g.setNode(n.id, { width: size.w, height: size.h });
     }
     for (const e of view.edges) {
-      g.setEdge(e.from, e.to, { weight: e.kind === 'partner' ? 4 : 1, minlen: 1 });
+      // 생가에서 출계한 선은 배치에 약하게만 반영해 양자가 양가 쪽에 놓이게 한다.
+      const weight = e.kind === 'partner' ? 4 : e.adoptedOut ? 0.2 : 1;
+      g.setEdge(e.from, e.to, { weight, minlen: 1 });
     }
     window.dagre.layout(g);
     const pos = new Map();

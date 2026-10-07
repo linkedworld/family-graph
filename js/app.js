@@ -75,7 +75,18 @@ function render({ refit = false } = {}) {
       const cls = ['edge'];
       if (e.skipped) cls.push('skipped');
       if (e.gap) cls.push('gap');
+      if (e.adopt) cls.push('adopt');
+      if (e.adoptedOut) cls.push('adopted-out');
       el('path', { class: cls.join(' '), d: `M${a.x} ${a.y} V${mid} H${b.x} V${top}` }, gEdges);
+      if (e.adopt || e.adoptedOut) {
+        // 같은 카드로 양자선과 출계선이 함께 들어오므로 '양자'는 왼쪽, '출계'는 오른쪽에 둔다.
+        const text = e.adopt ? '양자' : '출계';
+        const ly = top - 6;
+        const lx = e.adopt ? b.x - 31 : b.x + 3;
+        el('rect', { class: 'skip-label-bg', x: lx, y: ly - 10, width: 28, height: 14, rx: 3 }, gLabels);
+        const t = el('text', { class: e.adopt ? 'adopt-label' : 'skip-label', x: lx + 3, y: ly + 1 }, gLabels);
+        t.textContent = text;
+      }
       if (e.skipped) {
         const text = `${e.skipped}대 미상`;
         const ly = (mid + top) / 2;
@@ -263,13 +274,22 @@ function renderDetail() {
   add('호', p.pen);
   add('관직·칭호', p.title);
   const parents = model.parents(id).map(personLabel);
-  add('부모', parents.join(', '));
+  if (model.isAdopted(id)) {
+    add('양부모', parents.join(', '));
+    add('생부모', model.parents(id, 'birth').map(personLabel).join(', '));
+  } else {
+    add('부모', parents.join(', '));
+  }
   const spouses = model.spouses(id).map((s) => {
     const extra = [s.union.type !== '정실' ? s.union.type : null, s.union.note].filter(Boolean).join(', ');
     return extra ? `${personLabel(s.id)} – ${extra}` : personLabel(s.id);
   });
   add('배우자', spouses.join(' / '));
-  const kids = model.children(id).map(personLabel);
+  const kids = model.children(id, 'all').map((c) => {
+    const ch = model.get(c);
+    if (!ch.adoptiveUnion) return personLabel(c);
+    return model.parents(c).includes(id) ? `${personLabel(c)} (양자)` : `${personLabel(c)} (출계)`;
+  });
   add('자녀', kids.join(', '));
 
   const path = isEgo ? null : kin.describe(state.ego, id);

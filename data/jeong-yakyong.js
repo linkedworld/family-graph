@@ -26,7 +26,7 @@
     { "id": "jeong_jaewon", "name": "정재원", "hanja": "丁載遠", "gender": "M", "clan": "나주 정씨", "sibIndex": 1,
       "birth": "1730", "death": "1792", "courtesy": "기백(器伯)", "title": "생원, 진주목사", "sources": ["wiki_dasan"] },
     { "id": "jeong_jaeun", "name": "정재운", "hanja": "丁載運", "gender": "M", "clan": "나주 정씨", "sibIndex": 2,
-      "note": "작은할아버지 정지열의 양자로 출계. 이 목업에서는 생가 기준으로 표시.", "sources": ["wiki_dasan"] },
+      "note": "작은할아버지 정지열의 양자로 출계.", "sources": ["wiki_dasan"] },
     { "id": "jeong_jaejin", "name": "정재진", "hanja": "丁載進", "gender": "M", "clan": "나주 정씨", "sibIndex": 3,
       "sources": ["wiki_dasan"] },
 
@@ -93,7 +93,13 @@
     { "id": "cheongsong_sim", "name": null, "gender": "F", "clan": "청송 심씨", "clanHanja": "靑松沈氏",
       "note": "정학유의 처, 심오의 딸.", "sources": ["wiki_dasan"] },
     { "id": "jeong_daemu", "name": "정대무", "hanja": "丁大懋", "gender": "M", "clan": "나주 정씨", "birth": "1824",
-      "title": "참봉, 삼척부사", "sources": ["wiki_dasan"] },
+      "courtesy": "자원(子園)", "title": "참봉, 삼척부사", "sources": ["wiki_dasan"] },
+    { "id": "sim_dongryang", "name": "심동량", "hanja": "沈東亮", "gender": "M", "clan": "청송 심씨", "sources": ["wiki_dasan"] },
+    { "id": "cheongsong_sim_daemu", "name": null, "gender": "F", "clan": "청송 심씨", "clanHanja": "靑松沈氏",
+      "note": "정대무의 처, 심동량의 딸.", "sources": ["wiki_dasan"] },
+    { "id": "jeong_munseop", "name": "정문섭", "hanja": "丁文燮", "gender": "M", "clan": "나주 정씨", "birth": "1855", "death": "1908",
+      "title": "문과 급제, 비서원승",
+      "note": "생부는 정대무. 큰집 정대림의 양자가 되어 정약용의 종손 계통을 이음.", "sources": ["wiki_dasan"] },
     { "id": "jeong_daughter3", "name": null, "gender": "F", "clan": "나주 정씨", "sibIndex": 3, "birth": "1793",
       "note": "정약용의 삼녀. 1812년 윤창모와 혼인.", "sources": ["wiki_dasan"] },
     { "id": "yun_changmo", "name": "윤창모", "hanja": "尹昌模", "gender": "M", "birth": "1795", "death": "1856", "sources": ["wiki_dasan"] },
@@ -115,6 +121,7 @@
   "unions": [
     { "id": "u_jihae_parents", "husband": null, "wife": null, "children": ["jeong_jihae", "jeong_jiyeol"] },
     { "id": "u_hong_gilbo", "husband": "hong_gilbo", "wife": null, "children": ["pungsan_hong_gm"] },
+    { "id": "u_jiyeol", "husband": "jeong_jiyeol", "wife": null, "children": [] },
     { "id": "u_jihae", "husband": "jeong_jihae", "wife": "pungsan_hong_gm",
       "children": ["jeong_jaewon", "jeong_jaeun", "jeong_jaejin"] },
 
@@ -146,11 +153,19 @@
     { "id": "u_hakyeon", "husband": "jeong_hakyeon", "wife": null, "children": ["jeong_daerim"] },
     { "id": "u_sim_o", "husband": "sim_o", "wife": null, "children": ["cheongsong_sim"] },
     { "id": "u_hakyu", "husband": "jeong_hakyu", "wife": "cheongsong_sim", "children": ["jeong_daemu"] },
+    { "id": "u_daerim", "husband": "jeong_daerim", "wife": null, "children": [] },
+    { "id": "u_sim_dongryang", "husband": "sim_dongryang", "wife": null, "children": ["cheongsong_sim_daemu"] },
+    { "id": "u_daemu", "husband": "jeong_daemu", "wife": "cheongsong_sim_daemu", "children": ["jeong_munseop"] },
     { "id": "u_yun_seoyu", "husband": "yun_seoyu", "wife": null, "children": ["yun_changmo"] },
     { "id": "u_daughter3", "husband": "yun_changmo", "wife": "jeong_daughter3", "children": [] },
 
     { "id": "u_sister", "husband": "yi_seunghun", "wife": "jeong_sister", "children": [] },
     { "id": "u_halfsister", "husband": "chae_honggeun", "wife": "jeong_halfsister", "children": [] }
+  ],
+
+  "adoptions": [
+    { "id": "ad_jaeun", "child": "jeong_jaeun", "union": "u_jiyeol", "note": "작은할아버지 정지열의 양자로 출계", "sources": ["wiki_dasan"] },
+    { "id": "ad_munseop", "child": "jeong_munseop", "union": "u_daerim", "note": "생부 정대무, 양부 정대림(계후)", "sources": ["wiki_dasan"] }
   ],
 
   "lineageGaps": [
