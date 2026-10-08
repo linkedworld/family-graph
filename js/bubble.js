@@ -966,7 +966,12 @@ function updateCamera(dt) {
     ctl.target.z + ctl.radius * sp * Math.cos(ctl.theta));
   camera.lookAt(ctl.target);
 }
+// 기준 인물 라벨은 처음 로딩·맞춤(자리 잡기) 직후에만 앞세운다.
+// 그 뒤로는 다른 라벨과 같은 규칙으로 보이거나 숨는다.
+let egoPinUntil = 0;
+function pinEgoLabel(ms = 1600) { egoPinUntil = Math.max(egoPinUntil, performance.now() + ms); }
 function fit(onlyAlive = true) {
+  pinEgoLabel();
   const box = new T.Box3();
   let any = false;
   for (const n of nodes.values()) {
@@ -1223,12 +1228,13 @@ function updateLabels() {
   const camPos = camera.position;
   const placed = [];
   const items = [];
+  const egoPinned = performance.now() < egoPinUntil;
   for (const n of order) {
     const el = labels.get(n.key);
     if (!el) continue;
     if (!n.alive || n.scale < 0.4) { el.style.opacity = '0'; continue; }
     const dist = camPos.distanceTo(n.pos);
-    let pri = n.id === state.hovered ? 200 : n.id === state.selected ? 150 : n.id === state.ego ? 140 : 0;
+    let pri = n.id === state.hovered ? 200 : n.id === state.selected ? 150 : (n.id === state.ego && egoPinned) ? 140 : 0;
     if (!pri) pri = (n.lineal ? 60 : 0) + (n.notable ? 40 : 0) + (n.hidden ? 10 + Math.log2(1 + n.hidden) * 4 : 0) + (n.kind === 'spouse' ? -15 : 10);
     items.push({ n, el, dist, pri });
   }
@@ -1242,7 +1248,8 @@ function updateLabels() {
     const x = (_p.x * 0.5 + 0.5) * W, y = (-_p.y * 0.5 + 0.5) * H;
     const near = dist < (many ? 70 : 140);
     let show = !behind && x > -80 && x < W + 80 && y > -40 && y < H + 40 && (pri >= 60 || near);
-    const small = pri < 100 && dist > 95;
+    // 멀면 어떤 라벨이든 이름만 남긴다(기준 인물도 예외가 아니다). 직접 고르거나 가리킨 것만 자세히.
+    const small = dist > 95 && n.id !== state.hovered && n.id !== state.selected;
     if (show && (!el._w || el._small !== small)) {
       el.classList.toggle('small', small);
       el._small = small; el._w = el.offsetWidth; el._h = el.offsetHeight;
