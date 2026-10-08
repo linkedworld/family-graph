@@ -2,14 +2,14 @@
    기준 인물만 인주(印朱) 빨강. 면은 넓게 비우고 선은 가늘게 — 색이 아니라 짜임으로 읽힌다.
    레이아웃: 위 조작 막대 + 왼쪽 계보 캔버스 + 오른쪽 상세 패널(좁은 화면에서는 아래로). */
 :root {
-  /* 바탕은 상아빛 한지. 회녹색이 아니라 따뜻한 중성색이라야 먹과 인주가 산다. */
-  --paper: #f4f1ea;
-  --paper-2: #ece7dc;
-  --card: #fffdf8;
-  --ink: #1b1a16;
-  --ink-2: #6b6558;
-  --line: #cfc7b6;
-  --line-soft: #e0d9c9;
+  /* 바탕은 흰 지면. 학술지 도판처럼 비워 두고, 따뜻한 먹과 가는 괘선으로만 짜임을 만든다. */
+  --paper: #ffffff;
+  --paper-2: #f7f6f3;
+  --card: #ffffff;
+  --ink: #1a1917;
+  --ink-2: #6e6a61;
+  --line: #d6d2c8;
+  --line-soft: #e9e6df;
   --indigo: #2c4a76;
   --indigo-soft: #e4e6ec;
   --seal: #a6392c;
