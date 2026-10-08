@@ -321,9 +321,9 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
   g.dataset.id = id;
   el('rect', { class: 'box', width: CARD.w, height: CARD.h, rx: 3 }, g);
   // 남녀를 구분하는 왼쪽 색 띠
-  el('rect', { class: 'gender-bar', x: 0.5, y: 0.5, width: 4, height: CARD.h - 1, rx: 2 }, g);
+  el('rect', { class: 'gender-bar', x: 0, y: 0, width: 5, height: CARD.h, rx: 0 }, g);
 
-  const name = el('text', { class: 'name', x: 12, y: 22 }, g);
+  const name = el('text', { class: 'name', x: 16, y: 27 }, g);
   name.textContent = model.displayName(id);
   const sub = person.hanja || (model.isNameless(id) ? '이름 미상' : '');
   if (sub) {
@@ -332,27 +332,27 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
   }
 
   const termText = id === state.ego ? '기준 인물' : rel.term;
-  const term = el('text', { class: 'term', x: 12, y: 44 }, g);
-  const room = CARD.w - 22 - (rel.chon != null ? 34 : 0);
+  const term = el('text', { class: 'term', x: 16, y: 52 }, g);
+  const room = CARD.w - 28 - (rel.chon != null ? 34 : 0);
   term.textContent = fitText(termText, room, 12);
   term.style.fontSize = `${fontFor(termText, room, 12)}px`;
 
-  const chon = el('text', { class: 'chon', x: CARD.w - 10, y: 44, 'text-anchor': 'end' }, g);
+  const chon = el('text', { class: 'chon', x: CARD.w - 12, y: 52, 'text-anchor': 'end' }, g);
   chon.textContent = chonText(rel);
 
-  const yr = el('text', { class: 'years', x: 12, y: 63 }, g);
+  const yr = el('text', { class: 'years', x: 16, y: 73 }, g);
   yr.textContent = years(person);
   if (person.gen != null) {
-    const t = el('text', { class: 'years', x: CARD.w - 10, y: 63, 'text-anchor': 'end' }, g);
+    const t = el('text', { class: 'years', x: CARD.w - 12, y: 73, 'text-anchor': 'end' }, g);
     t.textContent = `${person.gen}世`;
   }
   // 넷째 줄: 출생 순서 ('7남 1녀 중 여덟째', '2남 1녀 중 장남' …). 정통 표시에서는 맏아들·맏딸을 강조한다.
   const order = birthOrderShown(id);
   if (order) {
     const first = state.showLine && order.k === 1 && order.sons + order.daughters > 1;
-    const t = el('text', { class: first ? 'order firstborn' : 'order', x: 12, y: 81 }, g);
-    t.textContent = fitText(order.full, CARD.w - 22, 11);
-    t.style.fontSize = `${fontFor(order.full, CARD.w - 22, 11)}px`;
+    const t = el('text', { class: first ? 'order firstborn' : 'order', x: 16, y: 90 }, g);
+    t.textContent = fitText(order.full, CARD.w - 28, 11);
+    t.style.fontSize = `${fontFor(order.full, CARD.w - 28, 11)}px`;
   }
 
   if (toggle) {
@@ -377,11 +377,11 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
     const marks = [];
     if (state.heir.members.has(id)) marks.push(['宗', 'mark-heir', '종통을 이은 사람']);
     if (state.notable.includes(id)) marks.push(['名', 'mark-notable', '이름난 인물']);
-    let mx = CARD.w - 22 - (id === state.ego ? 19 : 0);
+    let mx = CARD.w - 24 - (id === state.ego ? 19 : 0);
     for (const [ch, cls, title] of marks) {
       const mg = el('g', { class: cls }, g);
-      el('rect', { x: mx, y: 7, width: 15, height: 15, rx: 1.5 }, mg);
-      const mt = el('text', { x: mx + 7.5, y: 18.5, 'text-anchor': 'middle' }, mg);
+      el('rect', { x: mx, y: 8, width: 15, height: 15, rx: 1.5 }, mg);
+      const mt = el('text', { x: mx + 7.5, y: 19.5, 'text-anchor': 'middle' }, mg);
       mt.textContent = ch;
       el('title', {}, mg).textContent = title;
       mx -= 19;
@@ -389,8 +389,8 @@ function drawCard(parent, id, p, rel, isLineal, toggle) {
   }
 
   if (id === state.ego) {
-    el('rect', { class: 'seal', x: CARD.w - 22, y: 7, width: 15, height: 15, rx: 1.5 }, g);
-    const s = el('text', { class: 'seal-text', x: CARD.w - 14.5, y: 18.5, 'text-anchor': 'middle' }, g);
+    el('rect', { class: 'seal', x: CARD.w - 24, y: 8, width: 15, height: 15, rx: 1.5 }, g);
+    const s = el('text', { class: 'seal-text', x: CARD.w - 16.5, y: 19.5, 'text-anchor': 'middle' }, g);
     s.textContent = '基';
   }
 
