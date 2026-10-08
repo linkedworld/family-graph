@@ -20,6 +20,7 @@ const $ = (id) => document.getElementById(id) || missing.get(id) ||
 const GEN_H = 8;          // 세대 사이 높이
 const R_PERSON = 1;       // 구슬 반지름
 const R_SPOUSE = 0.6;
+const R_BEAD = 0.3;       // 품은 자식 구슬: 배우자 구슬보다 작다
 const SEG = 14;           // 연결선 한 줄을 이루는 토막 수(곡선)
 const MAX_EDGE_INST = 16000;
 const COLORS = {
@@ -40,6 +41,8 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 const state = {
   data: null, model: null, kin: null, root: null, ego: null, selected: null, hovered: null,
   lineage: new Set(), expanded: new Set(), notable: new Set(),
+  tucked: new Set(), // 부모 품에 들어간 자식: 아주 작은 구슬로 붙어 있다
+  hoverLink: null,   // 마우스가 올라간 연결선
   showSpouses: true, hideUnknown: false, autoRotate: !reduceMotion,
   descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
   showHeir: true,  // 종통 줄기 표시
@@ -608,7 +611,7 @@ function makeNode(key, id, kind) {
   return {
     key, id, kind, pos: new T.Vector3(), vel: new T.Vector3(), parent: null, partner: null, depth: 0,
     scale: 0, scaleV: 0, alive: true, delay: 0, hl: 0, seed: Math.random(),
-    color: new T.Color(), radius: R_PERSON, hidden: 0, trunk: false, lineal: false, notable: false, spouses: [],
+    color: new T.Color(), radius: R_PERSON, hidden: 0, trunk: false, lineal: false, notable: false, spouses: [], beads: [],
     shellVis: 0, born: clock,
   };
 }
@@ -625,11 +628,15 @@ function rebuild({ instant = false } = {}) {
   // 보일 사람: 시조부터, 펼친 사람의 자녀를 따라 내려간다.
   const seen = new Set();
   const list = [];
+  const tucks = []; // 부모 품에 들어간 자식: 가지를 더 내려가지 않는다
   const walk = (id, parent, depth) => {
     list.push({ id, parent, depth });
     seen.add(id);
     if (!state.expanded.has(id)) return;
-    for (const k of kids(id)) walk(k.id, id, depth + k.steps);
+    for (const k of kids(id)) {
+      if (state.tucked.has(k.id)) { tucks.push({ id: k.id, parent: id }); seen.add(k.id); continue; }
+      walk(k.id, id, depth + k.steps);
+    }
   };
   walk(state.root, null, 0);
 
@@ -665,6 +672,7 @@ function rebuild({ instant = false } = {}) {
     }
     if (p) linkList.push({ a: p, b: n, kind: 'child' });
     n.spouses = [];
+    n.beads = [];
     if (state.showSpouses) {
       for (const s of model.spouses(id)) {
         if (seen.has(s.id) || hiddenPerson(s.id) || state.lineage.has(s.id)) continue;
@@ -679,7 +687,23 @@ function rebuild({ instant = false } = {}) {
       }
     }
   }
+  // 품은 자식: 부모 구슬 아래에 아주 작은 구슬로 붙는다. 연결선은 긋지 않는다(이미 들어가 있으므로).
+  for (const { id, parent } of tucks) {
+    const p = nodes.get(parent);
+    if (!p || !p.alive) continue;
+    const bn = getNode(`t:${parent}:${id}`, id, 'bead');
+    const sub = descCount(id) + 1; // 자기 자신까지
+    bn.parent = p; bn.depth = p.depth; bn.sub = sub;
+    bn.radius = Math.min(R_SPOUSE * 0.8, R_BEAD * (1 + 0.14 * Math.cbrt(sub - 1)));
+    bn.hidden = 0; bn.trunk = false; bn.lineal = false; bn.notable = false;
+    bn.spouses = []; bn.beads = [];
+    bn.color.set(colorOf(id));
+    bn.unknown = model.isUnknown(id);
+    if (bn.isNew) { bn.pos.copy(p.pos); bn.delay = 0.04; bn.isNew = false; }
+    p.beads.push(bn);
+  }
   linkList.push(...fading.filter((l) => !l.a.alive || !l.b.alive));
+  state.hoverLink = null; // 선 목록을 새로 만들었으므로 가리키던 선은 잊는다
   state.maxDepth = maxDepth;
   order = [...nodes.values()];
   alpha = 1;
@@ -748,6 +772,20 @@ function simulate(dt) {
       s.pos.x += (tx - s.pos.x) * q; s.pos.y += (ty - s.pos.y) * q; s.pos.z += (tz - s.pos.z) * q;
     });
   }
+  // 품은 자식: 부모 구슬 바로 아래에 둘러 붙는다. 여럿이면 작은 고리를 이룬다.
+  for (const n of persons) {
+    if (!n.beads.length) continue;
+    const k = n.beads.length;
+    const spin = clock * 0.2 + n.seed * 6;
+    n.beads.forEach((b, i) => {
+      const t = spin + (i / k) * Math.PI * 2;
+      const rr = k === 1 ? 0 : (n.radius * 0.5 + b.radius * 1.2);
+      const tx = n.pos.x + Math.cos(t) * rr, tz = n.pos.z + Math.sin(t) * rr;
+      const ty = n.pos.y - (n.radius * Math.max(0.4, n.scale) + b.radius * 1.9);
+      const q = 1 - Math.exp(-dt * 8);
+      b.pos.x += (tx - b.pos.x) * q; b.pos.y += (ty - b.pos.y) * q; b.pos.z += (tz - b.pos.z) * q;
+    });
+  }
   // 크기: 태어날 때 살짝 튀어 오르고(스프링), 사라질 때는 부모 쪽으로 빨려 들어간다.
   for (const n of order) {
     if (n.delay > 0) { n.delay -= dt; continue; }
@@ -797,7 +835,7 @@ function writeInstances() {
     _m.compose(n.pos, _q, _s.set(rad, rad, rad));
     spheres.setMatrixAt(i, _m);
     sc[i * 3] = n.color.r; sc[i * 3 + 1] = n.color.g; sc[i * 3 + 2] = n.color.b;
-    const bright = n.id === state.ego ? 1.5 : n.lineal ? 1.2 : n.kind === 'spouse' ? 0.85 : 1.0;
+    const bright = n.id === state.ego ? 1.5 : n.lineal ? 1.2 : n.kind === 'bead' ? 0.8 : n.kind === 'spouse' ? 0.85 : 1.0;
     sp[i * 4] = bright * (n.unknown ? 0.6 : 1) * (1 + pa * 0.8); sp[i * 4 + 1] = Math.min(1.6, n.hl + pa); sp[i * 4 + 2] = n.unknown ? 0.75 : 0; sp[i * 4 + 3] = n.seed;
     drawn[i] = n;
     i++;
@@ -849,7 +887,8 @@ function writeInstances() {
     if (vis < 0.02 || e + SEG > MAX_EDGE_INST) continue;
     const marriage = L.kind === 'marriage';
     const lineal = !marriage && a.lineal && b.lineal;
-    const hot = !marriage && (a.id === state.selected || b.id === state.selected || a.id === state.hovered || b.id === state.hovered);
+    const hov = L === state.hoverLink;
+    const hot = hov || (!marriage && (a.id === state.selected || b.id === state.selected || a.id === state.hovered || b.id === state.hovered));
     if (marriage) {
       P0.copy(a.pos); P3.copy(b.pos); P1.lerpVectors(P0, P3, 0.33); P2.lerpVectors(P0, P3, 0.66);
     } else {
@@ -862,12 +901,12 @@ function writeInstances() {
     const segs = marriage ? 3 : SEG;
     // 종통 줄기: 청록 겹선(바깥의 넓고 옅은 빛 + 안쪽 심)으로 그리고 빛 마디가 빠르게 흐른다.
     const heir = !marriage && state.showHeir && state.heir.edges.has(`${a.id}>${b.id}`);
-    const base = (marriage ? 0.05 : lineal ? 0.13 : 0.06) * (hot ? 1.5 : 1) * vis;
+    const base = (marriage ? 0.05 : lineal ? 0.13 : 0.06) * (hov ? 2.6 : hot ? 1.5 : 1) * vis;
     const passes = heir
       ? [{ w: base * 2.9 + 0.12 * vis, mix: 1, int: 0.55, speed: 0.5, z: 0.25, a: 0.32 },
          { w: Math.max(base, 0.1 * vis), mix: 0.55, int: 1.1, speed: 0.6, z: 1, a: 1 }]
       : [{ w: base, mix: 0, int: marriage ? 0.5 : lineal ? 1.0 : 0.55, speed: marriage ? 0.15 : lineal ? 0.55 : 0.3,
-           z: lineal ? 1 : hot ? 0.7 : 0.15, a: 1 }];
+           z: hov ? 1.2 : lineal ? 1 : hot ? 0.7 : 0.15, a: 1 }];
     if (e + segs * passes.length > MAX_EDGE_INST) continue;
     for (const ps of passes) {
       _c.copy(a.color).lerp(HEIR_COLOR, ps.mix); const cA = [_c.r, _c.g, _c.b];
@@ -887,7 +926,7 @@ function writeInstances() {
         ep[e * 4] = ps.int;
         ep[e * 4 + 1] = ps.speed;
         ep[e * 4 + 2] = ps.z;
-        ep[e * 4 + 3] = vis * ps.a * (marriage && b.concubine ? 0.5 : 1) * (hot ? 1.3 : 1);
+        ep[e * 4 + 3] = vis * ps.a * (marriage && b.concubine ? 0.5 : 1) * (hov ? 1.8 : hot ? 1.3 : 1);
         e++;
       }
     }
@@ -1010,10 +1049,19 @@ function setupControls() {
   const ring = $('pressRing');
   let press = null;
   const startPress = (x, y) => {
-    if (state.tapExpand) return;
-    const n = pick(x, y);
-    if (!n || !n.alive || n.kind !== 'person' || !(n.hidden || state.expanded.has(n.id))) return;
-    press = { n, fired: false };
+    const hit = pick(x, y);
+    // 구슬 위: 자녀 펼치기·접기(탭으로 펼치기를 끈 경우에만). 빈 곳이면 연결선을 찾아 자식을 품는다.
+    let n = null, link = null;
+    if (hit) {
+      if (state.tapExpand) return;
+      if (!hit.alive || hit.kind !== 'person' || !(hit.hidden || state.expanded.has(hit.id))) return;
+      n = hit;
+    } else {
+      link = pickLink(x, y);
+      if (!link) return;
+      n = link.b;
+    }
+    press = { n, link, fired: false };
     hideTip();
     n.pressing = true; n.pressT0 = performance.now();
     ring.style.left = `${x}px`; ring.style.top = `${y}px`;
@@ -1031,8 +1079,8 @@ function setupControls() {
       haptic([18, 40, 30]);
       n.scaleV += 7; // 톡 튀어 오르기
       // 길게 누르기는 자녀 펼치기·접기만 한다. 선택을 바꾸지 않으므로 상세 카드도 열리지 않는다.
-      toggle(n.id);
-      flyTo(n, false);
+      if (press.link) tuck(n.id);
+      else { toggle(n.id); flyTo(n, false); }
     }, LONG_PRESS_MS);
   };
   const cancelPress = () => {
@@ -1069,7 +1117,7 @@ function setupControls() {
     const dx = e.clientX - prev.x, dy = e.clientY - prev.y;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     ctl.idle = 0;
-    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; cancelPress(); canvas.classList.add('dragging'); hideTip(); }
+    if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; cancelPress(); canvas.classList.add('dragging'); state.hoverLink = null; hideTip(); }
     if (downAt) return;
     if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
     else if (mode === 'pan') panBy(dx, dy);
@@ -1094,7 +1142,7 @@ function setupControls() {
   };
   canvas.addEventListener('pointerup', end);
   canvas.addEventListener('pointercancel', end);
-  canvas.addEventListener('pointerleave', () => { if (!pointers.size) { state.hovered = null; hideTip(); canvas.classList.remove('pointing'); } });
+  canvas.addEventListener('pointerleave', () => { if (!pointers.size) { state.hovered = null; state.hoverLink = null; hideTip(); canvas.classList.remove('pointing'); } });
   canvas.addEventListener('wheel', (e) => {
     e.preventDefault();
     ctl.idle = 0;
@@ -1131,6 +1179,49 @@ function pick(x, y) {
   if (sh && shellDrawn[sh.instanceId]) return shellDrawn[sh.instanceId];
   return null;
 }
+// 연결선 고르기: 그릴 때와 같은 S자 곡선을 화면에 투영해, 점이 아니라 '선분'까지의 거리를 잰다.
+// (점만 재면 선이 길게 보일 때 샘플 사이가 벌어져 한가운데를 눌러도 잡히지 않는다.)
+const _lq = new T.Vector3(), _q0 = new T.Vector3(), _q1 = new T.Vector3(), _q2 = new T.Vector3(), _q3 = new T.Vector3();
+function segDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const L2 = dx * dx + dy * dy;
+  let t = L2 ? ((px - x1) * dx + (py - y1) * dy) / L2 : 0;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  return Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t));
+}
+const LINK_PICK_N = 20;
+function pickLink(x, y) {
+  const rect = canvas.getBoundingClientRect();
+  const px = x - rect.left, py = y - rect.top;
+  let best = null, bestD = isNarrow() ? 26 : 16;
+  for (const L of linkList) {
+    const a = L.a, b = L.b;
+    if (L.kind !== 'child' || !a.alive || !b.alive) continue;
+    if (b.kind !== 'person' || !state.lineage.has(b.id)) continue;
+    if (Math.min(a.scale, b.scale) < 0.4) continue;
+    _q0.copy(a.pos); _q0.y -= a.radius * a.scale * 0.9;
+    _q3.copy(b.pos); _q3.y += b.radius * b.scale * 0.9;
+    const hgt = Math.max(1, _q0.y - _q3.y);
+    _q1.copy(_q0); _q1.y -= hgt * 0.5;
+    _q2.copy(_q3); _q2.y += hgt * 0.5;
+    let pX = 0, pY = 0, pOK = false;
+    for (let i = 0; i <= LINK_PICK_N; i++) {
+      const t = i / LINK_PICK_N, u = 1 - t;
+      _lq.set(0, 0, 0)
+        .addScaledVector(_q0, u * u * u).addScaledVector(_q1, 3 * u * u * t)
+        .addScaledVector(_q2, 3 * u * t * t).addScaledVector(_q3, t * t * t)
+        .project(camera);
+      const ok = _lq.z <= 1 && _lq.z >= -1;
+      const sx = (_lq.x * 0.5 + 0.5) * rect.width, sy = (-_lq.y * 0.5 + 0.5) * rect.height;
+      if (ok && pOK) {
+        const d = segDist(px, py, pX, pY, sx, sy);
+        if (d < bestD) { bestD = d; best = L; }
+      }
+      pX = sx; pY = sy; pOK = ok;
+    }
+  }
+  return best;
+}
 let hoverQueued = null;
 function hoverAt(x, y) { hoverQueued = { x, y }; }
 function processHover() {
@@ -1140,15 +1231,27 @@ function processHover() {
   const n = pick(x, y);
   const id = n && n.alive ? n.id : null;
   state.hovered = id;
-  canvas.classList.toggle('pointing', !!id);
-  if (id) showTip(n, x, y); else hideTip();
+  state.hoverLink = id ? null : pickLink(x, y);
+  canvas.classList.toggle('pointing', !!id || !!state.hoverLink);
+  if (id) showTip(n, x, y);
+  else if (state.hoverLink) showLinkTip(state.hoverLink, x, y);
+  else hideTip();
 }
 function clickAt(x, y) {
   const n = pick(x, y);
   if (!n || !n.alive) {
+    const L = pickLink(x, y);
+    if (L) { // 선을 짧게 누르면 그 자식을 고른다. 품기는 길게 누르기.
+      haptic(8);
+      state.selected = L.b.id;
+      updateLabelsContent(); renderInfo();
+      flyTo(L.b, false);
+      return;
+    }
     if (isNarrow()) closeInfo(); // 휴대폰: 빈 곳을 누르면 상세 카드를 닫는다
     return;
   }
+  if (n.kind === 'bead') { untuck(n.id); return; } // 품은 구슬: 누르면 다시 나온다
   haptic(10);
   state.selected = n.id;
   // '탭으로 펼치기'가 켜져 있으면 누르기만으로 자녀를 펼치고 접는다. 꺼져 있으면 선택만 하고, 펼치기는 길게 누르기로.
@@ -1162,6 +1265,21 @@ function closeInfo() {
   $('info').hidden = true;
   $('info').classList.remove('open');
 }
+// 자식을 부모 품에 넣는다(연결선을 길게 눌렀을 때). 펼쳐 둔 상태는 그대로 기억해 둔다.
+function tuck(id) {
+  if (!state.lineage.has(id) || state.tucked.has(id)) return;
+  state.tucked.add(id);
+  rebuild();
+}
+// 품은 구슬을 누르면 다시 나온다.
+function untuck(id) {
+  if (!state.tucked.delete(id)) return;
+  haptic([12, 30]);
+  const n = nodes.get(`t:${treeParent(id)}:${id}`);
+  rebuild();
+  const back = nodes.get(id);
+  if (back) { back.scaleV += 6; if (n) back.pos.copy(n.pos); }
+}
 function toggle(id) {
   if (!state.lineage.has(id)) return;
   if (state.expanded.has(id)) state.expanded.delete(id);
@@ -1171,13 +1289,28 @@ function toggle(id) {
 
 // ── 툴팁 ────────────────────────────────────────────────
 const tip = $('tip');
+// 연결선 위: 어느 부모와 자식을 잇는 줄인지, 길게 누르면 무엇이 되는지 알려 준다.
+function showLinkTip(L, x, y) {
+  const { model } = state;
+  const sub = descCount(L.b.id) + 1;
+  tip.style.setProperty('--c', '#' + L.b.color.getHexString(T.SRGBColorSpace));
+  tip.innerHTML = `<b>${esc(model.displayName(L.a.id))} → ${esc(model.displayName(L.b.id))}</b>` +
+    `<div>길게 누르면 ${esc(model.displayName(L.b.id))}${sub > 1 ? ` 이하 ${sub}명` : ''}을 부모 품에</div>` +
+    '<div class="k">누르면 그 사람 보기</div>';
+  tip.hidden = false;
+  const W = window.innerWidth, H = window.innerHeight;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = `${Math.min(W - tw - 10, x + 16)}px`;
+  tip.style.top = `${Math.min(H - th - 10, Math.max(10, y + 16))}px`;
+}
 function showTip(n, x, y) {
   const { model } = state;
   const p = model.get(n.id);
   const r = relOf(n.id);
   const kidsN = n.kind === 'person' ? kids(n.id).length : 0;
   const verb = state.tapExpand ? '누르면' : '길게 누르면';
-  const action = n.kind !== 'person' || !kidsN ? '' : state.expanded.has(n.id) ? `${verb} 자녀 접기` : `${verb} 자녀 ${kidsN}명 펼치기 · 자손 ${descCount(n.id)}명`;
+  const action = n.kind === 'bead' ? `누르면 다시 나옵니다${n.sub > 1 ? ` · 자손까지 ${n.sub}명` : ''}`
+    : n.kind !== 'person' || !kidsN ? '' : state.expanded.has(n.id) ? `${verb} 자녀 접기` : `${verb} 자녀 ${kidsN}명 펼치기 · 자손 ${descCount(n.id)}명`;
   tip.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
   tip.innerHTML = `<b>${esc(model.displayName(n.id))}${p.hanja ? ` <small>${esc(p.hanja)}</small>` : ''}</b>` +
     `<span class="t">${esc(n.id === state.ego ? '기준 인물' : r.term)}</span> ${esc(n.id === state.ego ? '' : chonText(r))}` +
@@ -1203,6 +1336,7 @@ function removeLabel(n) { const el = labels.get(n.key); if (el) { el.remove(); l
 function updateLabelsContent() {
   const { model } = state;
   for (const n of nodes.values()) {
+    if (n.kind === 'bead') { removeLabel(n); continue; }
     const el = labelFor(n);
     const p = model.get(n.id);
     const r = relOf(n.id);
@@ -1363,9 +1497,10 @@ function setupInfoCard() {
   });
 }
 function updateHint() {
-  $('hint').textContent = state.tapExpand
+  $('hint').textContent = (state.tapExpand
     ? '끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 구슬 누르기: 자손 펼치기/접기'
-    : '끌기: 회전 · 휠/두 손가락: 확대 · 구슬 누르기: 정보 · 길게 누르기: 자손 펼치기/접기';
+    : '끌기: 회전 · 휠/두 손가락: 확대 · 구슬 누르기: 정보 · 길게 누르기: 자손 펼치기/접기')
+    + ' · 선 길게 누르기: 자식을 부모 품에';
 }
 
 // ── 기준 인물·가계도 바꾸기 ───────────────────────────────
@@ -1409,6 +1544,7 @@ function loadDataset(data) {
   // 휴대폰은 화면이 좁아 처음에는 상세 패널을 닫아 둔다.
   state.selected = isNarrow() ? null : state.ego;
   state.expanded = new Set([root]);
+  state.tucked.clear();
   reveal(state.ego);
   const a = anchorOf(state.ego);
   if (a) state.expanded.add(a);
@@ -1522,12 +1658,14 @@ function main() {
     setTimeout(() => fit(), 900);
   });
   $('expandAll').addEventListener('click', () => {
+    state.tucked.clear();
     for (const id of state.lineage) state.expanded.add(id);
     rebuild();
     setTimeout(() => fit(), 900);
   });
   $('collapseAll').addEventListener('click', () => {
     state.expanded = new Set([state.root]);
+    state.tucked.clear();
     reveal(state.ego);
     expandDescLine();
     expandHeir();
@@ -1546,7 +1684,7 @@ function main() {
   loadDataset(fromHash() || datasets[0]);
   requestAnimationFrame(frame);
   // 테스트·디버그용
-  window.__bubble = { state, nodes, ctl, toggle, fit, setEgo, camera: () => camera, scene: () => scene };
+  window.__bubble = { state, nodes, ctl, toggle, tuck, untuck, pickLink, fit, setEgo, camera: () => camera, scene: () => scene };
 }
 
 main();
