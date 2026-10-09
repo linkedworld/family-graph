@@ -50,7 +50,7 @@ const state = {
   descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
   showHeir: true,  // 종통 줄기 표시
   tapExpand: true, // 구슬을 누르면 바로 자녀를 펼친다(끄면 누르기는 선택만, 길게 누르기로 펼침)
-  heir: { members: new Set(), edges: new Set() },
+  heir: { members: new Set(), edges: new Set(), path: new Set() },
   axisLine: [],
   rels: new Map(), trunk: new Set(),
 };
@@ -141,12 +141,16 @@ function computeHeir() {
     if (line.length < 2) continue;
     line.forEach((id, i) => { members.add(id); if (i) edges.add(`${line[i - 1]}>${id}`); });
   }
-  state.heir = { members, edges };
+  // 방계 접기에서도 펼쳐 둘 사람: 줄기 위의 사람과, 줄기가 시작하는 사람까지 이르는 조상
+  const path = new Set(members);
+  for (const id of members) for (const a of ancestorsInTree(id)) path.add(a);
+  state.heir = { members, edges, path };
 }
 // 종통 표시를 켜면 줄기가 끝까지 보이도록 줄기 위의 사람들을 펼친다.
 function expandHeir() {
   if (!state.showHeir) return;
-  for (const e of state.heir.edges) state.expanded.add(e.split('>')[0]);
+  // 줄기 위의 사람과, 줄기가 시작하는 사람(이름난 인물·외손 계통)에 이르는 조상까지 모두 펼친다.
+  for (const id of state.heir.members) for (const a of ancestorsInTree(id)) state.expanded.add(a);
 }
 
 function relOf(id) {
@@ -155,7 +159,9 @@ function relOf(id) {
 }
 const isLineal = (r) => r.kind === 'self' || (r.kind === 'blood' && r.path && (r.path.up === 0 || r.path.down === 0));
 // 방계 가지의 첫 사람: 기준 인물의 직계도 가운데 축도 아닌 자녀. 그 아래 자손은 모두 이 사람의 구슬에 들어간다.
+// 종통 표시를 켜 두면 종통 줄기(와 거기에 이르는 조상)는 방계라도 펼쳐 둔다.
 function isCollateralRoot(id) {
+  if (state.showHeir && state.heir.path.has(id)) return false;
   return !state.trunk.has(id) && !isLineal(relOf(id));
 }
 // 방계 접기일 때 부모 품에 둘 자녀인가(연결선 길게 누르기로 넣은 자녀 포함)
