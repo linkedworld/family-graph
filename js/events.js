@@ -668,20 +668,20 @@ function writeInstances() {
   for (const n of order) {
     if (n.scale <= 0.001) continue;
     const rad = n.radius * n.scale;
-    const dimK = 1 - n.dim * 0.8;
+    const dimK = 1 - n.dim * 0.9;
     if (n.kind === 'event') {
       _q.setFromAxisAngle(_up, clock * 0.25 + n.seed * 6);
       _m.compose(n.pos, _q, _s.set(rad, rad * 1.12, rad));
       crystals.setMatrixAt(c, _m);
       cc[c * 3] = n.color.r; cc[c * 3 + 1] = n.color.g; cc[c * 3 + 2] = n.color.b;
-      cp[c * 4] = 1.35 * dimK; cp[c * 4 + 1] = n.hl; cp[c * 4 + 2] = n.dim * 0.6; cp[c * 4 + 3] = n.seed;
+      cp[c * 4] = 1.35 * dimK; cp[c * 4 + 1] = n.hl; cp[c * 4 + 2] = n.dim * 0.85; cp[c * 4 + 3] = n.seed;
       drawnC[c] = n; c++;
     } else {
       _q.identity();
       _m.compose(n.pos, _q, _s.set(rad, rad, rad));
       spheres.setMatrixAt(i, _m);
       sc[i * 3] = n.color.r; sc[i * 3 + 1] = n.color.g; sc[i * 3 + 2] = n.color.b;
-      sp[i * 4] = (n.P.external ? 0.7 : 1.05) * dimK; sp[i * 4 + 1] = n.hl; sp[i * 4 + 2] = n.P.external ? 0.6 : n.dim * 0.6; sp[i * 4 + 3] = n.seed;
+      sp[i * 4] = (n.P.external ? 0.7 : 1.05) * dimK; sp[i * 4 + 1] = n.hl; sp[i * 4 + 2] = n.P.external ? Math.max(0.6, n.dim * 0.85) : n.dim * 0.85; sp[i * 4 + 3] = n.seed;
       drawnS[i] = n; i++;
     }
     // 고리: 고른 노드, 그리고 이름난 인물
@@ -739,7 +739,7 @@ function writeInstances() {
     if (vis0 < 0.02) continue;
     const focus = linkInFocus(L);
     const hot = state.focus && focus;
-    const vis = vis0 * (focus ? 1 : 0.12);
+    const vis = vis0 * (focus ? 1 : 0.06);
     if (L.kind === 'role') {
       // 사건 → 인물: 짧은 곡선(사건 색에서 인물 색으로)
       P0.copy(a.pos); P3.copy(b.pos);
@@ -1027,7 +1027,7 @@ function updateLabels() {
     const foc = state.focus && state.focus.has(n.key);
     let pri = n.key === state.hovered ? 200 : n.key === state.selected ? 160 : foc ? 90 : 0;
     if (!pri) pri = n.kind === 'event' ? 40 + Math.min(30, n.ev.parts.length * 2) : (n.notable ? 25 : 5) + n.P.roles.length * 3;
-    if (state.focus && !foc) pri -= 60;
+    if (state.focus && !foc) pri -= 120; // 고른 관계 밖의 이름표는 감춘다
     items.push({ n, el, dist, pri, foc });
   }
   items.sort((a, b) => (b.pri - a.pri) || (a.dist - b.dist));

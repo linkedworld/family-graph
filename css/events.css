@@ -40,7 +40,10 @@
 .info .srcs { margin: 0 0 10px; font-size: 0.72rem; color: var(--ink-3); line-height: 1.6; }
 .info .srcs a { color: var(--ink-2); }
 .info .acts a.glass-btn { display: inline-flex; align-items: center; text-decoration: none; }
-.info { max-height: calc(100% - 150px); overflow: auto; }
+/* 위 설정판이 두 줄이라, 넓은 화면에서는 상세 패널을 그 아래에서 시작한다 */
+@media (min-width: 821px) {
+  .info { top: 186px; transform: none; max-height: calc(100% - 250px); }
+}
 
 @media (max-width: 820px) {
   .info .note, .info .grp { display: block; }

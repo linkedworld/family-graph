@@ -1,4 +1,4 @@
-// 인물과 사건(events.html) 데이터. tools/build-events.py가 조사 결과(JSON)를 합쳐 만든다.
+// 인물과 사건(events.html) 데이터. 집안별 조사 결과를 합친 것으로, 사건을 더하거나 고칠 때는 이 파일을 직접 고친다.
 // participants: 가계도 인물({ ds: 가계도 id, id: 인물 id, role }), external: 가계도 밖 주요 인물.
 // relations: 사건 사이의 관계(원인·결과로 이어짐·일부·영향·대립·계승). from → to 방향.
 window.GENEALOGY_EVENTS = {
@@ -234,6 +234,44 @@ window.GENEALOGY_EVENTS = {
    ]
   },
   {
+   "id": "hangul-opposition-1444",
+   "name": "최만리 등의 언문 반대 상소",
+   "hanja": "諺文反對上疏",
+   "start": 1444,
+   "end": null,
+   "type": "학문·저술",
+   "summary": "1444년(세종 26) 2월 집현전 부제학 최만리가 학사들과 함께 언문(훈민정음) 창제와 한자음 개혁을 반대하는 상소를 올렸다. 세종의 친국을 받고 이튿날 풀려났으나 곧 사직하고 낙향했다. 한국민족문화대백과사전은 상소의 진의를 한글 창제 자체보다 한자음 개혁 반대로 본다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "choi_manri",
+     "role": "상소 주도"
+    }
+   ],
+   "external": [
+    {
+     "name": "세종",
+     "hanja": "世宗",
+     "role": "훈민정음 창제, 친국"
+    },
+    {
+     "name": "정창손",
+     "hanja": "鄭昌孫",
+     "role": "연명 상소"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「최만리」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0057279"
+    },
+    {
+     "title": "위키백과 「훈민정음」",
+     "url": "https://ko.wikipedia.org/wiki/훈민정음"
+    }
+   ]
+  },
+  {
    "id": "gyeyu_jeongnan",
    "name": "계유정난",
    "hanja": "癸酉靖難",
@@ -335,6 +373,943 @@ window.GENEALOGY_EVENTS = {
     {
      "title": "위키백과 「이변 (1391년)」",
      "url": "https://ko.wikipedia.org/wiki/이변_(1391년)"
+    }
+   ]
+  },
+  {
+   "id": "nam-i-incident-1468",
+   "name": "남이의 옥",
+   "hanja": "南怡獄",
+   "start": 1468,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "예종 즉위년(1468) 유자광이 남이가 혜성을 보고 한 말을 역모로 고변하여 남이·강순 등이 처형되었다. 임진왜란 뒤 야사에서는 유자광의 모함으로 날조된 옥사로 그려졌고, 순조 때 후손 남공철의 상소로 신원되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "nam_i",
+     "role": "희생(처형)"
+    }
+   ],
+   "external": [
+    {
+     "name": "유자광",
+     "hanja": "柳子光",
+     "role": "고변, 익대공신"
+    },
+    {
+     "name": "예종",
+     "hanja": "睿宗",
+     "role": "국왕"
+    },
+    {
+     "name": "강순",
+     "hanja": "康純",
+     "role": "함께 처형"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「남이의 옥」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0012102"
+    },
+    {
+     "title": "위키백과 「남이의 옥」",
+     "url": "https://ko.wikipedia.org/wiki/남이의_옥"
+    }
+   ]
+  },
+  {
+   "id": "muo-sahwa-1498",
+   "name": "무오사화",
+   "hanja": "戊午士禍",
+   "start": 1498,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "1498년(연산군 4) 김일손이 사초에 실은 김종직의 「조의제문」이 문제 되어 유자광·이극돈 등 훈구파가 김종직 문인들을 숙청한 사화이다. 김종직의 문인 이의무도 평안도 어천역에 유배되었다가 이듬해 풀려났다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_uimu",
+     "role": "피화(유배)"
+    }
+   ],
+   "external": [
+    {
+     "name": "김종직",
+     "hanja": "金宗直",
+     "role": "부관참시"
+    },
+    {
+     "name": "김일손",
+     "hanja": "金馹孫",
+     "role": "사초 작성, 처형"
+    },
+    {
+     "name": "유자광",
+     "hanja": "柳子光",
+     "role": "주도"
+    }
+   ],
+   "sources": [
+    {
+     "title": "위키백과 「무오사화」",
+     "url": "https://ko.wikipedia.org/wiki/무오사화"
+    },
+    {
+     "title": "위키백과 「이의무 (1449년)」",
+     "url": "https://ko.wikipedia.org/wiki/이의무_(1449년)"
+    },
+    {
+     "title": "한국민족문화대백과사전 「사화」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0026117"
+    }
+   ]
+  },
+  {
+   "id": "gapja-sahwa-1504",
+   "name": "갑자사화",
+   "hanja": "甲子士禍",
+   "start": 1504,
+   "end": 1505,
+   "type": "사화·옥사",
+   "summary": "1504년(연산군 10) 연산군이 생모 폐비 윤씨의 폐출·사사에 관여한 신하와 추숭에 반대한 신하들을 대거 처벌한 사화이다. 폐비에게 사약을 가져간 권주는 장형과 정역에 처해졌다가 이듬해 죽었고 아들 권질도 유배되었다. 추숭에 반대한 이행은 장 60대를 맞고 충주로 유배되었으며, 박은은 사냥을 간한 일로 효수되었다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "gwon_ju",
+     "role": "희생(1505년 사사)"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "gwon_jil",
+     "role": "연좌 유배"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_haeng",
+     "role": "추숭 반대, 장형·유배"
+    },
+    {
+     "ds": "yi-i",
+     "id": "park_eun",
+     "role": "희생(효수)"
+    }
+   ],
+   "external": [
+    {
+     "name": "연산군",
+     "hanja": "燕山君",
+     "role": "주도"
+    },
+    {
+     "name": "폐비 윤씨",
+     "hanja": "廢妃尹氏",
+     "role": "발단"
+    },
+    {
+     "name": "임사홍",
+     "hanja": "任士洪",
+     "role": "주도 세력"
+    }
+   ],
+   "sources": [
+    {
+     "title": "위키백과 「갑자사화」(연산군일기 인용 피화자 목록)",
+     "url": "https://ko.wikipedia.org/wiki/갑자사화"
+    },
+    {
+     "title": "위키백과 「이행 (조선)」",
+     "url": "https://ko.wikipedia.org/wiki/이행_(조선)"
+    },
+    {
+     "title": "위키백과 「박은 (1479년)」",
+     "url": "https://ko.wikipedia.org/wiki/박은_(1479년)"
+    },
+    {
+     "title": "위키백과 「이황」 – 가족 관계",
+     "url": "https://ko.wikipedia.org/wiki/이황"
+    }
+   ]
+  },
+  {
+   "id": "jungjong-banjeong-1506",
+   "name": "중종반정",
+   "hanja": "中宗反正",
+   "start": 1506,
+   "end": null,
+   "type": "정변",
+   "summary": "1506년 박원종·성희안 등이 연산군을 폐하고 진성대군(중종)을 옹립한 정변이다. 마침 입직하던 동부승지 이우(이황의 숙부)가 가담해 정국공신 4등·청해군에 봉해졌다가 1514년 삭훈되었다. 갑자사화로 거제에 위리안치되었던 이행은 반정 직후 풀려나 홍문관에 복귀했다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_u",
+     "role": "가담, 정국공신 4등(뒤에 삭훈)"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_haeng",
+     "role": "유배에서 석방·복귀"
+    },
+    {
+     "ds": "yi-i",
+     "id": "park_eun",
+     "role": "사후 신원"
+    }
+   ],
+   "external": [
+    {
+     "name": "박원종",
+     "hanja": "朴元宗",
+     "role": "주도"
+    },
+    {
+     "name": "성희안",
+     "hanja": "成希顔",
+     "role": "주도"
+    },
+    {
+     "name": "중종",
+     "hanja": "中宗",
+     "role": "옹립"
+    },
+    {
+     "name": "연산군",
+     "hanja": "燕山君",
+     "role": "폐위"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「이우(李堣)」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0045282"
+    },
+    {
+     "title": "위키백과 「중종반정」",
+     "url": "https://ko.wikipedia.org/wiki/중종반정"
+    },
+    {
+     "title": "위키백과 「이행 (조선)」",
+     "url": "https://ko.wikipedia.org/wiki/이행_(조선)"
+    }
+   ]
+  },
+  {
+   "id": "gimyo-sahwa-1519",
+   "name": "기묘사화",
+   "hanja": "己卯士禍",
+   "start": 1519,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "1519년(중종 14) 남곤·심정·홍경주 등 훈구 세력이 정국공신 위훈 삭제 등을 추진하던 조광조 일파를 몰아낸 사화이다. 신사임당의 숙부뻘인 신명인은 대궐 뜰에 엎드려 간하는 상소를 올렸고, 아버지 신명화도 유생들 틈에 있다가 나흘간 옥고를 치른 뒤 벼슬을 단념하고 강릉으로 내려갔다(위키백과 「신사임당」).",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "shin_myeongin",
+     "role": "구명 상소"
+    },
+    {
+     "ds": "yi-i",
+     "id": "shin_myeonghwa",
+     "role": "옥고, 뒤에 은거"
+    }
+   ],
+   "external": [
+    {
+     "name": "조광조",
+     "hanja": "趙光祖",
+     "role": "희생(사사)"
+    },
+    {
+     "name": "남곤",
+     "hanja": "南袞",
+     "role": "주도"
+    },
+    {
+     "name": "심정",
+     "hanja": "沈貞",
+     "role": "주도"
+    },
+    {
+     "name": "중종",
+     "hanja": "中宗",
+     "role": "국왕"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「기묘사화」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0008223"
+    },
+    {
+     "title": "위키백과 「신사임당」",
+     "url": "https://ko.wikipedia.org/wiki/신사임당"
+    }
+   ]
+  },
+  {
+   "id": "eulsa-sahwa-1545",
+   "name": "을사사화",
+   "hanja": "乙巳士禍",
+   "start": 1545,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "명종 즉위년(1545) 소윤 윤원형 일파가 대윤 윤임 일파를 역모로 몰아 숙청하면서 많은 사림이 화를 입었다. 이이의 재종조부 이기는 윤원형과 손잡고 공격을 주도해 보익공신 1등이 되었으나 선조 때 훈작이 삭탈되었다. 이황도 탄핵을 받아 삭직되었다가, 위키백과 「이기」에 따르면 이기가 조카 이원록의 권고로 이황의 서용을 청해 곧 복관되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_gi",
+     "role": "주도, 보익공신 1등"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "삭직 후 복관"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_wonrok",
+     "role": "이황 서용 권고"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hae",
+     "role": "인종 때 이기 등용 반대(원한의 발단)"
+    }
+   ],
+   "external": [
+    {
+     "name": "윤원형",
+     "hanja": "尹元衡",
+     "role": "소윤, 주도"
+    },
+    {
+     "name": "윤임",
+     "hanja": "尹任",
+     "role": "대윤, 희생"
+    },
+    {
+     "name": "문정왕후",
+     "hanja": "文定王后",
+     "role": "수렴청정"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「을사사화」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0042955"
+    },
+    {
+     "title": "위키백과 「이기 (1476년)」",
+     "url": "https://ko.wikipedia.org/wiki/이기_(1476년)"
+    },
+    {
+     "title": "위키백과 「이황」",
+     "url": "https://ko.wikipedia.org/wiki/이황"
+    },
+    {
+     "title": "한국민족문화대백과사전 「이해」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0046436"
+    }
+   ]
+  },
+  {
+   "id": "yangjaeyeok-byeokseo-1547",
+   "name": "양재역 벽서 사건(정미사화)",
+   "hanja": "良才驛壁書事件",
+   "start": 1547,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "1547년(명종 2) 9월 양재역에서 문정왕후와 이기 등을 비방하는 익명 벽서가 발견되자 소윤 세력이 이를 빌미로 반대파를 숙청했다. 이기는 관련자 처벌을 요구하는 데 가담했고, 이언적·노수신·유희춘·백인걸 등 20여 명이 유배되었다. 1565년 소윤 몰락 뒤 무고로 공인되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_gi",
+     "role": "벽서의 비방 대상, 처벌 주장"
+    }
+   ],
+   "external": [
+    {
+     "name": "윤원형",
+     "hanja": "尹元衡",
+     "role": "주도"
+    },
+    {
+     "name": "이언적",
+     "hanja": "李彦迪",
+     "role": "피화(유배)"
+    },
+    {
+     "name": "문정왕후",
+     "hanja": "文定王后",
+     "role": "벽서의 비방 대상"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「양재역 벽서사건」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0035718"
+    },
+    {
+     "title": "위키백과 「정미사화」",
+     "url": "https://ko.wikipedia.org/wiki/정미사화"
+    },
+    {
+     "title": "위키백과 「이기 (1476년)」",
+     "url": "https://ko.wikipedia.org/wiki/이기_(1476년)"
+    }
+   ]
+  },
+  {
+   "id": "sosu-seowon-1550",
+   "name": "이황의 단양·풍기군수 재임과 소수서원 사액",
+   "hanja": "紹修書院賜額",
+   "start": 1548,
+   "end": 1550,
+   "type": "교육·서원",
+   "summary": "이황은 1548년 단양군수로 부임했다가(이때 기녀 두향을 만났다고 전함) 곧 풍기군수로 옮겼다. 풍기에서 주세붕이 세운 백운동서원에 국가의 사액과 지원을 청해 1550년 명종이 '소수서원' 편액과 서책·토지·노비를 내렸다. 우리나라 최초의 사액서원이 되어 이후 사액서원의 선례가 되었다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "사액 건의(풍기군수)"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "duhyang",
+     "role": "단양 시절 인연(전승)"
+    }
+   ],
+   "external": [
+    {
+     "name": "주세붕",
+     "hanja": "周世鵬",
+     "role": "백운동서원 창건"
+    },
+    {
+     "name": "명종",
+     "hanja": "明宗",
+     "role": "사액"
+    },
+    {
+     "name": "안향",
+     "hanja": "安珦",
+     "role": "제향 인물"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「영주 소수서원」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0030146"
+    },
+    {
+     "title": "위키백과 「소수서원」",
+     "url": "https://ko.wikipedia.org/wiki/소수서원"
+    },
+    {
+     "title": "위키백과 「이황」",
+     "url": "https://ko.wikipedia.org/wiki/이황"
+    }
+   ]
+  },
+  {
+   "id": "gudo-jangwon",
+   "name": "이이의 구도장원",
+   "hanja": "九度壯元",
+   "start": 1548,
+   "end": 1564,
+   "type": "기타",
+   "summary": "이이는 13세(1548) 진사 초시 합격을 시작으로 1558년 별시 「천도책」, 1564년 생원·진사시와 문과에 이르기까지 아홉 차례 장원하여 '구도장원공'으로 불렸다. 1564년부터 호조좌랑 등으로 관직에 나갔다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "장원"
+    }
+   ],
+   "external": [],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「이이」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0045546"
+    },
+    {
+     "title": "위키백과 「이이」",
+     "url": "https://ko.wikipedia.org/wiki/이이"
+    }
+   ]
+  },
+  {
+   "id": "yi-hae-exile-1550",
+   "name": "이해 탄핵과 유배 중 사망",
+   "hanja": null,
+   "start": 1550,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "인종 때 대사헌으로 이기의 우의정 등용을 반대해 원한을 산 이해(이황의 형)는 1550년 이기의 심복 사간 이무강의 탄핵으로 무고 사건에 연좌된 구수담의 일파로 몰려 투옥되었다. 명종이 갑산 유배로 그치게 했으나 유배 길에 양주에서 병사했다. 아들 이교가 이 과정을 「가정경술일기」로 남겼다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hae",
+     "role": "희생(유배 중 사망)"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_gi",
+     "role": "탄핵 배후"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_gyo",
+     "role": "기록(「가정경술일기」)"
+    }
+   ],
+   "external": [
+    {
+     "name": "이무강",
+     "hanja": "李無彊",
+     "role": "탄핵"
+    },
+    {
+     "name": "구수담",
+     "hanja": "具壽聃",
+     "role": "같은 옥사로 사사"
+    },
+    {
+     "name": "명종",
+     "hanja": "明宗",
+     "role": "감형"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「이해」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0046436"
+    },
+    {
+     "title": "위키백과 「이해 (정민공)」",
+     "url": "https://ko.wikipedia.org/wiki/이해_(정민공)"
+    },
+    {
+     "title": "위키백과 「이기 (1476년)」",
+     "url": "https://ko.wikipedia.org/wiki/이기_(1476년)"
+    }
+   ]
+  },
+  {
+   "id": "dosan-seodang",
+   "name": "도산서당 건립",
+   "hanja": "陶山書堂",
+   "start": 1557,
+   "end": 1561,
+   "type": "교육·서원",
+   "summary": "이황은 1557년 고향 예안 도산 남쪽에 서당 터를 정하고 공사를 시작해 1560~1561년 무렵 완성했다(위키백과 「이황」은 1560년). 이곳에서 만년의 저술과 제자 교육에 힘썼으며, 사후 이 서당 뒤편에 도산서원이 세워졌다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "건립, 강학"
+    }
+   ],
+   "external": [],
+   "sources": [
+    {
+     "title": "위키백과 「도산서당」",
+     "url": "https://ko.wikipedia.org/wiki/도산서당"
+    },
+    {
+     "title": "위키백과 「이황」",
+     "url": "https://ko.wikipedia.org/wiki/이황"
+    }
+   ]
+  },
+  {
+   "id": "yi-i-visits-yi-hwang-1558",
+   "name": "이이의 도산 방문",
+   "hanja": null,
+   "start": 1558,
+   "end": null,
+   "type": "학문·저술",
+   "summary": "1558년 봄 23세의 이이가 예안 도산(계상)으로 58세의 이황을 찾아가 이틀간 머물며 학문을 논했다. 두 사람은 이후 편지로 문답을 이어 갔다. 같은 해 겨울 이이는 별시에서 「천도책」으로 장원했다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "방문"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "맞이함, 문답"
+    }
+   ],
+   "external": [],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「이이」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0045546"
+    },
+    {
+     "title": "위키백과 「이이」",
+     "url": "https://ko.wikipedia.org/wiki/이이"
+    }
+   ]
+  },
+  {
+   "id": "sachil-debate",
+   "name": "사단칠정 논쟁(사칠논변)",
+   "hanja": "四七論辨",
+   "start": 1559,
+   "end": 1566,
+   "type": "학문·저술",
+   "summary": "정지운의 「천명도설」을 이황이 고친 표현을 두고 기대승이 문제를 제기하면서 1559~1566년 편지로 이어진 논변이다. 이황은 사단은 이가 발하여 기가 따르고 칠정은 기가 발하여 이가 탄다는 이기호발설을, 기대승은 사단이 칠정 밖에 따로 있지 않다는 입장을 폈다. 뒤에 이이가 기대승의 설을 지지하며 성혼과 논쟁하면서 주리·주기 학파 논의로 확대되었다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "논쟁 당사자(이기호발설)"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "후속 논쟁(기대승 설 지지)"
+    }
+   ],
+   "external": [
+    {
+     "name": "기대승",
+     "hanja": "奇大升",
+     "role": "논쟁 상대"
+    },
+    {
+     "name": "정지운",
+     "hanja": "鄭之雲",
+     "role": "「천명도설」 저자"
+    },
+    {
+     "name": "성혼",
+     "hanja": "成渾",
+     "role": "이이와 후속 논쟁(1572)"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「사칠논변」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0026054"
+    },
+    {
+     "title": "한국민족문화대백과사전 「기대승」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0008148"
+    },
+    {
+     "title": "위키백과 「사단칠정론」",
+     "url": "https://ko.wikipedia.org/wiki/사단칠정론"
+    }
+   ]
+  },
+  {
+   "id": "seonghak-sipdo-1568",
+   "name": "『성학십도』·「무진육조소」 진상",
+   "hanja": "聖學十圖",
+   "start": 1568,
+   "end": null,
+   "type": "학문·저술",
+   "summary": "1568년(선조 1) 이황은 17세에 즉위한 선조에게 「무진육조소」를 올리고, 12월에는 성왕의 학문 요체를 열 개의 도식으로 정리한 『성학십도』(원제 「진성학십도차병도」)를 지어 올렸다. 이듬해 이이가 「동호문답」을 올리는 등 신진 사림의 제왕학 저술이 잇따랐다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "저술·진상"
+    }
+   ],
+   "external": [
+    {
+     "name": "선조",
+     "hanja": "宣祖",
+     "role": "받은 국왕"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「성학십도」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0029678"
+    },
+    {
+     "title": "위키백과 「성학십도」",
+     "url": "https://ko.wikipedia.org/wiki/성학십도"
+    }
+   ]
+  },
+  {
+   "id": "yulgok-hyangyak",
+   "name": "이이의 향약 시행(서원향약·해주향약)",
+   "hanja": "西原鄕約·海州鄕約",
+   "start": 1571,
+   "end": 1577,
+   "type": "정책·제도",
+   "summary": "이이는 1571년 청주목사로 부임해 면 단위로 계장·유사를 두고 향교·서숙 조직과 결합한 서원향약을 시행했다. 1577년 해주 석담에 물러나서는 해주향약과 사창·계·향약을 결합한 「사창계약속」을 만들었다. 이 향약들은 뒤에 기호 지방 향약의 본보기가 되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "제정·시행"
+    }
+   ],
+   "external": [],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「향약계」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0062950"
+    },
+    {
+     "title": "한국민족문화대백과사전 「향약조목」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0062960"
+    }
+   ]
+  },
+  {
+   "id": "dosan-seowon-1574",
+   "name": "도산서원 건립과 사액",
+   "hanja": "陶山書院",
+   "start": 1574,
+   "end": 1575,
+   "type": "교육·서원",
+   "summary": "이황 사후 4년인 1574년(선조 7) 지방 유림의 공의로 도산서당 뒤편에 서원을 세워 이황의 위패를 모셨다. 1575년 선조가 한석봉이 쓴 '陶山書院' 편액을 내려 사액서원이 되었다. 2019년 '한국의 서원'으로 유네스코 세계유산에 등재되었다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "제향 인물"
+    }
+   ],
+   "external": [
+    {
+     "name": "선조",
+     "hanja": "宣祖",
+     "role": "사액"
+    },
+    {
+     "name": "한호(한석봉)",
+     "hanja": "韓濩",
+     "role": "편액 글씨"
+    },
+    {
+     "name": "조목",
+     "hanja": "趙穆",
+     "role": "종향 제자"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「안동 도산서원」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0015677"
+    },
+    {
+     "title": "위키백과 「도산서원」",
+     "url": "https://ko.wikipedia.org/wiki/도산서원"
+    }
+   ]
+  },
+  {
+   "id": "seonghak-jibyo-1575",
+   "name": "『성학집요』 진상",
+   "hanja": "聖學輯要",
+   "start": 1575,
+   "end": null,
+   "type": "학문·저술",
+   "summary": "1575년(선조 8) 홍문관 부제학 이이가 경전과 사서에서 수기·치인에 긴요한 말을 가려 5편으로 엮어 선조에게 올린 제왕학서이다. 『율곡전서』 권19~26에 실려 있다(위키백과 「이이」는 1581년 저술로 적어 차이가 있음).",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "저술·진상"
+    }
+   ],
+   "external": [
+    {
+     "name": "선조",
+     "hanja": "宣祖",
+     "role": "받은 국왕"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「성학집요」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0029682"
+    },
+    {
+     "title": "위키백과 「성학집요」",
+     "url": "https://ko.wikipedia.org/wiki/성학집요"
+    }
+   ]
+  },
+  {
+   "id": "dongseo-bundang-1575",
+   "name": "동서 분당과 이이의 조정(을해당론)",
+   "hanja": "東西分黨",
+   "start": 1575,
+   "end": null,
+   "type": "기타",
+   "summary": "이조전랑 자리를 둘러싼 김효원과 심의겸의 대립으로 1575년 사림이 동인과 서인으로 갈라졌다. 대사헌 이이는 양시양비론을 내세워 두 사람을 각각 경흥부사·개성유수로 내보내도록 했으나, 이 처분이 오히려 동서 명목을 굳혔다는 평가를 받는다. 이후 이이는 서인 쪽 인물로 동인의 공격을 받게 되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "조정(양시양비)"
+    }
+   ],
+   "external": [
+    {
+     "name": "김효원",
+     "hanja": "金孝元",
+     "role": "동인의 중심"
+    },
+    {
+     "name": "심의겸",
+     "hanja": "沈義謙",
+     "role": "서인의 중심"
+    },
+    {
+     "name": "노수신",
+     "hanja": "盧守愼",
+     "role": "외직 파견 주청"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「을해당론」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0042979"
+    },
+    {
+     "title": "한국민족문화대백과사전 「심의겸」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0033897"
+    },
+    {
+     "title": "위키백과 「동서분당」",
+     "url": "https://ko.wikipedia.org/wiki/동서분당"
+    }
+   ]
+  },
+  {
+   "id": "gyeokmong-yogyeol-1577",
+   "name": "『격몽요결』 저술",
+   "hanja": "擊蒙要訣",
+   "start": 1577,
+   "end": null,
+   "type": "학문·저술",
+   "summary": "1577년 해주 석담에 물러난 이이가 처음 배우는 이들을 위해 입지·혁구습·지신 등 학문과 일상의 요체를 정리한 아동·초학 교육서이다. 조선 후기 서당과 향교의 기본 교재로 널리 쓰였다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "저술"
+    }
+   ],
+   "external": [],
+   "sources": [
+    {
+     "title": "위키백과 「격몽요결」",
+     "url": "https://ko.wikipedia.org/wiki/격몽요결"
+    },
+    {
+     "title": "한국민족문화대백과사전 「이이」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0045546"
+    }
+   ]
+  },
+  {
+   "id": "simu-yukjo-1583",
+   "name": "「시무육조」와 십만양병설",
+   "hanja": "時務六條·十萬養兵說",
+   "start": 1583,
+   "end": null,
+   "type": "정책·제도",
+   "summary": "1583년(선조 16) 이탕개의 난을 계기로 병조판서 이이가 인재 등용·군민 양성·재용 확보 등을 담은 「시무육조」를 올리고 서얼 허통 등을 주장했다. 이때 경연에서 '십만양병'을 주청했다는 이야기는 김장생의 「율곡행장」과 송시열 등의 「율곡연보」에 처음 보이며, 당대 실록 기록이 없고 연보의 시호 표기 등 시대착오가 지적되어 후대 서인 측 창작이라는 진위 논란이 있다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "상소(병조판서)"
+    },
+    {
+     "ds": "yi-i",
+     "id": "kim_jangsaeng",
+     "role": "「율곡행장」에 십만양병 주청을 기록(전승의 출처)"
+    }
+   ],
+   "external": [
+    {
+     "name": "선조",
+     "hanja": "宣祖",
+     "role": "국왕"
+    },
+    {
+     "name": "유성룡",
+     "hanja": "柳成龍",
+     "role": "반대했다고 전해짐(논란)"
+    },
+    {
+     "name": "송시열",
+     "hanja": "宋時烈",
+     "role": "「율곡연보」에 1583년으로 특정"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「이이」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0045546"
+    },
+    {
+     "title": "주간경향 「십만양병설은 조작됐다?」(2009)",
+     "url": "https://weekly.khan.co.kr/article/200909101350251"
+    },
+    {
+     "title": "위키백과 「이이」",
+     "url": "https://ko.wikipedia.org/wiki/이이"
+    }
+   ]
+  },
+  {
+   "id": "gyemi-samchan-1583",
+   "name": "계미삼찬",
+   "hanja": "癸未三竄",
+   "start": 1583,
+   "end": null,
+   "type": "사화·옥사",
+   "summary": "1583년(선조 16) 이이가 병조사목을 왕에게 아뢰지 않고 시행한 일 등을 들어 동인 계열의 박근원·송응개·허봉 등이 이이를 탄핵하다가 오히려 모두 유배된 사건이다. 성혼이 이이를 옹호하는 상소를 올려 동서 대립이 격화되었다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "탄핵 대상"
+    }
+   ],
+   "external": [
+    {
+     "name": "허봉",
+     "hanja": "許篈",
+     "role": "탄핵, 유배"
+    },
+    {
+     "name": "송응개",
+     "hanja": "宋應漑",
+     "role": "탄핵, 유배"
+    },
+    {
+     "name": "박근원",
+     "hanja": "朴謹元",
+     "role": "탄핵, 유배"
+    },
+    {
+     "name": "성혼",
+     "hanja": "成渾",
+     "role": "이이 옹호"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「계미삼찬」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0003130"
     }
    ]
   },
@@ -620,6 +1595,53 @@ window.GENEALOGY_EVENTS = {
    ]
   },
   {
+   "id": "yongin-battle-1592",
+   "name": "용인 전투",
+   "hanja": "龍仁戰鬪",
+   "start": 1592,
+   "end": null,
+   "type": "전투",
+   "summary": "1592년 6월 전라도관찰사 이광이 맹주가 되어 이끈 전라·충청·경상 삼도 근왕군이 용인 일대에서 소수의 일본군에게 대패한 전투이다. 이광은 권율·곽영의 반대에도 공격을 명했고, 선봉 백광언·이지시가 전사한 뒤 본진이 기습을 받아 무너졌다. 이광은 파직된 뒤 백의종군·유배를 거쳐 1594년 귀향했다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_gwang",
+     "role": "근왕군 맹주, 패전 책임"
+    }
+   ],
+   "external": [
+    {
+     "name": "권율",
+     "hanja": "權慄",
+     "role": "공격 반대, 군 보전"
+    },
+    {
+     "name": "윤선각",
+     "hanja": "尹先覺",
+     "role": "충청도관찰사"
+    },
+    {
+     "name": "와키자카 야스하루",
+     "hanja": "脇坂安治",
+     "role": "일본군 장수"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「용인전투」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0039643"
+    },
+    {
+     "title": "한국민족문화대백과사전 「이광」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0043670"
+    },
+    {
+     "title": "위키백과 「용인 전투」",
+     "url": "https://ko.wikipedia.org/wiki/용인_전투"
+    }
+   ]
+  },
+  {
    "id": "imjin_waeran",
    "name": "임진왜란",
    "hanja": "壬辰倭亂",
@@ -667,6 +1689,21 @@ window.GENEALOGY_EVENTS = {
      "ds": "yi-sunsin",
      "id": "hong_gasin",
      "role": "홍주목사"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_gwang",
+     "role": "전라도관찰사, 근왕군 지휘"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_jeonghoe",
+     "role": "의흥현감"
+    },
+    {
+     "ds": "yi-i",
+     "id": "kim_jangsaeng",
+     "role": "군량 조달(호조정랑)"
     }
    ],
    "external": [
@@ -689,6 +1726,11 @@ window.GENEALOGY_EVENTS = {
      "name": "원균",
      "hanja": "元均",
      "role": "경상우수사"
+    },
+    {
+     "name": "권율",
+     "hanja": "權慄",
+     "role": "이광의 후임 전라도관찰사"
     }
    ],
    "sources": [
@@ -699,6 +1741,18 @@ window.GENEALOGY_EVENTS = {
     {
      "title": "한국민족문화대백과사전 「이원익(李元翼)」",
      "url": "https://encykorea.aks.ac.kr/Article/E0045372"
+    },
+    {
+     "title": "위키백과 「이광 (1541년)」",
+     "url": "https://ko.wikipedia.org/wiki/이광_(1541년)"
+    },
+    {
+     "title": "디지털안동문화대전 「진성이씨」",
+     "url": "https://andong.grandculture.net/andong/toc/GC02401126"
+    },
+    {
+     "title": "위키백과 「김장생」",
+     "url": "https://ko.wikipedia.org/wiki/김장생"
     }
    ]
   },
@@ -1348,6 +2402,53 @@ window.GENEALOGY_EVENTS = {
    ]
   },
   {
+   "id": "ohyeon-munmyo-1610",
+   "name": "오현 문묘 종사",
+   "hanja": "五賢文廟從祀",
+   "start": 1610,
+   "end": null,
+   "type": "교육·서원",
+   "summary": "1610년(광해군 2) 대간·성균관·각 도 유생의 지속적인 상소로 김굉필·정여창·조광조·이언적·이황이 '오현'으로 문묘에 종사되었다. 이듬해 정인홍이 이언적·이황의 종사를 반대하며 이황을 비판하자(회퇴변척) 성균관 유생들이 정인홍을 청금록에서 삭제했다.",
+   "participants": [
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hwang",
+     "role": "문묘 종사"
+    }
+   ],
+   "external": [
+    {
+     "name": "광해군",
+     "hanja": "光海君",
+     "role": "국왕"
+    },
+    {
+     "name": "정인홍",
+     "hanja": "鄭仁弘",
+     "role": "반대(회퇴변척, 1611)"
+    },
+    {
+     "name": "조광조",
+     "hanja": "趙光祖",
+     "role": "함께 종사"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「김굉필」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0008739"
+    },
+    {
+     "title": "한국민족문화대백과사전 「회퇴변척」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0076447"
+    },
+    {
+     "title": "위키백과 「동방 18현」",
+     "url": "https://ko.wikipedia.org/wiki/동방_18현"
+    }
+   ]
+  },
+  {
    "id": "pyemoron",
    "name": "인목대비 폐모론",
    "hanja": "廢母論",
@@ -1612,6 +2713,21 @@ window.GENEALOGY_EVENTS = {
      "ds": "yi-wonik",
      "id": "yi_uijeon",
      "role": "남한산성 호종"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_annul",
+     "role": "인조 호종"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hoebo",
+     "role": "호종, 『산성일기』 저술"
+    },
+    {
+     "ds": "yi-i",
+     "id": "yi_sik",
+     "role": "척화론, 뒤에 선양 압송"
     }
    ],
    "external": [
@@ -1634,6 +2750,16 @@ window.GENEALOGY_EVENTS = {
      "name": "김류",
      "hanja": "金瑬",
      "role": "영의정·체찰사"
+    },
+    {
+     "name": "홍타이지(청 태종)",
+     "hanja": "皇太極",
+     "role": "침략 주도"
+    },
+    {
+     "name": "김상헌",
+     "hanja": "金尙憲",
+     "role": "척화 대신"
     }
    ],
    "sources": [
@@ -1648,6 +2774,18 @@ window.GENEALOGY_EVENTS = {
     {
      "title": "허목, 『기언』 권45 「완선군 묘갈음기」",
      "url": "https://db.itkc.or.kr/dir/item?itemId=BT#/dir/node?dataId=ITKC_BT_0344A_0470_010_0130"
+    },
+    {
+     "title": "위키백과 「이안눌」",
+     "url": "https://ko.wikipedia.org/wiki/이안눌"
+    },
+    {
+     "title": "위키백과 「이식 (1584년)」",
+     "url": "https://ko.wikipedia.org/wiki/이식_(1584년)"
+    },
+    {
+     "title": "디지털안동문화대전 「진성이씨」",
+     "url": "https://andong.grandculture.net/andong/toc/GC02401126"
     }
    ]
   },
@@ -1685,6 +2823,48 @@ window.GENEALOGY_EVENTS = {
     {
      "title": "위키백과 「윤선도」",
      "url": "https://ko.wikipedia.org/wiki/윤선도"
+    }
+   ]
+  },
+  {
+   "id": "seonjo-sujeong-sillok",
+   "name": "『선조수정실록』 편찬",
+   "hanja": "宣祖修正實錄",
+   "start": 1641,
+   "end": 1657,
+   "type": "학문·저술",
+   "summary": "인조반정 뒤 집권한 서인은 북인 주도로 편찬된 『선조실록』에 잘못이 많다며 수정을 추진했고, 1641년(인조 19) 이식에게 개수를 명했다. 작업은 이식 사후 미루어지다가 1657년(효종 8) 『선조소경대왕수정실록』으로 완성되었다. 조선에서 실록을 수정한 첫 사례이다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_sik",
+     "role": "수정 전담"
+    }
+   ],
+   "external": [
+    {
+     "name": "인조",
+     "hanja": "仁祖",
+     "role": "수정 명령"
+    },
+    {
+     "name": "효종",
+     "hanja": "孝宗",
+     "role": "완성 당시 국왕"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「선조실록」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0028917"
+    },
+    {
+     "title": "위키백과 「선조수정실록」",
+     "url": "https://ko.wikipedia.org/wiki/선조수정실록"
+    },
+    {
+     "title": "위키백과 「이식 (1584년)」",
+     "url": "https://ko.wikipedia.org/wiki/이식_(1584년)"
     }
    ]
   },
@@ -1831,6 +3011,54 @@ window.GENEALOGY_EVENTS = {
     {
      "title": "위키백과 「허목」",
      "url": "https://ko.wikipedia.org/wiki/허목"
+    }
+   ]
+  },
+  {
+   "id": "yulgok-munmyo-1682",
+   "name": "이이·성혼 문묘 종사와 출향·복향",
+   "hanja": "文廟從祀·黜享",
+   "start": 1682,
+   "end": 1694,
+   "type": "교육·서원",
+   "summary": "1624년 서인이 이이와 성혼의 문묘 배향을 건의했으나 남인은 이이의 입산 전력 등을 들어 반대했고, 진성 이씨 이회보도 두 사람의 배향을 주장했다. 1682년(숙종 8) 송시열·김석주 주도로 종사되었으나 1689년 기사환국으로 남인이 집권하자 출향되었고, 1694년 갑술환국으로 복향되었다. 문묘 출입이 서인·남인 당쟁의 향방을 그대로 따랐다.",
+   "participants": [
+    {
+     "ds": "yi-i",
+     "id": "yi_i",
+     "role": "문묘 종사·출향·복향 대상"
+    },
+    {
+     "ds": "yi-hwang",
+     "id": "yi_hoebo",
+     "role": "배향 주장"
+    }
+   ],
+   "external": [
+    {
+     "name": "성혼",
+     "hanja": "成渾",
+     "role": "함께 종사·출향"
+    },
+    {
+     "name": "송시열",
+     "hanja": "宋時烈",
+     "role": "종사 주도"
+    },
+    {
+     "name": "숙종",
+     "hanja": "肅宗",
+     "role": "국왕"
+    }
+   ],
+   "sources": [
+    {
+     "title": "한국민족문화대백과사전 「문묘출향」",
+     "url": "https://encykorea.aks.ac.kr/Article/E0076446"
+    },
+    {
+     "title": "디지털안동문화대전 「진성이씨」",
+     "url": "https://andong.grandculture.net/andong/toc/GC02401126"
     }
    ]
   },
@@ -3225,6 +4453,150 @@ window.GENEALOGY_EVENTS = {
    "to": "byeongin_bakhae",
    "type": "계승",
    "note": "19세기 박해의 연속"
+  },
+  {
+   "from": "nam-i-incident-1468",
+   "to": "muo-sahwa-1498",
+   "type": "영향",
+   "note": "고변으로 익대공신이 된 유자광이 무오사화를 주도"
+  },
+  {
+   "from": "muo-sahwa-1498",
+   "to": "gapja-sahwa-1504",
+   "type": "영향",
+   "note": "연산군 대 두 번째 사화로 이어짐"
+  },
+  {
+   "from": "gapja-sahwa-1504",
+   "to": "jungjong-banjeong-1506",
+   "type": "원인",
+   "note": "연산군의 폭정이 반정의 명분"
+  },
+  {
+   "from": "jungjong-banjeong-1506",
+   "to": "gimyo-sahwa-1519",
+   "type": "원인",
+   "note": "조광조의 정국공신 위훈 삭제 추진이 훈구의 반발을 부름"
+  },
+  {
+   "from": "gimyo-sahwa-1519",
+   "to": "eulsa-sahwa-1545",
+   "type": "영향",
+   "note": "사림 피화의 연속"
+  },
+  {
+   "from": "eulsa-sahwa-1545",
+   "to": "yangjaeyeok-byeokseo-1547",
+   "type": "결과로 이어짐",
+   "note": "소윤이 잔여 반대파를 추가 숙청"
+  },
+  {
+   "from": "eulsa-sahwa-1545",
+   "to": "yi-hae-exile-1550",
+   "type": "원인",
+   "note": "이해가 이기의 등용을 반대한 원한과 소윤 집권"
+  },
+  {
+   "from": "yangjaeyeok-byeokseo-1547",
+   "to": "yi-hae-exile-1550",
+   "type": "영향",
+   "note": "이기·윤원형 세력의 반대파 제거가 계속됨"
+  },
+  {
+   "from": "sosu-seowon-1550",
+   "to": "dosan-seowon-1574",
+   "type": "영향",
+   "note": "이황이 연 사액서원의 선례"
+  },
+  {
+   "from": "dosan-seodang",
+   "to": "dosan-seowon-1574",
+   "type": "계승",
+   "note": "서당 뒤편에 서원 건립"
+  },
+  {
+   "from": "yi-i-visits-yi-hwang-1558",
+   "to": "sachil-debate",
+   "type": "영향",
+   "note": "두 학자의 교류 뒤 이이가 이기론 논쟁에 가담"
+  },
+  {
+   "from": "gudo-jangwon",
+   "to": "yi-i-visits-yi-hwang-1558",
+   "type": "일부",
+   "note": "1558년 겨울 별시 장원이 같은 해"
+  },
+  {
+   "from": "seonghak-sipdo-1568",
+   "to": "seonghak-jibyo-1575",
+   "type": "영향",
+   "note": "선조에게 올린 제왕학 저술의 계보"
+  },
+  {
+   "from": "gimyo-sahwa-1519",
+   "to": "yulgok-hyangyak",
+   "type": "영향",
+   "note": "조광조의 향약 보급 노력이 사림 향약 운동으로 이어짐"
+  },
+  {
+   "from": "yulgok-hyangyak",
+   "to": "gyeokmong-yogyeol-1577",
+   "type": "영향",
+   "note": "1577년 해주 석담 은거 시기의 교화 활동"
+  },
+  {
+   "from": "dongseo-bundang-1575",
+   "to": "gyemi-samchan-1583",
+   "type": "원인",
+   "note": "동인의 이이 공격"
+  },
+  {
+   "from": "simu-yukjo-1583",
+   "to": "gyemi-samchan-1583",
+   "type": "원인",
+   "note": "병조사목 독단 시행이 탄핵 사유"
+  },
+  {
+   "from": "simu-yukjo-1583",
+   "to": "imjin_waeran",
+   "type": "영향",
+   "note": "십만양병설은 임란 뒤 대비 실패 담론과 결부(진위 논란)"
+  },
+  {
+   "from": "imjin_waeran",
+   "to": "yongin-battle-1592",
+   "type": "일부",
+   "note": "삼도 근왕군의 패전"
+  },
+  {
+   "from": "imjin_waeran",
+   "to": "seonjo-sujeong-sillok",
+   "type": "영향",
+   "note": "전란기 선조 대 기록의 당파적 재서술"
+  },
+  {
+   "from": "dongseo-bundang-1575",
+   "to": "seonjo-sujeong-sillok",
+   "type": "영향",
+   "note": "북인 편찬 실록을 서인이 수정"
+  },
+  {
+   "from": "ohyeon-munmyo-1610",
+   "to": "yulgok-munmyo-1682",
+   "type": "영향",
+   "note": "사림 문묘 종사의 선례"
+  },
+  {
+   "from": "dongseo-bundang-1575",
+   "to": "yulgok-munmyo-1682",
+   "type": "영향",
+   "note": "서인·남인 당쟁에 따라 종사·출향·복향"
+  },
+  {
+   "from": "sachil-debate",
+   "to": "ohyeon-munmyo-1610",
+   "type": "영향",
+   "note": "이황 학설의 권위가 종사 논의의 배경"
   },
   {
    "from": "gihae_yesong",
