@@ -49,3 +49,7 @@
   .info .note, .info .grp { display: block; }
   .info { max-height: 52%; }
 }
+
+/* 선을 골랐을 때: 두 끝과 그 사이 화살표 */
+.info .link-ends { margin: 4px 0 12px; }
+.info .link-ends li.arrow { justify-content: flex-start; padding-left: 4px; font: 600 0.78rem var(--f-mono); color: var(--c, var(--accent)); }
