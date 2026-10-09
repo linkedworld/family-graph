@@ -183,6 +183,15 @@ test('오리 이원익', () => {
   assert.match(won.detail, /생가 기준 종형제 4촌/);
   // 사촌누이 이은숙의 계자 김상헌
   assert.equal(k.relation(E, 'kim_sangheon').chon, 5);
+  // 종손 계통: 양자(이겸환·이시좌)를 거쳐 이어지고, 이름이 전하지 않는 대는 미상으로 채운다.
+  assert.deepEqual(rel(k, E, 'yi_gyeomhwan'), ['7대손', 7]);
+  assert.deepEqual(rel(k, 'yi_eonsu', 'yi_gyeomhwan'), ['양자', 1]);
+  assert.deepEqual(rel(k, E, 'yi_sijwa'), ['8대손', 8]);
+  assert.deepEqual(rel(k, E, 'yi_yeoncheol'), ['10대손', 10]);
+  assert.deepEqual(rel(k, E, 'yi_seunggyu'), ['13대손', 13]);
+  // 서자 이효전의 손자, 손녀사위 허목의 손자
+  assert.deepEqual(rel(k, E, 'yi_myeonghyeon'), ['증손자', 3]);
+  assert.deepEqual(rel(k, E, 'heo_sang'), ['외현손자', 4]);
 });
 
 test('다산 정약용', () => {
