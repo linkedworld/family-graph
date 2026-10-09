@@ -17,7 +17,8 @@ const $ = (id) => document.getElementById(id) || missing.get(id) ||
   (missing.set(id, document.createElement('div')), missing.get(id));
 
 // ── 설정 ────────────────────────────────────────────────
-const Y_SPAN = 150;        // 맨 위 사건에서 맨 아래 사건까지의 높이
+const HOME_R = 38;         // 가계도별 '집' 방향의 거리(인물이 모이는 둘레)
+let Y_SPAN = 110;          // 맨 위 사건에서 맨 아래 사건까지의 높이(사건 수에 맞춰 정한다)
 const R_EVENT = 1.15;
 const R_PERSON = 0.62;
 const SEG = 14;
@@ -80,7 +81,8 @@ function loadData() {
       let P = state.people.get(key);
       if (!P) { P = { key, name: p.name, hanja: p.hanja, raw: p, refs: [], fam: pt.ds, external: false, roles: [] }; state.people.set(key, P); }
       if (!P.refs.some((r) => r.ds === pt.ds)) P.refs.push({ ds: pt.ds, id: pt.id });
-      if (!P.roles.some((r) => r.ev === ev)) P.roles.push({ ev, role: pt.role });
+      if (P.roles.some((r) => r.ev === ev)) continue; // 두 가계도에 같은 사람이 있으면 한 번만
+      P.roles.push({ ev, role: pt.role });
       ev.parts.push({ P, role: pt.role });
     }
     for (const x of raw.external || []) {
@@ -109,6 +111,7 @@ function buildTimeScale() {
   yearMin = ys[0] ?? 1400; yearMax = ys[ys.length - 1] ?? 1900;
   if (yearMax === yearMin) yearMax = yearMin + 1;
   rankYears = ys;
+  Y_SPAN = Math.max(70, Math.min(150, state.events.length * 1.5));
 }
 function yearToY(year) {
   const lin = (year - yearMin) / (yearMax - yearMin);
@@ -513,7 +516,7 @@ function rebuild({ instant = false } = {}) {
       let x = 0, z = 0;
       for (const { P } of ev.parts) if (!P.external) { const h = homeOf(P.fam); x += h.x; z += h.z; }
       const L = Math.hypot(x, z) || 1;
-      n.pos.set((x / L) * 10 + (Math.random() - 0.5) * 4, n.y, (z / L) * 10 + (Math.random() - 0.5) * 4);
+      n.pos.set((x / L) * HOME_R * 0.45 + (Math.random() - 0.5) * 4, n.y, (z / L) * HOME_R * 0.45 + (Math.random() - 0.5) * 4);
       n.delay = instant ? Math.min(0.8, (-n.y / Y_SPAN) * 0.8) : 0.02 + Math.random() * 0.1;
       n.isNew = false;
     }
@@ -591,8 +594,8 @@ function simulate(dt) {
       // 집 방향으로 은근히: 인물은 자기 가계도 쪽, 사건은 가운데 쪽
       if (n.kind === 'person' && !n.P.external) {
         const h = homeOf(n.P.fam);
-        n.fx += (h.x * 26 - n.pos.x) * 0.05; n.fz += (h.z * 26 - n.pos.z) * 0.05;
-      } else { n.fx -= n.pos.x * 0.03; n.fz -= n.pos.z * 0.03; }
+        n.fx += (h.x * HOME_R - n.pos.x) * 0.05; n.fz += (h.z * HOME_R - n.pos.z) * 0.05;
+      } else { n.fx -= n.pos.x * 0.012; n.fz -= n.pos.z * 0.012; }
     }
     for (const L of linkList) {
       if (!L.a.alive || !L.b.alive) continue;
@@ -606,14 +609,14 @@ function simulate(dt) {
       for (let j = i + 1; j < live.length; j++) {
         const B = live[j];
         const dy = Math.abs(A.pos.y - B.pos.y);
-        if (dy > 9) continue;
+        if (dy > 12) continue;
         let dx = A.pos.x - B.pos.x, dz = A.pos.z - B.pos.z;
         let d2 = dx * dx + dz * dz;
         if (d2 < 1e-4) { dx = Math.random() - 0.5; dz = Math.random() - 0.5; d2 = dx * dx + dz * dz; }
         const d = Math.sqrt(d2);
-        const w = 1 - dy / 9;
-        const min = (A.radius + B.radius) * 1.6 + 1.2;
-        let f = 60 * w * (A.radius * B.radius) / (d2 + 3);
+        const w = 1 - dy / 12;
+        const min = (A.radius + B.radius) * 1.8 + 1.6;
+        let f = 110 * w * (A.radius * B.radius) / (d2 + 3);
         if (d < min) f += (min - d) * 24 * w;
         const ux = dx / d, uz = dz / d;
         A.fx += ux * f; A.fz += uz * f;
@@ -1095,12 +1098,12 @@ function renderInfo() {
     const ev = n.ev;
     const byFam = new Map();
     for (const pt of ev.parts) {
-      const k = pt.P.external ? '' : pt.P.fam;
+      const k = pt.P.external ? '' : pt.P.refs.map((r) => r.ds).join('+');
       if (!byFam.has(k)) byFam.set(k, []);
       byFam.get(k).push(pt);
     }
     const famRows = [...byFam.entries()].sort((a, b) => (a[0] === '') - (b[0] === '')).map(([k, pts]) => `
-      <div class="grp"><p class="grp-h">${famDot(k || null)}${esc(k ? state.families.get(k).short + ' 가계' : '가계도 밖 인물')}</p>
+      <div class="grp"><p class="grp-h">${k ? k.split('+').map((d) => famDot(d)).join('') : famDot(null)}${esc(k ? k.split('+').map((d) => state.families.get(d).short).join(' · ') + ' 가계' : '가계도 밖 인물')}</p>
       <ul class="plist">${pts.map((pt) => `<li><button type="button" data-go="p:${esc(pt.P.key)}">${esc(pt.P.name)}${pt.P.hanja ? `<small>${esc(pt.P.hanja)}</small>` : ''}</button><span>${esc(pt.role || '')}</span></li>`).join('')}</ul></div>`).join('');
     const rels = ev.rels.map((r) => relPhrase(r, ev)).sort((a, b) => a.other.start - b.other.start);
     html += `
