@@ -164,6 +164,9 @@ test('무의공 이순신(충무공의 동명이인)', () => {
   // 같은 이름 '이순'이 둘: 고조부 부림령(李順)과 종현조부 봉산부정(李諄)
   assert.deepEqual(rel(k, E, 'yi_sun_burim'), ['고조부', 4]);
   assert.deepEqual(rel(k, E, 'yi_sun_bongsan'), ['종현조부', 7]);
+  // 선원록: 조모 풍양 조씨, 양녕대군의 서녀 이애중
+  assert.deepEqual(rel(k, E, 'pungyang_jo'), ['조모', 2]);
+  assert.equal(buildModel(dataset('yi-sunsin-muui')).displayName('yi_aejung'), '이애중');
 });
 
 test('오리 이원익', () => {
