@@ -278,9 +278,9 @@ test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)',
   assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
 });
 
-test('index.html·tree.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+test('index.html·tree.html·events.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
   const all = new Set();
-  for (const page of ['index.html', 'tree.html']) {
+  for (const page of ['index.html', 'tree.html', 'events.html']) {
     const html = readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
     const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
     assert.ok(refs.length >= 8, `${page}: 로컬 자원 ${refs.length}개`);
@@ -385,3 +385,32 @@ test('가상 가족: 인척과 사돈', () => {
 });
 
 function m(k) { return k.m; }
+
+// ── 인물과 사건(data/events.js) ─────────────────────────────
+test('사건 데이터: 참여 인물·관계·종류·출처 검사', () => {
+  const ectx = vm.createContext({});
+  ectx.window = ectx;
+  vm.runInContext(readFileSync(new URL('../data/events.js', import.meta.url), 'utf8'), ectx, { filename: 'data/events.js' });
+  const { events, relations } = ectx.GENEALOGY_EVENTS;
+  const TYPES = ['전쟁', '전투', '사화·옥사', '정변', '정책·제도', '학문·저술', '교육·서원', '종교', '외교', '기타'];
+  const REL = ['원인', '결과로 이어짐', '일부', '영향', '대립', '계승'];
+  const sets = new Map(ctx.GENEALOGY_DATASETS.map((d) => [d.meta.id, new Set(d.persons.map((p) => p.id))]));
+  const ids = new Set();
+  assert.ok(events.length >= 40, `사건 ${events.length}개`);
+  for (const e of events) {
+    assert.ok(!ids.has(e.id), `중복 사건 id ${e.id}`);
+    ids.add(e.id);
+    assert.ok(TYPES.includes(e.type), `${e.id}: 종류 ${e.type}`);
+    assert.ok(Number.isInteger(e.start) && e.start > 1300 && e.start < 1950, `${e.id}: 시작 연도 ${e.start}`);
+    if (e.end != null) assert.ok(e.end >= e.start, `${e.id}: 끝 연도`);
+    assert.ok(e.name && e.summary, `${e.id}: 이름·설명`);
+    assert.ok((e.sources || []).length > 0 && e.sources.every((s) => s.title && /^https?:/.test(s.url)), `${e.id}: 출처`);
+    assert.ok(e.participants.length > 0, `${e.id}: 가계도 인물이 하나도 없음`);
+    for (const p of e.participants) assert.ok(sets.get(p.ds)?.has(p.id), `${e.id}: 없는 인물 ${p.ds}/${p.id}`);
+  }
+  for (const r of relations) {
+    assert.ok(ids.has(r.from) && ids.has(r.to), `관계의 사건 없음 ${r.from} → ${r.to}`);
+    assert.ok(REL.includes(r.type), `관계 종류 ${r.type}`);
+    assert.notEqual(r.from, r.to);
+  }
+});

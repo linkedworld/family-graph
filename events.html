@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
+<title>인물과 사건</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/bubble.css?v=20261009-9">
+<link rel="stylesheet" href="css/events.css?v=20261009-9">
+<link rel="stylesheet" href="css/nav.css?v=20261009-9">
+</head>
+<body>
+<main class="space" id="space" aria-label="인물과 사건 3D 화면">
+  <canvas id="gl" aria-label="3D 인물·사건 관계망. 사건이나 인물을 누르면 이어진 관계만 밝게 보입니다."></canvas>
+  <div id="labels" class="labels" aria-hidden="true"></div>
+  <div id="tip" class="tip" hidden></div>
+
+  <header class="hud-top">
+    <div class="brand">
+      <p class="eyebrow">PEOPLE &amp; EVENTS · 3D</p>
+      <h1 id="title">인물과 사건</h1>
+      <p class="sub" id="subtitle">가계도 인물이 얽힌 사건과 그 인과 · 위에서 아래로 흐르는 시간</p>
+    </div>
+    <button type="button" id="toggleControls" class="glass-btn only-narrow" aria-expanded="false" aria-controls="controls">설정</button>
+    <div class="controls" id="controls">
+      <label class="field" for="find"><span>사건·인물 찾기</span>
+        <input id="find" type="search" list="findList" placeholder="이름 입력" autocomplete="off">
+        <datalist id="findList"></datalist>
+      </label>
+      <label class="field" for="typeFilter"><span>사건 종류</span><select id="typeFilter"></select></label>
+      <div class="chips fam-chips" id="famChips" role="group" aria-label="가계도"></div>
+      <div class="chips" role="group" aria-label="표시">
+        <label class="chip" title="사건과 사건 사이의 원인·결과·영향을 흐르는 선으로 그립니다"><input type="checkbox" id="showRelations" checked><span>사건 인과</span></label>
+        <label class="chip" title="가계도 밖의 주요 인물(임금, 상대편 등)도 회색 구슬로 보입니다"><input type="checkbox" id="showExternal" checked><span>가계도 밖 인물</span></label>
+        <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
+      </div>
+    </div>
+  </header>
+
+  <ul class="legend ev-legend" id="legend" aria-label="보는 법"></ul>
+
+  <aside id="info" class="info" aria-live="polite" hidden></aside>
+
+  <div id="fallback" class="fallback" hidden>
+    <p>이 브라우저에서는 3D(WebGL)를 쓸 수 없습니다.</p>
+    <a href="tree.html">카드 가계도로 보기</a>
+  </div>
+
+  <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
+  <div class="stagebar" role="toolbar" aria-label="인물과 사건 도구">
+    <nav class="navmenu sb-left" data-page="events" aria-label="페이지"></nav>
+    <div class="sb-mid"><p class="hint" id="hint">끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · 사건·인물 누르기: 이어진 관계 보기 · 빈 곳 누르기: 전체</p></div>
+    <div class="zoom sb-right" role="group" aria-label="보기 조절">
+      <button type="button" id="zoomIn" aria-label="확대">＋</button>
+      <button type="button" id="zoomOut" aria-label="축소">－</button>
+      <button type="button" id="zoomFit">맞춤</button>
+    </div>
+  </div>
+</main>
+<!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 다른 페이지와 같은 캐시 무효화 버전(테스트가 확인). -->
+<script src="vendor/three.min.js?v=20261009-9"></script>
+<script src="data/yi-hwang.js?v=20261009-9"></script>
+<script src="data/yi-i.js?v=20261009-9"></script>
+<script src="data/yi-sunsin.js?v=20261009-9"></script>
+<script src="data/yi-sunsin-muui.js?v=20261009-9"></script>
+<script src="data/yi-wonik.js?v=20261009-9"></script>
+<script src="data/jeong-yakyong.js?v=20261009-9"></script>
+<script src="data/events.js?v=20261009-9"></script>
+<script src="js/nav.js?v=20261009-9"></script>
+<script src="js/events.js?v=20261009-9"></script>
+</body>
+</html>

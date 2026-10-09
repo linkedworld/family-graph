@@ -15,7 +15,9 @@ node tools/check-dataset.cjs <id> [--list]  # 데이터 검사: 참조 오류, 1
 
 - `index.html` + `js/bubble.js` + `css/bubble.css`: 3D 버블 가계도(첫 화면, three.js r158 + 직접 쓴 셰이더).
 - `tree.html` + `js/app.js` + `css/style.css`: 카드 가계도(SVG, dagre 배치).
-- `js/nav.js`, `css/nav.css`: 두 페이지 공용 도구 막대·페이지 메뉴. 기준 인물은 sessionStorage로 넘긴다.
+- `events.html` + `js/events.js` + `css/events.css` + `data/events.js`: 인물과 사건(3D). css/bubble.css를 함께 쓰고,
+  셰이더·후처리 함수는 js/bubble.js에서 복사해 왔다(한쪽을 고치면 다른 쪽도 맞출 것). 사건 데이터는 `npm test`가 검사한다.
+- `js/nav.js`, `css/nav.css`: 세 페이지 공용 도구 막대·페이지 메뉴. 기준 인물은 sessionStorage로 넘긴다.
 - 엔진(두 페이지 공용, DOM 없음 → Node 테스트 가능):
   - `js/model.js`: 데이터 → 그래프 모델, 미상 인물·lineageGaps 생성, 양자(`legal`/`birth`/`all` mode).
   - `js/kinship.js`: 호칭·촌수 계산(`Kinship.relation(ego, target)` → `{kind, term, alt, chon, detail, path}`). 규칙은 `docs/kinship-terms.md`.
@@ -26,8 +28,8 @@ node tools/check-dataset.cjs <id> [--list]  # 데이터 검사: 참조 오류, 1
 ## 규칙
 
 - ES 모듈·`fetch`·번들러를 쓰지 않는다. 모든 JS는 IIFE로 전역 `window.Genealogy`에 등록하고 HTML의 `<script>` 순서로 읽힌다.
-- **캐시 버전**: CSS·JS·데이터를 바꾸면 `index.html`과 `tree.html`의 모든 `?v=` 값을 같은 새 값(`YYYYMMDD-N`)으로 올린다. 다르면 `npm test` 실패.
-- 가계도 추가: `data/<id>.js` 작성 후 `index.html`·`tree.html` 양쪽에 `<script>` 추가, 테스트의 `DATA_FILES`에도 추가.
+- **캐시 버전**: CSS·JS·데이터를 바꾸면 `index.html`·`tree.html`·`events.html`의 모든 `?v=` 값을 같은 새 값(`YYYYMMDD-N`)으로 올린다. 다르면 `npm test` 실패.
+- 가계도 추가: `data/<id>.js` 작성 후 `index.html`·`tree.html`·`events.html`에 `<script>` 추가, 테스트의 `DATA_FILES`에도 추가.
 - 코드 주석·UI 문구·README는 한국어. 커밋 메시지는 영어 명령형 한 줄(기존 로그 참고).
 - 엔진을 바꾸면 `tests/kinship.test.mjs`에 사례를 더하고 네 가계도 모두 `check-dataset`으로 "문제 없음"을 확인한다.
 - UI 변경은 브라우저로 확인: Playwright(전역 설치, Chromium `/opt/pw-browsers`)로 `file://.../index.html#<id>`, `tree.html#<id>`를

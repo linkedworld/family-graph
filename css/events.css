@@ -1,0 +1,51 @@
+/* 인물과 사건: 버블 가계도(css/bubble.css)의 화면 요소를 그대로 쓰고, 이 페이지에만 있는 것만 더한다. */
+
+/* 가계도 칩: 집안 색으로 점을 칠한다 */
+.fam-chips { align-items: center; }
+.chip.fam input:checked + span::before { background: var(--c); box-shadow: 0 0 8px var(--c); }
+.chip.fam input:checked + span { border-color: color-mix(in srgb, var(--c) 60%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); }
+
+/* 이름표: 사건은 조금 크게, 결정 모양 표시를 앞에 둔다 */
+.lbl.ev { border-color: color-mix(in srgb, var(--c) 45%, transparent); background: rgba(8, 10, 22, 0.66); }
+.lbl.ev b { font-size: 13.5px; }
+.lbl.ev b::before {
+  content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; vertical-align: 1px;
+  background: var(--c); transform: rotate(45deg); box-shadow: 0 0 8px var(--c);
+}
+.lbl.ext b { color: var(--ink-2); font-weight: 500; }
+
+/* 범례 */
+.ev-legend { max-height: calc(100% - 200px); overflow: auto; }
+.ev-legend li.sep { height: 1px; margin: 3px 0; background: rgba(140, 190, 255, 0.12); }
+.ev-legend em { margin-left: auto; padding-left: 8px; font: 500 0.68rem var(--f-mono); font-style: normal; color: var(--ink-3); }
+.cdot { width: 9px; height: 9px; flex: none; background: var(--c); transform: rotate(45deg); box-shadow: 0 0 7px var(--c); }
+.rline { width: 16px; height: 3px; flex: none; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--c)); box-shadow: 0 0 6px var(--c); }
+.pillar-sample { width: 4px; height: 14px; margin: 0 6px 0 3px; flex: none; border-radius: 2px;
+  background: linear-gradient(var(--accent), transparent); box-shadow: 0 0 6px var(--accent); }
+
+/* 상세 패널: 참여 인물·이어진 사건 목록 */
+.info .grp { margin: 0 0 12px; }
+.info .grp-h { display: flex; align-items: center; gap: 7px; margin: 0 0 5px; font: 600 0.72rem var(--f-mono); letter-spacing: 0.04em; color: var(--ink-3); }
+.info .plist { margin: 0; padding: 0; list-style: none; display: grid; gap: 2px; }
+.info .plist li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.info .plist button {
+  display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 2px 0; border: 0; background: none; cursor: pointer;
+  font: 600 0.84rem var(--f-display); color: var(--ink); text-align: left;
+}
+.info .plist button:hover { color: var(--accent); }
+.info .plist button small { font: 500 0.7rem var(--f-body); color: var(--ink-3); margin-left: 2px; }
+.info .plist span { flex: none; max-width: 48%; font-size: 0.74rem; color: var(--ink-2); text-align: right; }
+.fdot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--c); box-shadow: 0 0 6px var(--c); }
+.rdot { width: 7px; height: 7px; flex: none; background: var(--c); transform: rotate(45deg); box-shadow: 0 0 6px var(--c); }
+.info .srcs { margin: 0 0 10px; font-size: 0.72rem; color: var(--ink-3); line-height: 1.6; }
+.info .srcs a { color: var(--ink-2); }
+.info .acts a.glass-btn { display: inline-flex; align-items: center; text-decoration: none; }
+/* 위 설정판이 두 줄이라, 넓은 화면에서는 상세 패널을 그 아래에서 시작한다 */
+@media (min-width: 821px) {
+  .info { top: 186px; transform: none; max-height: calc(100% - 250px); }
+}
+
+@media (max-width: 820px) {
+  .info .note, .info .grp { display: block; }
+  .info { max-height: 52%; }
+}
