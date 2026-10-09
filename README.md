@@ -2,7 +2,7 @@
 
 한국 역사 인물의 가계를 그리고, 기준 인물에서 본 **호칭과 촌수**를 모든 인물에 자동으로 붙여 주는 웹사이트의 목업입니다.
 
-사이트: https://lonycell.github.io/videojs-simpleoverlay/
+사이트: https://linkedworld.github.io/family-graph/
 
 | 가계도 | 데이터 파일 | 바로 가기 |
 |---|---|---|
