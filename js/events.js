@@ -1,5 +1,6 @@
 // 인물과 사건: 가계도 인물들이 얽힌 역사적 사건과, 사건 사이의 인과를 3D 관계망으로 그린다.
 //   · 세로는 시간(위에서 아래로). 사건이 몰린 시기는 넓게 펴서(밀도 보정) 겹치지 않게 한다.
+//     광명의 명사(GM)는 카메라를 옆으로 눕혀 시간이 왼쪽(과거)에서 오른쪽(현재)으로 흐르게 본다(가로 연표).
 //   · 사건은 종류별 색의 결정(多面體) 구슬, 기간이 있는 사건은 시작에서 끝까지 빛기둥을 세운다.
 //   · 인물은 가계도별 색의 작은 유리 구슬로, 자기가 얽힌 사건들 가까이에 모인다.
 //     가계도마다 둘레의 한 방향을 맡아, 여러 집안이 한 사건에 모이는 모습이 드러난다.
@@ -67,6 +68,9 @@ function evYears(ev) { return ev.end && ev.end !== ev.start ? `${ev.start}–${e
 // 광명의 명사(gwangmyeong.html, <body data-scope="gwangmyeong">): 같은 화면에 data/gwangmyeong.js의 사건과
 // 광명 연고 가계도만 올리고, 가계도에 없는 인물은 명단 무리(옛 명사, 오늘의 명사: 공적 역할만)로 묶는다.
 const GM = document.body.dataset.scope === 'gwangmyeong' ? window.GWANGMYEONG || null : null;
+// 가로 시간축: 장면은 그대로(시간 = -y) 두고 카메라만 90° 눕혀, 세계의 위(+y)가 화면 왼쪽으로 가게 한다.
+const HORIZ = !!GM;
+const TIME_FLOW = HORIZ ? '왼쪽에서 오른쪽으로 흐르는 시간' : '위에서 아래로 흐르는 시간';
 
 function loadData() {
   const sets = (window.GENEALOGY_DATASETS || []).filter((d) => !GM || GM.families.includes(d.meta.id));
@@ -673,7 +677,7 @@ function updateSubtitle(nEv) {
   const on = [...state.famOn].map((d) => state.families.get(d).short);
   const all = state.famOn.size === state.families.size;
   if (GM) {
-    $('subtitle').textContent = `${all ? '광명의 옛 인물과 오늘의 명사' : on.join(' · ')} · 사건 ${nEv}개${state.type ? ` (${state.type})` : ''} · 위에서 아래로 흐르는 시간`;
+    $('subtitle').textContent = `${all ? '광명의 옛 인물과 오늘의 명사' : on.join(' · ')} · 사건 ${nEv}개${state.type ? ` (${state.type})` : ''} · ${TIME_FLOW}`;
     return;
   }
   const NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
@@ -1039,7 +1043,8 @@ function timeTicks() {
 }
 
 // ── 카메라 ──────────────────────────────────────────────
-const ctl = { target: new T.Vector3(), goal: null, theta: 0.6, phi: 1.2, radius: 160, radiusGoal: 160, vTheta: 0, vPhi: 0, idle: 0 };
+// 가로 시간축은 옆(phi = 90°)에서 보아 시간축이 화면에 곧게 눕게 한다
+const ctl = { target: new T.Vector3(), goal: null, theta: 0.6, phi: HORIZ ? Math.PI / 2 : 1.2, radius: 160, radiusGoal: 160, vTheta: 0, vPhi: 0, idle: 0 };
 function updateCamera(dt) {
   if (ctl.goal) {
     ctl.target.lerp(ctl.goal, 1 - Math.exp(-dt * 3.2));
@@ -1055,8 +1060,15 @@ function updateCamera(dt) {
   ctl.radiusGoal = Math.min(900, Math.max(6, ctl.radiusGoal));
   const s = Math.sin(ctl.phi);
   camera.position.set(ctl.target.x + ctl.radius * s * Math.sin(ctl.theta), ctl.target.y + ctl.radius * Math.cos(ctl.phi), ctl.target.z + ctl.radius * s * Math.cos(ctl.theta));
+  if (HORIZ) {
+    // 화면 오른쪽 = 시간이 흐르는 쪽(-y를 시선에 수직으로 투영), 화면 위 = 오른쪽 × 시선
+    _cf.subVectors(ctl.target, camera.position).normalize();
+    _cr.set(0, -1, 0).addScaledVector(_cf, _cf.y).normalize();
+    camera.up.crossVectors(_cr, _cf);
+  }
   camera.lookAt(ctl.target);
 }
+const _cf = new T.Vector3(), _cr = new T.Vector3();
 function fit(keys) {
   const box = new T.Box3();
   let any = false;
@@ -1071,7 +1083,8 @@ function fit(keys) {
   ctl.goal = box.getCenter(new T.Vector3());
   const tanV = Math.tan((camera.fov * Math.PI) / 360);
   const w = Math.max(size.x, size.z) + 10, h = size.y * Math.sin(ctl.phi) + 12;
-  const dist = Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
+  // 가로 시간축이면 시간 폭(h)이 화면 가로에, 둘레 폭(w)이 화면 세로에 놓인다
+  const dist = HORIZ ? Math.max(w / 2 / tanV, h / 2 / (tanV * camera.aspect)) : Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
   ctl.radiusGoal = Math.max(24, dist + w * 0.3);
 }
 function flyTo(n, closer) {
@@ -1114,7 +1127,10 @@ function setupControls() {
     ctl.idle = 0;
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; canvas.classList.add('dragging'); hideTip(); }
     if (downAt) return;
-    if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
+    // 가로 시간축은 화면이 90° 돌아 있으니 끄는 방향도 돌려 준다(위아래 끌기: 시간축 둘레로 돌기)
+    if (mode === 'rotate') {
+      if (HORIZ) { ctl.vTheta = dy * 0.0055; ctl.vPhi = -dx * 0.0045; } else { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
+    }
     else if (mode === 'pan') panBy(dx, dy);
     else if (mode === 'pinch' && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
@@ -1343,12 +1359,13 @@ function updateLabelsContent() {
     if (el.dataset.key !== key) { el.dataset.key = key; el.innerHTML = html; el.style.setProperty('--c', c); el._w = 0; }
   }
 }
-const _p = new T.Vector3();
+const _p = new T.Vector3(), _lu = new T.Vector3();
 function updateLabels() {
   const W = canvas.clientWidth, H = canvas.clientHeight;
   const camPos = camera.position;
   const placed = [];
   const items = [];
+  const up = _lu.setFromMatrixColumn(camera.matrix, 1); // 이름표는 화면 위쪽(가로 시간축에서는 세계 y가 아니다)
   for (const n of order) {
     const el = labels.get(n.key);
     if (!el) continue;
@@ -1363,7 +1380,7 @@ function updateLabels() {
   items.sort((a, b) => (b.pri - a.pri) || (a.dist - b.dist));
   for (const it of items) {
     const { n, el, dist, pri, foc } = it;
-    _p.copy(n.pos); _p.y += n.radius * n.scale + 0.4;
+    _p.copy(n.pos).addScaledVector(up, n.radius * n.scale + 0.4);
     _p.project(camera);
     const behind = _p.z > 1 || _p.z < -1;
     const x = (_p.x * 0.5 + 0.5) * W, y = (-_p.y * 0.5 + 0.5) * H;
@@ -1389,9 +1406,11 @@ function updateLabels() {
     el.classList.toggle('sel', n.key === state.selected);
     el.classList.toggle('hov', n.key === state.hovered);
   }
-  // 연도 표시: 고리의 카메라 오른쪽 끝
-  const right = new T.Vector3().setFromMatrixColumn(camera.matrix, 0).setY(0).normalize();
+  // 연도 표시: 고리의 카메라 오른쪽 끝(가로 시간축이면 고리 아래 끝)
+  const right = HORIZ ? new T.Vector3().setFromMatrixColumn(camera.matrix, 1).setY(0).normalize().negate()
+    : new T.Vector3().setFromMatrixColumn(camera.matrix, 0).setY(0).normalize();
   const seen = new Set();
+  const shown = []; // 가로 시간축: 화면에서 겹치는 연도는 건너뛴다(휴대폰 폭)
   for (const t of timeTicks()) {
     seen.add(t);
     let el = timeLabels.get(t);
@@ -1399,8 +1418,13 @@ function updateLabels() {
     _p.copy(right).multiplyScalar(timeState.R + 1.5); _p.y = yearToY(t);
     _p.project(camera);
     if (_p.z > 1) { el.style.opacity = '0'; continue; }
+    if (HORIZ) {
+      const sx = (_p.x * 0.5 + 0.5) * W;
+      if (shown.some((q) => Math.abs(q - sx) < 46)) { el.style.opacity = '0'; continue; }
+      shown.push(sx);
+    }
     el.style.opacity = '1';
-    el.style.transform = `translate3d(${((_p.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-_p.y * 0.5 + 0.5) * H).toFixed(1)}px, 0) translate(4px, -50%)`;
+    el.style.transform = `translate3d(${((_p.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-_p.y * 0.5 + 0.5) * H).toFixed(1)}px, 0) ${HORIZ ? 'translate(-50%, 4px)' : 'translate(4px, -50%)'}`;
   }
   for (const [t, el] of timeLabels) if (!seen.has(t)) { el.remove(); timeLabels.delete(t); }
 }
