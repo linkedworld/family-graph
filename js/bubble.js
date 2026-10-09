@@ -29,6 +29,12 @@ const COLORS = {
   spouse: '#ff8fbf', unknown: '#8796ad', other: '#a9c4dc', notable: '#7dffd8', heir: '#2fe0c0',
 };
 const col = (hex) => new T.Color(hex); // ColorManagement: sRGB → 선형으로 바뀐다
+// 사건 종류별 색(인물과 사건 페이지 js/events.js와 같다)
+const EVENT_COLORS = {
+  '전쟁': '#ff5a4a', '전투': '#ff9446', '사화·옥사': '#c77dff', '정변': '#ff4f9a', '정책·제도': '#ffd166',
+  '학문·저술': '#5fe3ff', '교육·서원': '#7dffd8', '종교': '#b9f26b', '외교': '#8ab4ff', '기타': '#a9c4dc',
+};
+const R_EVENT = 0.95;
 
 const HEIR_COLOR = new T.Color(COLORS.heir);
 const LONG_PRESS_MS = 520; // 길게 누르기로 인정하는 시간
@@ -43,6 +49,8 @@ const state = {
   data: null, model: null, kin: null, root: null, ego: null, selected: null, hovered: null,
   lineage: new Set(), expanded: new Set(), notable: new Set(),
   tucked: new Set(), // 부모 품에 들어간 자식: 아주 작은 구슬로 붙어 있다
+  showEvents: true, // 사건 표시: 인물과 얽힌 사건을 화면 왼쪽, 세대 고리 바깥에 세로로 늘어세운다
+  eventsByPerson: new Map(), // 이 가계도의 인물 id → 얽힌 사건들(data/events.js)
   showCollateral: false, // 방계 보기. 끄면(기본) 방계 가지는 갈라지는 자리에서 부모 품의 작은 구슬로 접힌다
   openCollateral: new Set(), // 방계 접기 중에도 구슬을 눌러 꺼내 둔 방계 가지
   hoverLink: null,   // 마우스가 올라간 연결선
@@ -194,7 +202,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<
 
 // ── 3D 장면 ──────────────────────────────────────────────
 let renderer, scene, camera, post;
-let spheres, shells, rings, edges, genLines, floor, dust, sky, axis;
+let spheres, shells, rings, edges, genLines, floor, dust, sky, axis, crystals;
 const canvas = $('gl');
 
 // 3D 값 잡음(구슬 속 흐름, 성운)
@@ -594,11 +602,13 @@ function initGL() {
   const attrs = [['aColor', 3], ['aParams', 4]];
   spheres = instanced(new T.SphereGeometry(1, segs, Math.round(segs * 0.7)), sphereMaterial(), 1200, attrs);
   shells = instanced(new T.SphereGeometry(1, 40, 28), shellMaterial(), 1200, attrs);
+  // 사건: 면이 보이는 결정(이십면체)
+  crystals = instanced(new T.IcosahedronGeometry(1, 0), sphereMaterial(), 400, attrs);
   rings = instanced(new T.TorusGeometry(1, 0.022, 8, 160), ringMaterial(), 200, attrs);
   edges = instanced(new T.CylinderGeometry(1, 1, 1, 8, 1, true), edgeMaterial(), MAX_EDGE_INST,
     [['aColA', 3], ['aColB', 3], ['aSeg', 2], ['aParams', 4]]);
   shells.renderOrder = 3; rings.renderOrder = 4; edges.renderOrder = 2;
-  scene.add(spheres, edges, shells, rings);
+  scene.add(spheres, edges, shells, rings, crystals);
 
   // 세대 고리(가는 원)
   genLines = new T.LineSegments(new T.BufferGeometry(), new T.LineBasicMaterial({
@@ -720,6 +730,29 @@ function rebuild({ instant = false } = {}) {
     if (bn.isNew) { bn.pos.copy(p.pos); bn.delay = 0.04; bn.isNew = false; }
     p.beads.push(bn);
   }
+  // 사건: 보이는 인물(배우자 구슬 포함)이 얽힌 사건마다 결정 하나. 높이는 얽힌 인물들의 세대 평균.
+  if (state.showEvents) {
+    const byEv = new Map();
+    for (const n of nodes.values()) {
+      if (!n.alive || (n.kind !== 'person' && n.kind !== 'spouse')) continue;
+      for (const ev of state.eventsByPerson.get(n.id) || []) {
+        if (!byEv.has(ev)) byEv.set(ev, []);
+        const arr = byEv.get(ev);
+        if (!arr.includes(n)) arr.push(n);
+      }
+    }
+    for (const [ev, anchors] of byEv) {
+      const key = `ev:${ev.id}`;
+      const en = getNode(key, key, 'event');
+      en.ev = ev; en.anchors = anchors; en.parent = anchors[0];
+      en.depth = anchors.reduce((t, a) => t + a.depth, 0) / anchors.length;
+      en.radius = R_EVENT; en.hidden = 0; en.trunk = false; en.lineal = false; en.notable = false; en.unknown = false;
+      en.spouses = []; en.beads = [];
+      en.color.set(EVENT_COLORS[ev.type] || EVENT_COLORS['기타']);
+      if (en.isNew) { en.pos.copy(anchors[0].pos); en.delay = instant ? 0.5 : 0.12; en.isNew = false; }
+      for (const a of anchors) linkList.push({ a, b: en, kind: 'event' });
+    }
+  }
   linkList.push(...fading.filter((l) => !l.a.alive || !l.b.alive));
   state.hoverLink = null; // 선 목록을 새로 만들었으므로 가리키던 선은 잊는다
   state.maxDepth = maxDepth;
@@ -804,6 +837,39 @@ function simulate(dt) {
       b.pos.x += (tx - b.pos.x) * q; b.pos.y += (ty - b.pos.y) * q; b.pos.z += (tz - b.pos.z) * q;
     });
   }
+  // 사건: 카메라에서 본 왼쪽, 가장 큰 세대 고리 바깥에 한 줄로 세로로 늘어선다(오른쪽 끝에는 세대 표시가 있다).
+  // 같은 세대의 사건은 그 세대 띠 안에서 위(이른 사건)→아래로 쌓고, 띠가 차면 바깥에 한 줄을 더 세운다.
+  // 카메라가 돌아도 늘 화면 왼쪽에 선다.
+  const evs = order.filter((n) => n.kind === 'event' && n.alive);
+  if (evs.length) {
+    const Rmax = evLaneBase();
+    const left = _evL.setFromMatrixColumn(camera.matrix, 0).setY(0);
+    if (left.lengthSq() < 1e-6) left.set(1, 0, 0);
+    left.normalize().multiplyScalar(-1);
+    const bands = new Map();
+    for (const n of evs) {
+      const d = Math.round(n.depth);
+      if (!bands.has(d)) bands.set(d, []);
+      bands.get(d).push(n);
+    }
+    evReach = 0;
+    fitAge += dt;
+    const q = 1 - Math.exp(-dt * 4);
+    const cap = Math.floor((GEN_H * 0.9) / EV_ROW) + 1; // 한 세대 띠에 세로로 들어가는 수
+    for (const [d, list] of bands) {
+      list.sort((a, b) => a.ev.start - b.ev.start || (a.ev.id < b.ev.id ? -1 : 1));
+      list.forEach((n, i) => {
+        const col = Math.floor(i / cap), row = i % cap;
+        const rows = Math.min(cap, list.length - col * cap);
+        const y = -d * GEN_H + ((rows - 1) / 2 - row) * EV_ROW;
+        const dist = Rmax + col * EV_STEP;
+        evReach = Math.max(evReach, dist);
+        n.pos.x += (left.x * dist - n.pos.x) * q; n.pos.y += (y - n.pos.y) * q; n.pos.z += (left.z * dist - n.pos.z) * q;
+      });
+    }
+    // 맞춘 직후 가계도가 퍼지며 사건 줄이 바깥으로 밀려나면 다시 맞춘다(손대는 중이거나 한참 지난 뒤에는 그대로 둔다)
+    if (fitLane > 0 && evReach > fitLane + 2 && ctl.idle > 0.5 && fitAge < 6) fit();
+  }
   // 크기: 태어날 때 살짝 튀어 오르고(스프링), 사라질 때는 부모 쪽으로 빨려 들어간다.
   for (const n of order) {
     if (n.delay > 0) { n.delay -= dt; continue; }
@@ -833,20 +899,42 @@ function simulate(dt) {
 }
 
 // ── GPU 버퍼 채우기 ──────────────────────────────────────
+const _evL = new T.Vector3();
+// 사건 줄의 기준 거리: 세대 고리와 가장 바깥 구슬보다 한참 바깥. evReach는 가장 먼 사건까지(맞춤에 쓴다).
+const EV_GAP = 14, EV_STEP = 5.2, EV_ROW = 2.4;
+let evReach = 0, fitLane = 0, fitAge = 0; // fitAge: 마지막 맞춤 뒤 흐른 시뮬레이션 시간(초)
+function evLaneBase() {
+  let R = 8;
+  for (const v of genState.smooth.values()) R = Math.max(R, v);
+  for (const n of order) if (n.alive && n.kind !== 'event') R = Math.max(R, Math.hypot(n.pos.x, n.pos.z) + n.radius);
+  return R + EV_GAP;
+}
 const _m = new T.Matrix4(), _q = new T.Quaternion(), _s = new T.Vector3(), _v = new T.Vector3(), _up = new T.Vector3(0, 1, 0);
 const _c = new T.Color();
 let drawn = [];  // 구슬 instanceId → node
 let shellDrawn = [];
+let crystalDrawn = [];
 
 function writeInstances() {
   // 구슬
   const sc = spheres.geometry.attributes.aColor.array, sp = spheres.geometry.attributes.aParams.array;
   const hc = shells.geometry.attributes.aColor.array, hp = shells.geometry.attributes.aParams.array;
   const rc = rings.geometry.attributes.aColor.array, rp = rings.geometry.attributes.aParams.array;
-  drawn = []; shellDrawn = [];
-  let i = 0, h = 0, r = 0;
+  drawn = []; shellDrawn = []; crystalDrawn = [];
+  const cc = crystals.geometry.attributes.aColor.array, cp = crystals.geometry.attributes.aParams.array;
+  let i = 0, h = 0, r = 0, c = 0;
   for (const n of order) {
     if (n.scale <= 0.001) continue;
+    if (n.kind === 'event') {
+      const rad = n.radius * n.scale;
+      _q.setFromAxisAngle(_up, clock * 0.25 + n.seed * 6);
+      _m.compose(n.pos, _q, _s.set(rad, rad * 1.12, rad));
+      crystals.setMatrixAt(c, _m);
+      cc[c * 3] = n.color.r; cc[c * 3 + 1] = n.color.g; cc[c * 3 + 2] = n.color.b;
+      cp[c * 4] = 1.3; cp[c * 4 + 1] = n.hl; cp[c * 4 + 2] = 0; cp[c * 4 + 3] = n.seed;
+      crystalDrawn[c] = n; c++;
+      continue;
+    }
     const pa = n.pressAmt || 0;
     const rad = n.radius * n.scale * (1 + 0.22 * pa * pa + 0.03 * pa * Math.sin(clock * 40));
     _q.identity();
@@ -882,13 +970,13 @@ function writeInstances() {
       }
     }
   }
-  spheres.count = i; shells.count = h; rings.count = r;
-  for (const m of [spheres, shells, rings]) {
+  spheres.count = i; shells.count = h; rings.count = r; crystals.count = c;
+  for (const m of [spheres, shells, rings, crystals]) {
     m.instanceMatrix.needsUpdate = true;
     m.geometry.attributes.aColor.needsUpdate = true;
     m.geometry.attributes.aParams.needsUpdate = true;
   }
-  spheres.boundingSphere = null; shells.boundingSphere = null;
+  spheres.boundingSphere = null; shells.boundingSphere = null; crystals.boundingSphere = null;
 
   // 연결선: 부모 아래쪽에서 자녀 위쪽으로 S자 곡선(3차 베지에), 배우자 사이는 짧은 직선
   const E = edges.geometry.attributes;
@@ -903,6 +991,32 @@ function writeInstances() {
     const a = L.a, b = L.b;
     const vis = Math.min(a.scale, b.scale);
     if (vis < 0.02 || e + SEG > MAX_EDGE_INST) continue;
+    if (L.kind === 'event') {
+      // 인물 구슬 중심에서 사건 결정까지: 가로로 뻗는 완만한 곡선, 빛이 인물에서 사건 쪽으로 흐른다.
+      const hotE = b.id === state.selected || b.id === state.hovered || a.id === state.selected || a.id === state.hovered;
+      P0.copy(a.pos); P3.copy(b.pos);
+      P1.lerpVectors(P0, P3, 0.35); P1.y = P0.y;
+      P2.lerpVectors(P0, P3, 0.7); P2.y = P3.y;
+      const segs = 8;
+      if (e + segs > MAX_EDGE_INST) continue;
+      const w = (hotE ? 0.07 : 0.035) * vis;
+      for (let k = 0; k < segs; k++) {
+        const t0 = k / segs, t1 = (k + 1) / segs;
+        bez(t0, A); bez(t1, B);
+        _v.subVectors(B, A);
+        const len = _v.length();
+        if (len < 1e-4) continue;
+        _q.setFromUnitVectors(_up, _v.divideScalar(len));
+        _m.compose(A.add(B).multiplyScalar(0.5), _q, _s.set(w, len * 1.02, w));
+        edges.setMatrixAt(e, _m);
+        ca[e * 3] = a.color.r; ca[e * 3 + 1] = a.color.g; ca[e * 3 + 2] = a.color.b;
+        cb[e * 3] = b.color.r; cb[e * 3 + 1] = b.color.g; cb[e * 3 + 2] = b.color.b;
+        sg[e * 2] = t0; sg[e * 2 + 1] = t1;
+        ep[e * 4] = hotE ? 0.9 : 0.45; ep[e * 4 + 1] = 0.35; ep[e * 4 + 2] = hotE ? 0.9 : 0.15; ep[e * 4 + 3] = vis * (hotE ? 1 : 0.55);
+        e++;
+      }
+      continue;
+    }
     const marriage = L.kind === 'marriage';
     const lineal = !marriage && a.lineal && b.lineal;
     const hov = L === state.hoverLink;
@@ -1031,8 +1145,10 @@ function fit(onlyAlive = true) {
   pinEgoLabel();
   const box = new T.Box3();
   let any = false;
+  let hasEv = false;
   for (const n of nodes.values()) {
     if (onlyAlive && !n.alive) continue;
+    if (n.kind === 'event') { hasEv = true; continue; } // 사건 줄은 카메라를 따라 움직이므로 폭으로만 셈한다
     const y = n.kind === 'person' ? -n.depth * GEN_H : n.pos.y;
     box.expandByPoint(new T.Vector3(n.pos.x, y, n.pos.z));
     any = true;
@@ -1042,7 +1158,11 @@ function fit(onlyAlive = true) {
   const size = box.getSize(new T.Vector3());
   ctl.goal = box.getCenter(new T.Vector3());
   const tanV = Math.tan((camera.fov * Math.PI) / 360);
-  const w = Math.max(size.x, size.z) + 8, h = size.y * Math.sin(ctl.phi) + 10;
+  // 사건 줄은 화면 왼쪽에만 서므로, 가운데를 기준으로 양쪽을 그만큼 넓혀야 잘리지 않는다
+  fitLane = hasEv ? Math.max(evReach, evLaneBase()) : 0;
+  fitAge = 0;
+  const evW = hasEv ? 2 * (fitLane + 3) : 0;
+  const w = Math.max(Math.max(size.x, size.z) + 8, evW), h = size.y * Math.sin(ctl.phi) + 10;
   const dist = Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
   ctl.radiusGoal = Math.max(20, dist + w * 0.35);
 }
@@ -1192,6 +1312,8 @@ function pick(x, y) {
   ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hit = ray.intersectObject(spheres, false)[0];
+  const hc = ray.intersectObject(crystals, false)[0];
+  if (hc && crystalDrawn[hc.instanceId] && (!hit || hc.distance < hit.distance)) return crystalDrawn[hc.instanceId];
   if (hit && drawn[hit.instanceId]) return drawn[hit.instanceId];
   const sh = ray.intersectObject(shells, false)[0];
   if (sh && shellDrawn[sh.instanceId]) return shellDrawn[sh.instanceId];
@@ -1270,6 +1392,12 @@ function clickAt(x, y) {
     return;
   }
   if (n.kind === 'bead') { untuck(n.id); return; } // 품은 구슬: 누르면 다시 나온다
+  if (n.kind === 'event') { // 사건: 상세 카드만 연다
+    haptic(10);
+    state.selected = n.id;
+    updateLabelsContent(); renderInfo();
+    return;
+  }
   haptic(10);
   state.selected = n.id;
   // '탭으로 펼치기'가 켜져 있으면 누르기만으로 자녀를 펼치고 접는다. 꺼져 있으면 선택만 하고, 펼치기는 길게 누르기로.
@@ -1331,7 +1459,21 @@ function showLinkTip(L, x, y) {
   tip.style.left = `${Math.min(W - tw - 10, x + 16)}px`;
   tip.style.top = `${Math.min(H - th - 10, Math.max(10, y + 16))}px`;
 }
+function showEventTip(n, x, y) {
+  const ev = n.ev;
+  tip.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
+  const who = n.anchors.filter((a) => a.alive).map((a) => state.model.displayName(a.id));
+  tip.innerHTML = `<b>${esc(ev.name)}${ev.hanja ? ` <small>${esc(ev.hanja)}</small>` : ''}</b>` +
+    `<span class="t">${esc(ev.type)}</span> ${esc(evYears(ev))}<div>${esc(who.slice(0, 4).join(', '))}${who.length > 4 ? ` 외 ${who.length - 4}명` : ''}</div>` +
+    '<div class="k">누르면 사건 보기</div>';
+  tip.hidden = false;
+  const W = window.innerWidth, H = window.innerHeight;
+  tip.style.left = `${Math.min(W - tip.offsetWidth - 10, x + 16)}px`;
+  tip.style.top = `${Math.min(H - tip.offsetHeight - 10, Math.max(10, y + 16))}px`;
+}
+const evYears = (ev) => (ev.end && ev.end !== ev.start ? `${ev.start}–${ev.end}` : `${ev.start}`);
 function showTip(n, x, y) {
+  if (n.kind === 'event') { showEventTip(n, x, y); return; }
   const { model } = state;
   const p = model.get(n.id);
   const r = relOf(n.id);
@@ -1365,6 +1507,18 @@ function updateLabelsContent() {
   const { model } = state;
   for (const n of nodes.values()) {
     if (n.kind === 'bead') { removeLabel(n); continue; }
+    if (n.kind === 'event') {
+      const el = labelFor(n);
+      const key = `ev|${n.ev.id}`;
+      if (el.dataset.key !== key) {
+        el.dataset.key = key;
+        el.className = 'lbl ev';
+        el.innerHTML = `<b>${esc(n.ev.name)}</b><span>${esc(evYears(n.ev))} · ${esc(n.ev.type)}</span>`;
+        el.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
+        el._w = 0;
+      }
+      continue;
+    }
     const el = labelFor(n);
     const p = model.get(n.id);
     const r = relOf(n.id);
@@ -1397,6 +1551,7 @@ function updateLabels() {
     if (!n.alive || n.scale < 0.4) { el.style.opacity = '0'; continue; }
     const dist = camPos.distanceTo(n.pos);
     let pri = n.id === state.hovered ? 200 : n.id === state.selected ? 150 : (n.id === state.ego && egoPinned) ? 140 : 0;
+    if (!pri && n.kind === 'event') pri = 30 + Math.min(20, n.anchors.length * 4);
     if (!pri) pri = (n.lineal ? 60 : 0) + (n.notable ? 40 : 0) + (n.hidden ? 10 + Math.log2(1 + n.hidden) * 4 : 0) + (n.kind === 'spouse' ? -15 : 10);
     items.push({ n, el, dist, pri });
   }
@@ -1458,9 +1613,50 @@ function updateLabels() {
 }
 
 // ── 상세 패널 ────────────────────────────────────────────
+// 사건 상세: 이 가계도에서 얽힌 인물(누르면 그 사람으로), 다른 가계도·가계도 밖 인물, 이어진 사건, 출처
+function renderEventInfo(box, n) {
+  const ev = n.ev;
+  const ds = state.data.meta.id;
+  const here = ev.participants.filter((p) => p.ds === ds && state.model.get(p.id));
+  const other = ev.participants.filter((p) => p.ds !== ds);
+  const sets = new Map((window.GENEALOGY_DATASETS || []).map((d) => [d.meta.id, d]));
+  const nameOf = (p) => { const d = sets.get(p.ds); const q = d && d.persons.find((x) => x.id === p.id); return q ? q.name || q.clan || p.id : p.id; };
+  const all = (window.GENEALOGY_EVENTS && window.GENEALOGY_EVENTS.events) || [];
+  const rels = ((window.GENEALOGY_EVENTS && window.GENEALOGY_EVENTS.relations) || []).filter((r) => r.from === ev.id || r.to === ev.id)
+    .map((r) => ({ r, other: all.find((x) => x.id === (r.from === ev.id ? r.to : r.from)), out: r.from === ev.id })).filter((x) => x.other);
+  box.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
+  box.innerHTML = `
+    <button type="button" class="close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"/></svg></button>
+    <p class="kicker">EVENT · ${esc(ev.type)}</p>
+    <h2>${esc(ev.name)}${ev.hanja ? `<small>${esc(ev.hanja)}</small>` : ''}</h2>
+    <div class="rel"><b>${esc(evYears(ev))}</b><span>인물 ${ev.participants.length + (ev.external || []).length}명</span></div>
+    ${ev.summary ? `<p class="note">${esc(ev.summary)}</p>` : ''}
+    <div class="grp"><p class="grp-h">이 가계도의 인물</p><ul class="plist">${here.map((p) => `<li><button type="button" data-person="${esc(p.id)}">${esc(state.model.displayName(p.id))}${state.model.get(p.id).hanja ? `<small>${esc(state.model.get(p.id).hanja)}</small>` : ''}</button><span>${esc(p.role || '')}</span></li>`).join('')}</ul></div>
+    ${other.length ? `<div class="grp"><p class="grp-h">다른 가계도의 인물</p><ul class="plist">${other.map((p) => `<li><span class="nm">${esc(nameOf(p))}</span><span>${esc(p.role || '')}</span></li>`).join('')}</ul></div>` : ''}
+    ${(ev.external || []).length ? `<div class="grp"><p class="grp-h">가계도 밖 인물</p><ul class="plist">${ev.external.map((x) => `<li><span class="nm">${esc(x.name)}</span><span>${esc(x.role || '')}</span></li>`).join('')}</ul></div>` : ''}
+    ${rels.length ? `<div class="grp"><p class="grp-h">이어진 사건</p><ul class="plist">${rels.map((x) => `<li><span class="nm">${esc(x.other.name)} <small>${esc(evYears(x.other))}</small></span><span>${x.out ? '→' : '←'} ${esc(x.r.type)}</span></li>`).join('')}</ul></div>` : ''}
+    ${(ev.sources || []).length ? `<p class="srcs">출처: ${ev.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`).join(', ')}</p>` : ''}
+    <div class="acts"><a class="glass-btn primary" href="events.html#${esc(ds)}">인물과 사건에서 보기</a></div>`;
+  box.querySelectorAll('[data-person]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const id = b.dataset.person;
+    haptic(8);
+    reveal(id);
+    state.selected = id;
+    rebuild();
+    setTimeout(() => flyTo(nodes.get(id) || [...nodes.values()].find((x) => x.id === id), true), 300);
+  }));
+}
 function renderInfo() {
   const box = $('info');
   const id = state.selected;
+  const en = id && id.startsWith('ev:') && nodes.get(id);
+  if (en) {
+    if (box.hidden) box._openedAt = performance.now();
+    renderEventInfo(box, en);
+    box.hidden = false;
+    return;
+  }
   if (!id || !state.model.get(id)) { box.hidden = true; return; }
   const { model } = state;
   const p = model.get(id);
@@ -1566,6 +1762,15 @@ function loadDataset(data) {
     stack.push(...model.children(id, 'legal'));
   }
   state.notable = new Set((data.meta.notable || []).filter((id) => model.get(id)));
+  state.eventsByPerson = new Map();
+  for (const ev of (window.GENEALOGY_EVENTS && window.GENEALOGY_EVENTS.events) || []) {
+    for (const p of ev.participants) {
+      if (p.ds !== data.meta.id || !model.get(p.id)) continue;
+      if (!state.eventsByPerson.has(p.id)) state.eventsByPerson.set(p.id, []);
+      const arr = state.eventsByPerson.get(p.id);
+      if (!arr.includes(ev)) arr.push(ev);
+    }
+  }
   computeHeir();
   const kept = G.nav?.loadEgo(data.meta.id);
   state.ego = kept && model.get(kept) && !model.isUnknown(kept) ? kept : data.meta.subject;
@@ -1636,6 +1841,7 @@ function main() {
   try { state.showHeir = localStorage.getItem('genealogy.showHeir') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
   try { state.tapExpand = localStorage.getItem('genealogy.tapExpand') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
   try { state.showCollateral = localStorage.getItem('genealogy.showCollateral') === '1'; } catch (err) { /* 저장 불가: 기본값(접기) */ }
+  try { state.showEvents = localStorage.getItem('genealogy.showEvents') !== '0'; } catch (err) { /* 저장 불가: 기본값(켬) */ }
   const datasets = window.GENEALOGY_DATASETS || [];
   if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
   if (!initGL()) return;
@@ -1662,6 +1868,13 @@ function main() {
   });
   $('showSpouses').addEventListener('change', (e) => { state.showSpouses = e.target.checked; rebuild(); });
   $('hideUnknown').addEventListener('change', (e) => { state.hideUnknown = e.target.checked; rebuild(); });
+  $('showEvents').checked = state.showEvents;
+  $('showEvents').addEventListener('change', (e) => {
+    state.showEvents = e.target.checked;
+    try { localStorage.setItem('genealogy.showEvents', state.showEvents ? '1' : '0'); } catch (err) { /* 저장 불가: 무시 */ }
+    if (!state.showEvents && state.selected && state.selected.startsWith('ev:')) state.selected = null;
+    rebuild();
+  });
   $('autoRotate').checked = state.autoRotate;
   $('autoRotate').addEventListener('change', (e) => { state.autoRotate = e.target.checked; });
   $('tapExpand').checked = state.tapExpand;
