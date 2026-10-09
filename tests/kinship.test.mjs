@@ -192,6 +192,10 @@ test('오리 이원익', () => {
   // 서자 이효전의 손자, 손녀사위 허목의 손자
   assert.deepEqual(rel(k, E, 'yi_myeonghyeon'), ['증손자', 3]);
   assert.deepEqual(rel(k, E, 'heo_sang'), ['외현손자', 4]);
+  // 선원록에 이름이 실린 여성: 딸 이경선, 측실 모로개, 조카딸 이애선
+  assert.equal(buildModel(dataset('yi-wonik')).displayName('wonik_d1'), '이경선');
+  assert.deepEqual(rel(k, E, 'wonik_cheuk'), ['첩', 0]);
+  assert.deepEqual(rel(k, E, 'yi_aeseon'), ['질녀', 3]);
 });
 
 test('다산 정약용', () => {
