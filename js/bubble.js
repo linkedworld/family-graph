@@ -43,6 +43,8 @@ const state = {
   data: null, model: null, kin: null, root: null, ego: null, selected: null, hovered: null,
   lineage: new Set(), expanded: new Set(), notable: new Set(),
   tucked: new Set(), // 부모 품에 들어간 자식: 아주 작은 구슬로 붙어 있다
+  showCollateral: false, // 방계 보기. 끄면(기본) 방계 가지는 갈라지는 자리에서 부모 품의 작은 구슬로 접힌다
+  openCollateral: new Set(), // 방계 접기 중에도 구슬을 눌러 꺼내 둔 방계 가지
   hoverLink: null,   // 마우스가 올라간 연결선
   showSpouses: true, hideUnknown: false, autoRotate: !reduceMotion,
   descAxis: false, // 직계 자손 축: 기준 인물 아래로 대를 잇는 줄도 가운데 축에 세운다
@@ -152,6 +154,15 @@ function relOf(id) {
   return state.rels.get(id);
 }
 const isLineal = (r) => r.kind === 'self' || (r.kind === 'blood' && r.path && (r.path.up === 0 || r.path.down === 0));
+// 방계 가지의 첫 사람: 기준 인물의 직계도 가운데 축도 아닌 자녀. 그 아래 자손은 모두 이 사람의 구슬에 들어간다.
+function isCollateralRoot(id) {
+  return !state.trunk.has(id) && !isLineal(relOf(id));
+}
+// 방계 접기일 때 부모 품에 둘 자녀인가(연결선 길게 누르기로 넣은 자녀 포함)
+function isTucked(id) {
+  if (state.tucked.has(id)) return true;
+  return !state.showCollateral && !state.openCollateral.has(id) && isCollateralRoot(id);
+}
 function colorOf(id) {
   const r = relOf(id);
   if (id === state.ego) return COLORS.ego;
@@ -635,7 +646,7 @@ function rebuild({ instant = false } = {}) {
     seen.add(id);
     if (!state.expanded.has(id)) return;
     for (const k of kids(id)) {
-      if (state.tucked.has(k.id)) { tucks.push({ id: k.id, parent: id }); seen.add(k.id); continue; }
+      if (isTucked(k.id)) { tucks.push({ id: k.id, parent: id }); seen.add(k.id); continue; }
       walk(k.id, id, depth + k.steps);
     }
   };
@@ -1268,18 +1279,28 @@ function closeInfo() {
 }
 // 자식을 부모 품에 넣는다(연결선을 길게 눌렀을 때). 펼쳐 둔 상태는 그대로 기억해 둔다.
 function tuck(id) {
-  if (!state.lineage.has(id) || state.tucked.has(id)) return;
+  if (!state.lineage.has(id) || isTucked(id)) return;
+  state.openCollateral.delete(id);
   state.tucked.add(id);
   rebuild();
 }
 // 품은 구슬을 누르면 다시 나온다.
 function untuck(id) {
-  if (!state.tucked.delete(id)) return;
+  if (state.tucked.delete(id)) { /* 연결선으로 넣은 자녀 */ }
+  else if (!state.showCollateral && isCollateralRoot(id)) state.openCollateral.add(id); // 접힌 방계 가지
+  else return;
   haptic([12, 30]);
   const n = nodes.get(`t:${treeParent(id)}:${id}`);
   rebuild();
   const back = nodes.get(id);
   if (back) { back.scaleV += 6; if (n) back.pos.copy(n.pos); }
+}
+// 방계 보기·접기. 다시 접으면 구슬을 눌러 꺼내 둔 가지도 함께 접는다.
+function setShowCollateral(on) {
+  state.showCollateral = on;
+  state.openCollateral.clear();
+  $('showCollateral').checked = on;
+  try { localStorage.setItem('genealogy.showCollateral', on ? '1' : '0'); } catch (err) { /* 저장 불가: 무시 */ }
 }
 function toggle(id) {
   if (!state.lineage.has(id)) return;
@@ -1310,7 +1331,7 @@ function showTip(n, x, y) {
   const r = relOf(n.id);
   const kidsN = n.kind === 'person' ? kids(n.id).length : 0;
   const verb = state.tapExpand ? '누르면' : '길게 누르면';
-  const action = n.kind === 'bead' ? `누르면 다시 나옵니다${n.sub > 1 ? ` · 자손까지 ${n.sub}명` : ''}`
+  const action = n.kind === 'bead' ? `${state.tucked.has(n.id) ? '' : '방계 · '}누르면 다시 나옵니다${n.sub > 1 ? ` · 자손까지 ${n.sub}명` : ''}`
     : n.kind !== 'person' || !kidsN ? '' : state.expanded.has(n.id) ? `${verb} 자녀 접기` : `${verb} 자녀 ${kidsN}명 펼치기 · 자손 ${descCount(n.id)}명`;
   tip.style.setProperty('--c', '#' + n.color.getHexString(T.SRGBColorSpace));
   tip.innerHTML = `<b>${esc(model.displayName(n.id))}${p.hanja ? ` <small>${esc(p.hanja)}</small>` : ''}</b>` +
@@ -1546,6 +1567,7 @@ function loadDataset(data) {
   state.selected = isNarrow() ? null : state.ego;
   state.expanded = new Set([root]);
   state.tucked.clear();
+  state.openCollateral.clear();
   reveal(state.ego);
   const a = anchorOf(state.ego);
   if (a) state.expanded.add(a);
@@ -1607,6 +1629,7 @@ function main() {
   try { state.descAxis = localStorage.getItem('genealogy.descAxis') === '1'; } catch (err) { /* 저장 불가: 기본값 */ }
   try { state.showHeir = localStorage.getItem('genealogy.showHeir') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
   try { state.tapExpand = localStorage.getItem('genealogy.tapExpand') !== '0'; } catch (err) { /* 저장 불가: 기본값 */ }
+  try { state.showCollateral = localStorage.getItem('genealogy.showCollateral') === '1'; } catch (err) { /* 저장 불가: 기본값(접기) */ }
   const datasets = window.GENEALOGY_DATASETS || [];
   if (!datasets.length) throw new Error('가계 데이터(data/*.js)를 불러오지 못했습니다');
   if (!initGL()) return;
@@ -1660,6 +1683,7 @@ function main() {
   });
   $('expandAll').addEventListener('click', () => {
     state.tucked.clear();
+    setShowCollateral(true); // 모두 펼치기는 방계도 보이게 한다
     for (const id of state.lineage) state.expanded.add(id);
     rebuild();
     setTimeout(() => fit(), 900);
@@ -1667,6 +1691,7 @@ function main() {
   $('collapseAll').addEventListener('click', () => {
     state.expanded = new Set([state.root]);
     state.tucked.clear();
+    state.openCollateral.clear();
     reveal(state.ego);
     expandDescLine();
     expandHeir();
@@ -1677,6 +1702,13 @@ function main() {
     const on = !document.body.classList.contains('controls-open');
     document.body.classList.toggle('controls-open', on);
     $('toggleControls').setAttribute('aria-expanded', String(on));
+  });
+
+  $('showCollateral').checked = state.showCollateral;
+  $('showCollateral').addEventListener('change', (e) => {
+    setShowCollateral(e.target.checked);
+    rebuild();
+    setTimeout(() => fit(), 900);
   });
 
   setupControls();
