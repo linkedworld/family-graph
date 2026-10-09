@@ -48,7 +48,7 @@ const state = {
   events: [], eventById: new Map(),
   people: new Map(),     // 인물 key → { key, name, hanja, refs: [{ ds, id }], fam, external, roles: [{ ev, role }] }
   famOn: new Set(), type: '', showRelations: true, showExternal: true, autoRotate: !reduceMotion,
-  selected: null, hovered: null, focus: null, // focus: 선택한 노드와 이어진 노드 key 집합
+  selected: null, hovered: null, focus: null, selLink: null, hoverLink: null, // focus: 선택한 노드와 이어진 노드 key 집합
 };
 
 // ── 데이터 읽기 ──────────────────────────────────────────
@@ -484,6 +484,17 @@ function homeOf(famId) {
   return { x: Math.cos(a), z: Math.sin(a) };
 }
 
+// 인물을 어느 가계도 사람으로 보일지: 두 가계도에 있으면(예: 태종) 지금 고른 가계도 쪽을 앞세운다.
+function famOf(P) {
+  if (P.external) return null;
+  return (P.refs.find((r) => state.famOn.has(r.ds)) || P.refs[0]).ds;
+}
+function famLabel(P) {
+  if (P.external) return '가계도 밖 인물';
+  const on = P.refs.filter((r) => state.famOn.has(r.ds));
+  return (on.length ? on : P.refs).map((r) => state.families.get(r.ds).short).join(' · ');
+}
+
 function eventVisible(ev) {
   if (state.type && ev.type !== state.type) return false;
   return ev.parts.some(({ P }) => !P.external && P.refs.some((r) => state.famOn.has(r.ds)));
@@ -514,7 +525,7 @@ function rebuild({ instant = false } = {}) {
     if (n.isNew) {
       // 참여 가계도들의 집 방향 평균에서 태어난다.
       let x = 0, z = 0;
-      for (const { P } of ev.parts) if (!P.external) { const h = homeOf(P.fam); x += h.x; z += h.z; }
+      for (const { P } of ev.parts) if (!P.external && personVisible(P)) { const h = homeOf(famOf(P)); x += h.x; z += h.z; }
       const L = Math.hypot(x, z) || 1;
       n.pos.set((x / L) * HOME_R * 0.45 + (Math.random() - 0.5) * 4, n.y, (z / L) * HOME_R * 0.45 + (Math.random() - 0.5) * 4);
       n.delay = instant ? Math.min(0.8, (-n.y / Y_SPAN) * 0.8) : 0.02 + Math.random() * 0.1;
@@ -531,12 +542,12 @@ function rebuild({ instant = false } = {}) {
     // 높이: 이어진 사건들의 평균(생몰년이 아니라 사건 시점에 둔다)
     n.y = evs.reduce((s, r) => s + yearToY(r.ev.start), 0) / evs.length;
     n.radius = R_PERSON * (1 + 0.12 * Math.sqrt(evs.length - 1));
-    const fam = P.fam && state.families.get(P.fam);
-    n.color.set(P.external ? EXTERNAL_COLOR : fam.color);
+    n.fam = famOf(P);
+    n.color.set(P.external ? EXTERNAL_COLOR : state.families.get(n.fam).color);
     n.notable = !P.external && P.refs.some((r) => state.families.get(r.ds)?.notable.has(r.id));
     if (n.isNew) {
       const ev0 = nodes.get(`e:${evs[0].ev.id}`);
-      const h = P.external ? { x: 0, z: 0 } : homeOf(P.fam);
+      const h = P.external ? { x: 0, z: 0 } : homeOf(n.fam);
       n.pos.set((ev0 ? ev0.pos.x : 0) + h.x * 3 + (Math.random() - 0.5) * 2, n.y, (ev0 ? ev0.pos.z : 0) + h.z * 3 + (Math.random() - 0.5) * 2);
       n.delay = instant ? 0.3 + Math.random() * 0.6 : 0.05 + Math.random() * 0.1;
       n.isNew = false;
@@ -559,10 +570,25 @@ function rebuild({ instant = false } = {}) {
   updateLabelsContent();
   renderInfo();
   updateLegendCounts();
+  updateSubtitle(visEvents.length);
+}
+// 지금 무엇이 보이는지: 고른 가계도가 일부이면 그 가계도 인물이 얽힌 사건만 보인다는 것을 밝힌다.
+function updateSubtitle(nEv) {
+  const on = [...state.famOn].map((d) => state.families.get(d).short);
+  const all = state.famOn.size === state.families.size;
+  const fam = all ? '여섯 가계도' : on.join(' · ') + ' 가계';
+  $('subtitle').textContent = `${fam} 인물이 얽힌 사건 ${nEv}개${state.type ? ` (${state.type})` : ''}` +
+    (all ? ' · 위에서 아래로 흐르는 시간' : ' · 함께한 다른 가계도 인물은 숨김(칩으로 켜기)');
 }
 
 // 고른 노드와 이어진 것들: 사건이면 참여 인물과 인과로 이어진 사건, 인물이면 그가 얽힌 사건과 함께한 인물.
 function computeFocus() {
+  if (state.selLink) {
+    const L = state.selLink;
+    state.focus = L.a.alive && L.b.alive ? new Set([L.a.key, L.b.key]) : null;
+    if (!state.focus) state.selLink = null;
+    return;
+  }
   const k = state.selected;
   const n = k && nodes.get(k);
   if (!n || !n.alive) { state.focus = null; return; }
@@ -580,7 +606,7 @@ function computeFocus() {
   state.focus = f;
 }
 const inFocus = (n) => !state.focus || state.focus.has(n.key);
-const linkInFocus = (L) => !state.focus || (state.focus.has(L.a.key) && state.focus.has(L.b.key) &&
+const linkInFocus = (L) => !state.focus || L === state.selLink || (!state.selLink && state.focus.has(L.a.key) && state.focus.has(L.b.key) &&
   (L.a.key === state.selected || L.b.key === state.selected || (L.kind === 'role' && nodes.get(state.selected)?.kind === 'person')));
 
 // ── 배치: 높이는 시간으로 고정, 가로(x, z)만 힘으로 움직인다 ──────────
@@ -593,7 +619,7 @@ function simulate(dt) {
     for (const n of live) {
       // 집 방향으로 은근히: 인물은 자기 가계도 쪽, 사건은 가운데 쪽
       if (n.kind === 'person' && !n.P.external) {
-        const h = homeOf(n.P.fam);
+        const h = homeOf(n.fam);
         n.fx += (h.x * HOME_R - n.pos.x) * 0.05; n.fz += (h.z * HOME_R - n.pos.z) * 0.05;
       } else { n.fx -= n.pos.x * 0.012; n.fz -= n.pos.z * 0.012; }
     }
@@ -659,6 +685,23 @@ const _m = new T.Matrix4(), _q = new T.Quaternion(), _s = new T.Vector3(), _v = 
 const _c = new T.Color();
 let drawnS = [], drawnC = [];
 
+// 선의 3차 곡선 조절점. 사건→인물은 짧은 곡선, 사건→사건은 바깥으로 휘는 아치.
+function linkCurve(L, P0, P1, P2, P3) {
+  P0.copy(L.a.pos); P3.copy(L.b.pos);
+  const mx = (P0.x + P3.x) / 2, my = (P0.y + P3.y) / 2, mz = (P0.z + P3.z) / 2;
+  if (L.kind === 'role') {
+    P1.set(P0.x + (mx - P0.x) * 0.6, P0.y, P0.z + (mz - P0.z) * 0.6);
+    P2.set(P3.x + (mx - P3.x) * 0.6, P3.y, P3.z + (mz - P3.z) * 0.6);
+  } else {
+    let ox = mx, oz = mz;
+    const ol = Math.hypot(ox, oz);
+    if (ol < 0.03) { ox = 1; oz = 0; } else { ox /= ol; oz /= ol; }
+    const k = 4 + P0.distanceTo(P3) * 0.25;
+    P1.set((P0.x + mx) / 2 + ox * k, (P0.y + my) / 2, (P0.z + mz) / 2 + oz * k);
+    P2.set((P3.x + mx) / 2 + ox * k, (P3.y + my) / 2, (P3.z + mz) / 2 + oz * k);
+  }
+}
+
 function writeInstances() {
   const sc = spheres.geometry.attributes.aColor.array, sp = spheres.geometry.attributes.aParams.array;
   const cc = crystals.geometry.attributes.aColor.array, cp = crystals.geometry.attributes.aParams.array;
@@ -699,6 +742,8 @@ function writeInstances() {
     }
   }
   spheres.count = i; crystals.count = c; rings.count = r;
+  // 레이캐스트는 경계구로 먼저 거른다. 구슬이 움직이므로 매번 다시 잰다.
+  spheres.boundingSphere = null; crystals.boundingSphere = null;
   for (const m of [spheres, crystals, rings]) {
     m.instanceMatrix.needsUpdate = true;
     m.geometry.attributes.aColor.needsUpdate = true;
@@ -738,24 +783,16 @@ function writeInstances() {
     const vis0 = Math.min(a.scale, b.scale);
     if (vis0 < 0.02) continue;
     const focus = linkInFocus(L);
-    const hot = state.focus && focus;
+    const hot = (state.focus && focus) || L === state.hoverLink;
     const vis = vis0 * (focus ? 1 : 0.06);
     if (L.kind === 'role') {
       // 사건 → 인물: 짧은 곡선(사건 색에서 인물 색으로)
-      P0.copy(a.pos); P3.copy(b.pos);
-      const mid = new T.Vector3().lerpVectors(P0, P3, 0.5);
-      P1.lerpVectors(P0, mid, 0.6); P1.y = P0.y;
-      P2.lerpVectors(P3, mid, 0.6); P2.y = P3.y;
+      linkCurve(L, P0, P1, P2, P3);
       cA.copy(a.color); cB.copy(b.color);
       put(8, (hot ? 0.07 : 0.045) * vis0, cA, cB, hot ? 0.9 : 0.55, 0.25, hot ? 0.8 : 0.15, vis);
     } else {
       // 사건 → 사건: 바깥으로 휘는 아치. 빛 마디가 원인에서 결과 쪽으로 흐른다.
-      P0.copy(a.pos); P3.copy(b.pos);
-      const mid = new T.Vector3().lerpVectors(P0, P3, 0.5);
-      const out = new T.Vector3(mid.x, 0, mid.z);
-      if (out.lengthSq() < 1e-3) out.set(1, 0, 0);
-      out.normalize().multiplyScalar(4 + P0.distanceTo(P3) * 0.25);
-      P1.lerpVectors(P0, mid, 0.5).add(out); P2.lerpVectors(P3, mid, 0.5).add(out);
+      linkCurve(L, P0, P1, P2, P3);
       cA.set(REL_COLORS[L.rel.type] || '#ffffff');
       cB.copy(cA).lerp(b.color, 0.35);
       const w = (hot ? 0.16 : 0.1) * vis0;
@@ -924,34 +961,111 @@ function setupControls() {
 // ── 고르기 ──────────────────────────────────────────────
 const ray = new T.Raycaster();
 const ndc = new T.Vector2();
-function pick(x, y) {
+// opts.near: 정확히 맞지 않았을 때 가까운 구슬까지 고를지. 반환: 노드(또는 null). pick.dist에 화면 거리(정확히 맞으면 0).
+function pick(x, y, opts = { near: true }) {
   const rect = canvas.getBoundingClientRect();
   ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const hc = ray.intersectObject(crystals, false)[0];
   const hs = ray.intersectObject(spheres, false)[0];
   const c = hc && drawnC[hc.instanceId], s = hs && drawnS[hs.instanceId];
+  pick.dist = 0;
   if (c && s) return hc.distance < hs.distance ? c : s;
-  return c || s || null;
+  if (c || s) return c || s;
+  if (!opts.near) return null;
+  // 정확히 맞지 않으면 화면에서 가까운 구슬(휴대폰은 손가락 크기만큼 넉넉히)
+  const px = x - rect.left, py = y - rect.top;
+  const tol = isNarrow() ? 22 : 9;
+  let best = null, bestD = Infinity;
+  const right = _pr.setFromMatrixColumn(camera.matrix, 0);
+  for (const n of order) {
+    if (!n.alive || n.scale < 0.3 || (state.focus && n.dim > 0.5)) continue;
+    _pa.copy(n.pos).project(camera);
+    if (_pa.z > 1 || _pa.z < -1) continue;
+    const sx = (_pa.x * 0.5 + 0.5) * rect.width, sy = (-_pa.y * 0.5 + 0.5) * rect.height;
+    _pb.copy(n.pos).addScaledVector(right, n.radius * n.scale).project(camera);
+    const rpx = Math.abs((_pb.x - _pa.x) * 0.5 * rect.width);
+    const d = Math.hypot(px - sx, py - sy);
+    if (d < rpx + tol && d - rpx < bestD) { bestD = d - rpx; best = n; }
+  }
+  pick.dist = bestD;
+  return best;
+}
+const _pa = new T.Vector3(), _pb = new T.Vector3(), _pr = new T.Vector3();
+const _l0 = new T.Vector3(), _l1 = new T.Vector3(), _l2 = new T.Vector3(), _l3 = new T.Vector3(), _lq = new T.Vector3();
+function segDist(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const L2 = dx * dx + dy * dy;
+  let t = L2 ? ((px - x1) * dx + (py - y1) * dy) / L2 : 0;
+  t = t < 0 ? 0 : t > 1 ? 1 : t;
+  return Math.hypot(px - (x1 + dx * t), py - (y1 + dy * t));
+}
+// 선 고르기: 그릴 때와 같은 곡선을 화면에 투영해 선분까지의 거리를 잰다.
+function pickLink(x, y) {
+  const rect = canvas.getBoundingClientRect();
+  const px = x - rect.left, py = y - rect.top;
+  let best = null, bestD = isNarrow() ? 20 : 9;
+  for (const L of linkList) {
+    if (!L.a.alive || !L.b.alive || Math.min(L.a.scale, L.b.scale) < 0.4) continue;
+    if (state.focus && !linkInFocus(L)) continue;
+    linkCurve(L, _l0, _l1, _l2, _l3);
+    let pX = 0, pY = 0, pOK = false;
+    const N = 16;
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, u = 1 - t;
+      _lq.set(0, 0, 0).addScaledVector(_l0, u * u * u).addScaledVector(_l1, 3 * u * u * t)
+        .addScaledVector(_l2, 3 * u * t * t).addScaledVector(_l3, t * t * t).project(camera);
+      const ok = _lq.z <= 1 && _lq.z >= -1;
+      const sx = (_lq.x * 0.5 + 0.5) * rect.width, sy = (-_lq.y * 0.5 + 0.5) * rect.height;
+      if (ok && pOK) { const d = segDist(px, py, pX, pY, sx, sy); if (d < bestD) { bestD = d; best = L; } }
+      pX = sx; pY = sy; pOK = ok;
+    }
+  }
+  pickLink.dist = bestD;
+  return best;
 }
 let hoverQueued = null;
 function processHover() {
   if (!hoverQueued) return;
   const { x, y } = hoverQueued;
   hoverQueued = null;
-  const n = pick(x, y);
+  let n = pick(x, y);
+  const nd = n ? pick.dist : Infinity;
+  const L = nd > 0 ? pickLink(x, y) : null;
+  if (L && pickLink.dist < nd) n = null;
   const key = n && n.alive ? n.key : null;
   state.hovered = key;
-  canvas.classList.toggle('pointing', !!key);
-  if (key) showTip(n, x, y); else hideTip();
+  state.hoverLink = key ? null : L;
+  canvas.classList.toggle('pointing', !!key || !!state.hoverLink);
+  if (key) showTip(n, x, y);
+  else if (state.hoverLink) showLinkTip(state.hoverLink, x, y);
+  else hideTip();
 }
 function clickAt(x, y) {
-  const n = pick(x, y);
-  if (!n || !n.alive) { select(null); return; }
+  // 구슬 위를 정확히 누르면 구슬. 아니면 가까운 구슬과 가까운 선 가운데 더 가까운 쪽.
+  let n = pick(x, y);
+  const nd = n ? pick.dist : Infinity;
+  const L = nd > 0 ? pickLink(x, y) : null;
+  if (L && pickLink.dist < nd) n = null;
+  if (!n || !n.alive) {
+    if (L) { haptic(8); selectLink(L === state.selLink ? null : L); return; }
+    select(null);
+    return;
+  }
   haptic(10);
   select(n.key === state.selected ? null : n.key);
 }
+// 선을 고르면 그 관계(사건–사건의 인과, 또는 인물의 역할)만 남기고 상세 패널에 보여 준다.
+function selectLink(L) {
+  state.selected = null;
+  state.selLink = L;
+  computeFocus();
+  updateLabelsContent();
+  renderInfo();
+  if (L) { ctl.goal = new T.Vector3().lerpVectors(L.a.pos, L.b.pos, 0.5); }
+}
 function select(key) {
+  state.selLink = null;
   state.selected = key;
   computeFocus();
   updateLabelsContent();
@@ -971,16 +1085,28 @@ function showTip(n, x, y) {
       `<div>인물 ${ev.parts.length}명${ev.rels.length ? ` · 이어진 사건 ${ev.rels.length}` : ''}</div><div class="k">누르면 이어진 관계만 보기</div>`;
   } else {
     const P = n.P;
-    const fam = P.fam && state.families.get(P.fam);
     tip.innerHTML = `<b>${esc(P.name)}${P.hanja ? ` <small>${esc(P.hanja)}</small>` : ''}</b>` +
       `<span class="t">${esc(P.external ? '가계도 밖 인물' : P.refs.map((r) => state.families.get(r.ds).short).join(' · '))}</span>` +
-      `${fam && P.raw ? ` ${esc(years(P.raw))}` : ''}<div>사건 ${P.roles.length}개</div><div class="k">누르면 이 사람의 사건만 보기</div>`;
+      `${P.raw ? ` ${esc(years(P.raw))}` : ''}<div>사건 ${P.roles.length}개</div><div class="k">누르면 이 사람의 사건만 보기</div>`;
   }
   tip.hidden = false;
   const W = window.innerWidth, H = window.innerHeight;
   const tw = tip.offsetWidth, th = tip.offsetHeight;
   tip.style.left = `${Math.min(W - tw - 10, x + 16)}px`;
   tip.style.top = `${Math.min(H - th - 10, Math.max(10, y + 16))}px`;
+}
+function linkText(L) {
+  if (L.kind === 'rel') return { title: `${L.a.ev.name} → ${L.b.ev.name}`, kind: L.rel.type, note: L.rel.note || '' };
+  return { title: `${L.b.P.name} · ${L.a.ev.name}`, kind: '역할', note: L.role || '' };
+}
+function showLinkTip(L, x, y) {
+  const t = linkText(L);
+  tip.style.setProperty('--c', L.kind === 'rel' ? (REL_COLORS[L.rel.type] || '#fff') : '#' + L.b.color.getHexString(T.SRGBColorSpace));
+  tip.innerHTML = `<b>${esc(t.title)}</b><span class="t">${esc(t.kind)}</span> ${esc(t.note)}<div class="k">누르면 이 관계 보기</div>`;
+  tip.hidden = false;
+  const W = window.innerWidth, H = window.innerHeight;
+  tip.style.left = `${Math.min(W - tip.offsetWidth - 10, x + 16)}px`;
+  tip.style.top = `${Math.min(H - tip.offsetHeight - 10, Math.max(10, y + 16))}px`;
 }
 function hideTip() { tip.hidden = true; }
 
@@ -1007,7 +1133,8 @@ function updateLabelsContent() {
     } else {
       const P = n.P;
       key = `p|${P.key}`;
-      html = `<b>${esc(P.name)}${P.hanja ? `<small>${esc(P.hanja)}</small>` : ''}</b><span>${esc(P.external ? '가계도 밖' : state.families.get(P.fam).short)}</span>`;
+      key = `p|${P.key}|${famLabel(P)}`;
+      html = `<b>${esc(P.name)}${P.hanja ? `<small>${esc(P.hanja)}</small>` : ''}</b><span>${esc(P.external ? '가계도 밖' : famLabel(P))}</span>`;
       el.classList.toggle('ext', P.external);
     }
     if (el.dataset.key !== key) { el.dataset.key = key; el.innerHTML = html; el.style.setProperty('--c', c); el._w = 0; }
@@ -1087,8 +1214,43 @@ function relPhrase(rel, ev) {
   const arrow = out ? '→' : '←';
   return { other, text: `${arrow} ${rel.type}`, note: rel.note };
 }
+function renderLinkInfo(box, L) {
+  const ev = L.a.ev;
+  let html = '<button type="button" class="close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"/></svg></button>';
+  if (L.kind === 'rel') {
+    const c = REL_COLORS[L.rel.type] || '#fff';
+    box.style.setProperty('--c', c);
+    html += `<p class="kicker">RELATION · 사건과 사건</p>
+      <h2>${esc(L.rel.type)}</h2>
+      ${L.rel.note ? `<p class="note">${esc(L.rel.note)}</p>` : ''}
+      <ul class="plist link-ends">
+        <li><button type="button" data-go="${esc(L.a.key)}"><i class="rdot" style="--c:${TYPE_COLORS[L.a.ev.type]}"></i>${esc(L.a.ev.name)}<small>${esc(evYears(L.a.ev))}</small></button><span>앞(원인 쪽)</span></li>
+        <li class="arrow" aria-hidden="true">↓ ${esc(L.rel.type)}</li>
+        <li><button type="button" data-go="${esc(L.b.key)}"><i class="rdot" style="--c:${TYPE_COLORS[L.b.ev.type]}"></i>${esc(L.b.ev.name)}<small>${esc(evYears(L.b.ev))}</small></button><span>뒤(결과 쪽)</span></li>
+      </ul>`;
+  } else {
+    const P = L.b.P;
+    box.style.setProperty('--c', '#' + L.b.color.getHexString(T.SRGBColorSpace));
+    html += `<p class="kicker">ROLE · 인물과 사건</p>
+      <h2>${esc(L.role || '참여')}</h2>
+      <ul class="plist link-ends">
+        <li><button type="button" data-go="${esc(L.b.key)}">${famDot(famOf(P))}${esc(P.name)}${P.hanja ? `<small>${esc(P.hanja)}</small>` : ''}</button><span>${esc(famLabel(P))}</span></li>
+        <li class="arrow" aria-hidden="true">↓</li>
+        <li><button type="button" data-go="${esc(L.a.key)}"><i class="rdot" style="--c:${TYPE_COLORS[ev.type]}"></i>${esc(ev.name)}<small>${esc(evYears(ev))}</small></button><span>${esc(ev.type)}</span></li>
+      </ul>
+      ${ev.summary ? `<p class="note">${esc(ev.summary)}</p>` : ''}`;
+  }
+  return html;
+}
 function renderInfo() {
   const box = $('info');
+  if (state.selLink) {
+    if (box.hidden) box._openedAt = performance.now();
+    box.innerHTML = renderLinkInfo(box, state.selLink);
+    box.hidden = false;
+    wireInfo(box);
+    return;
+  }
   const n = state.selected && nodes.get(state.selected);
   if (!n || !n.alive) { box.hidden = true; return; }
   const c = '#' + n.color.getHexString(T.SRGBColorSpace);
@@ -1129,6 +1291,9 @@ function renderInfo() {
   if (box.hidden) box._openedAt = performance.now();
   box.innerHTML = html;
   box.hidden = false;
+  wireInfo(box);
+}
+function wireInfo(box) {
   box.querySelectorAll('[data-go]').forEach((b) => b.addEventListener('click', (ev) => {
     ev.stopPropagation();
     const key = b.dataset.go;
@@ -1147,6 +1312,8 @@ function setupInfoCard() {
   box.addEventListener('click', (ev) => {
     if (performance.now() - (box._openedAt || 0) < 450) return;
     if (ev.target.closest('.close')) { haptic(8); select(null); }
+    // 휴대폰: 단추가 아닌 곳을 누르면 카드를 닫는다(버블 가계도와 같이)
+    else if (isNarrow() && !ev.target.closest('button, a')) { haptic(8); select(null); }
   });
 }
 
@@ -1279,7 +1446,7 @@ function main() {
   setTimeout(() => fit(), 1600);
   requestAnimationFrame(frame);
   // 테스트·디버그용
-  window.__events = { state, nodes, select, fit, rebuild, camera: () => camera };
+  window.__events = { state, nodes, pick, select, selectLink, fit, rebuild, linkCurve, links: () => linkList, camera: () => camera };
 }
 
 try { main(); } catch (err) {

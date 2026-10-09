@@ -198,6 +198,16 @@ window.GENEALOGY_EVENTS = {
      "ds": "yi-sunsin-muui",
      "id": "sejo",
      "role": "언해 사업(석보상절)"
+    },
+    {
+     "ds": "yi-i",
+     "id": "sin_sukju",
+     "role": "집현전 학사"
+    },
+    {
+     "ds": "yi-i",
+     "id": "choi_manri",
+     "role": "반대 상소"
     }
    ],
    "external": [
@@ -207,19 +217,9 @@ window.GENEALOGY_EVENTS = {
      "role": "해례 서문"
     },
     {
-     "name": "신숙주",
-     "hanja": "申叔舟",
-     "role": "집현전 학사"
-    },
-    {
      "name": "성삼문",
      "hanja": "成三問",
      "role": "집현전 학사"
-    },
-    {
-     "name": "최만리",
-     "hanja": "崔萬理",
-     "role": "반대 상소"
     }
    ],
    "sources": [
@@ -246,14 +246,19 @@ window.GENEALOGY_EVENTS = {
      "ds": "yi-i",
      "id": "choi_manri",
      "role": "상소 주도"
+    },
+    {
+     "ds": "yi-sunsin-muui",
+     "id": "sejong",
+     "role": "훈민정음 창제, 친국"
+    },
+    {
+     "ds": "yi-wonik",
+     "id": "sejong",
+     "role": "훈민정음 창제, 친국"
     }
    ],
    "external": [
-    {
-     "name": "세종",
-     "hanja": "世宗",
-     "role": "훈민정음 창제, 친국"
-    },
     {
      "name": "정창손",
      "hanja": "鄭昌孫",
@@ -2755,11 +2760,6 @@ window.GENEALOGY_EVENTS = {
      "name": "홍타이지(청 태종)",
      "hanja": "皇太極",
      "role": "침략 주도"
-    },
-    {
-     "name": "김상헌",
-     "hanja": "金尙憲",
-     "role": "척화 대신"
     }
    ],
    "sources": [
