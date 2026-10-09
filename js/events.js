@@ -3,7 +3,8 @@
 //   · 사건은 종류별 색의 결정(多面體) 구슬, 기간이 있는 사건은 시작에서 끝까지 빛기둥을 세운다.
 //   · 인물은 가계도별 색의 작은 유리 구슬로, 자기가 얽힌 사건들 가까이에 모인다.
 //     가계도마다 둘레의 한 방향을 맡아, 여러 집안이 한 사건에 모이는 모습이 드러난다.
-//   · 선: 인물–사건(역할), 사건–사건(원인·결과·일부·영향·대립·계승, 화살표 방향으로 빛이 흐른다).
+//   · 선: 인물–사건(역할), 사건–사건(원인·결과·일부·영향·대립·계승, 화살표 방향으로 빛이 흐른다),
+//     인물–인물(가계 줄기: 가계도의 핏줄로 이은 조상 → 자손. 시대가 떨어진 사건들이 한 집안으로 이어진다).
 //   · 사건이나 인물을 누르면 그와 이어진 관계만 밝게 남고 나머지는 흐려진다.
 //   · 렌더링 셰이더(유리 구슬, 흐르는 선, 성운 하늘, 블룸)는 버블 가계도(js/bubble.js)와 같다.
 (function () {
@@ -47,7 +48,8 @@ const state = {
   families: new Map(),   // ds id → { id, short, color, index, persons: Map }
   events: [], eventById: new Map(),
   people: new Map(),     // 인물 key → { key, name, hanja, refs: [{ ds, id }], fam, external, roles: [{ ev, role }] }
-  famOn: new Set(), type: '', showRelations: true, showExternal: true, autoRotate: !reduceMotion,
+  famOn: new Set(), type: '', showRelations: true, showExternal: true, showKin: true,
+  models: new Map(),     // ds id → { model, kin } (가계 줄기 계산용) autoRotate: !reduceMotion,
   selected: null, hovered: null, focus: null, selLink: null, hoverLink: null, // focus: 선택한 노드와 이어진 노드 key 집합
 };
 
@@ -66,6 +68,12 @@ function loadData() {
     const persons = new Map(d.persons.map((p) => [p.id, p]));
     state.families.set(d.meta.id, { id: d.meta.id, short: shortName(d), color: FAMILY_COLORS[i % FAMILY_COLORS.length], index: i, persons, notable: new Set(d.meta.notable || []) });
   });
+  if (G.buildModel) {
+    for (const d of sets) {
+      try { const model = G.buildModel(d); state.models.set(d.meta.id, { model, kin: G.Kinship ? new G.Kinship(model) : null }); }
+      catch (e) { console.warn('가계 모델을 만들지 못함', d.meta.id, e); }
+    }
+  }
   const src = window.GENEALOGY_EVENTS || { events: [], relations: [] };
   // 같은 사람이 두 가계도에 있으면(예: 태종) 이름+한자로 한 구슬에 모은다.
   const personKey = (p) => `${p.name}|${p.hanja || ''}`;
@@ -554,6 +562,7 @@ function rebuild({ instant = false } = {}) {
     }
     for (const r of evs) linkList.push({ a: nodes.get(`e:${r.ev.id}`), b: n, kind: 'role', role: r.role });
   }
+  if (state.showKin) addKinLinks();
   if (state.showRelations) {
     const seen = new Set();
     for (const ev of visEvents) for (const rel of ev.rels) {
@@ -579,6 +588,82 @@ function updateSubtitle(nEv) {
   const fam = all ? '여섯 가계도' : on.join(' · ') + ' 가계';
   $('subtitle').textContent = `${fam} 인물이 얽힌 사건 ${nEv}개${state.type ? ` (${state.type})` : ''}` +
     (all ? ' · 위에서 아래로 흐르는 시간' : ' · 함께한 다른 가계도 인물은 숨김(칩으로 켜기)');
+}
+
+// 가계 줄기: 화면에 보이는 인물마다 가계도에서 위로(부모 → 조부모 …) 올라가다가, 처음 만나는 '화면에 보이는 조상'과 잇는다.
+// 그 조상 너머로는 더 올라가지 않으므로, 한 집안의 인물들이 사슬처럼 이어진다(태종 → 익녕군 계통 → 이원익 …).
+function addKinLinks() {
+  const byRef = new Map();
+  for (const n of nodes.values()) {
+    if (!n.alive || n.kind !== 'person' || n.P.external) continue;
+    for (const r of n.P.refs) byRef.set(`${r.ds}|${r.id}`, n);
+  }
+  const made = new Set();
+  for (const n of [...nodes.values()]) {
+    if (!n.alive || n.kind !== 'person' || n.P.external) continue;
+    for (const r of n.P.refs) {
+      if (!state.famOn.has(r.ds)) continue;
+      const M = state.models.get(r.ds);
+      if (!M) continue;
+      const seen = new Set([r.id]);
+      let frontier = [r.id];
+      for (let gen = 1; gen <= 30 && frontier.length; gen++) {
+        const next = [];
+        for (const id of frontier) for (const pid of M.model.parents(id, 'legal')) {
+          if (seen.has(pid)) continue;
+          seen.add(pid);
+          const a = byRef.get(`${r.ds}|${pid}`);
+          if (a && a !== n) {
+            const key = `${a.key}>${n.key}`;
+            if (!made.has(key)) {
+              made.add(key);
+              const rel = M.kin ? M.kin.relation(pid, r.id) : null;
+              linkList.push({ a, b: n, kind: 'kin', ds: r.ds, gen, term: rel ? rel.term : `${gen}대` });
+            }
+            continue; // 보이는 조상에서 멈춘다
+          }
+          next.push(pid);
+        }
+        frontier = next;
+      }
+    }
+  }
+  bridgeKin(byRef);
+}
+// 조상 사슬로도 안 이어지는 덩어리(예: 숙부·처가 쪽 사람들만 나온 사건)는, 같은 가계도 안에서
+// 가장 가까운 친척(혈족 촌수가 작은 쪽, 인척은 한 촌 더 먼 것으로 친다)과 한 줄로 잇는다.
+function bridgeKin(byRef) {
+  const persons = [...new Set(byRef.values())];
+  const parent = new Map([...nodes.values()].filter((n) => n.alive).map((n) => [n, n]));
+  const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
+  const unite = (a, b) => parent.set(find(a), find(b));
+  for (const L of linkList) if (L.a.alive && L.b.alive) unite(L.a, L.b);
+  const dist = (r) => r.kind === 'blood' ? r.chon : r.kind === 'spouse' ? 1 : (r.kind === 'affinal' || r.kind === 'sadon') ? (r.chon ?? 2) + 1 : Infinity;
+  for (const ds of state.famOn) {
+    const M = state.models.get(ds);
+    if (!M || !M.kin) continue;
+    const mine = persons.filter((n) => n.P.refs.some((r) => r.ds === ds));
+    const idOf = (n) => n.P.refs.find((r) => r.ds === ds).id;
+    for (let guard = 0; guard < 20; guard++) {
+      const groups = new Map();
+      for (const n of mine) { const g = find(n); if (!groups.has(g)) groups.set(g, []); groups.get(g).push(n); }
+      if (groups.size < 2) break;
+      const list = [...groups.values()].sort((a, b) => a.length - b.length);
+      const small = list[0], rest = list.slice(1).flat();
+      let best = null;
+      for (const x of small) for (const y of rest) {
+        const r = M.kin.relation(idOf(y), idOf(x));
+        const d = dist(r);
+        if (d < Infinity && (!best || d < best.d)) best = { x, y, r, d };
+      }
+      if (!best) break;
+      // 위(먼저 산 사람)에서 아래로 긋는다
+      const [a, b] = best.x.pos.y > best.y.pos.y ? [best.x, best.y] : [best.y, best.x];
+      const r = M.kin.relation(idOf(a), idOf(b));
+      linkList.push({ a, b, kind: 'kin', ds, bridge: true, chon: r.chon, term: `${r.term}${r.kind === 'blood' && r.chon ? ` · ${r.chon}촌` : ''}` });
+      unite(a, b);
+    }
+  }
 }
 
 // 고른 노드와 이어진 것들: 사건이면 참여 인물과 인과로 이어진 사건, 인물이면 그가 얽힌 사건과 함께한 인물.
@@ -625,7 +710,7 @@ function simulate(dt) {
     }
     for (const L of linkList) {
       if (!L.a.alive || !L.b.alive) continue;
-      const k = L.kind === 'role' ? 0.9 : 0.35;
+      const k = L.kind === 'role' ? 0.9 : L.kind === 'kin' ? 0.12 : 0.35;
       const dx = L.b.pos.x - L.a.pos.x, dz = L.b.pos.z - L.a.pos.z;
       L.a.fx += dx * k * (L.kind === 'role' ? 0.25 : 1); L.a.fz += dz * k * (L.kind === 'role' ? 0.25 : 1);
       L.b.fx -= dx * k; L.b.fz -= dz * k;
@@ -689,7 +774,11 @@ let drawnS = [], drawnC = [];
 function linkCurve(L, P0, P1, P2, P3) {
   P0.copy(L.a.pos); P3.copy(L.b.pos);
   const mx = (P0.x + P3.x) / 2, my = (P0.y + P3.y) / 2, mz = (P0.z + P3.z) / 2;
-  if (L.kind === 'role') {
+  if (L.kind === 'kin') {
+    // 조상(위)에서 자손(아래)으로 곧게 내려오는 S자
+    const h = (P0.y - P3.y) * 0.45;
+    P1.set(P0.x, P0.y - h, P0.z); P2.set(P3.x, P3.y + h, P3.z);
+  } else if (L.kind === 'role') {
     P1.set(P0.x + (mx - P0.x) * 0.6, P0.y, P0.z + (mz - P0.z) * 0.6);
     P2.set(P3.x + (mx - P3.x) * 0.6, P3.y, P3.z + (mz - P3.z) * 0.6);
   } else {
@@ -790,6 +879,11 @@ function writeInstances() {
       linkCurve(L, P0, P1, P2, P3);
       cA.copy(a.color); cB.copy(b.color);
       put(8, (hot ? 0.07 : 0.045) * vis0, cA, cB, hot ? 0.9 : 0.55, 0.25, hot ? 0.8 : 0.15, vis);
+    } else if (L.kind === 'kin') {
+      // 가계 줄기: 집안 색의 가는 금실. 빛이 조상에서 자손 쪽으로 흐른다.
+      linkCurve(L, P0, P1, P2, P3);
+      cA.set(state.families.get(L.ds).color); cB.copy(cA);
+      put(SEG, (hot ? 0.06 : 0.035) * vis0, cA, cB, hot ? 0.9 : 0.5, 0.45, hot ? 0.9 : 0.35, vis * 0.85);
     } else {
       // 사건 → 사건: 바깥으로 휘는 아치. 빛 마디가 원인에서 결과 쪽으로 흐른다.
       linkCurve(L, P0, P1, P2, P3);
@@ -1096,12 +1190,13 @@ function showTip(n, x, y) {
   tip.style.top = `${Math.min(H - th - 10, Math.max(10, y + 16))}px`;
 }
 function linkText(L) {
+  if (L.kind === 'kin') return { title: `${L.a.P.name} → ${L.b.P.name}`, kind: '가계 줄기', note: `${L.b.P.name}은(는) ${L.a.P.name}의 ${L.term}` };
   if (L.kind === 'rel') return { title: `${L.a.ev.name} → ${L.b.ev.name}`, kind: L.rel.type, note: L.rel.note || '' };
   return { title: `${L.b.P.name} · ${L.a.ev.name}`, kind: '역할', note: L.role || '' };
 }
 function showLinkTip(L, x, y) {
   const t = linkText(L);
-  tip.style.setProperty('--c', L.kind === 'rel' ? (REL_COLORS[L.rel.type] || '#fff') : '#' + L.b.color.getHexString(T.SRGBColorSpace));
+  tip.style.setProperty('--c', L.kind === 'rel' ? (REL_COLORS[L.rel.type] || '#fff') : L.kind === 'kin' ? state.families.get(L.ds).color : '#' + L.b.color.getHexString(T.SRGBColorSpace));
   tip.innerHTML = `<b>${esc(t.title)}</b><span class="t">${esc(t.kind)}</span> ${esc(t.note)}<div class="k">누르면 이 관계 보기</div>`;
   tip.hidden = false;
   const W = window.innerWidth, H = window.innerHeight;
@@ -1217,6 +1312,21 @@ function relPhrase(rel, ev) {
 function renderLinkInfo(box, L) {
   const ev = L.a.ev;
   let html = '<button type="button" class="close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"/></svg></button>';
+  if (L.kind === 'kin') {
+    const fam = state.families.get(L.ds);
+    box.style.setProperty('--c', fam.color);
+    const pa = L.a.P.raw, pb = L.b.P.raw;
+    html += `<p class="kicker">LINEAGE · 가계 줄기</p>
+      <h2>${esc(L.term)}</h2>
+      <p class="note">${esc(fam.short)} 가계도에서 ${esc(L.b.P.name)}은(는) ${esc(L.a.P.name)}의 ${esc(L.term)}입니다${L.bridge ? '. 직계로는 이어지지 않아 가장 가까운 친척 관계로 이었습니다.' : `(${L.gen}대 아래). 사이의 세대는 화면에 사건이 없어 생략했습니다.`}</p>
+      <ul class="plist link-ends">
+        <li><button type="button" data-go="${esc(L.a.key)}">${famDot(L.ds)}${esc(L.a.P.name)}${L.a.P.hanja ? `<small>${esc(L.a.P.hanja)}</small>` : ''}</button><span>${esc(pa ? years(pa) : '')}</span></li>
+        <li class="arrow" aria-hidden="true">↓ ${L.bridge ? esc(L.term) : `${L.gen}대`}</li>
+        <li><button type="button" data-go="${esc(L.b.key)}">${famDot(L.ds)}${esc(L.b.P.name)}${L.b.P.hanja ? `<small>${esc(L.b.P.hanja)}</small>` : ''}</button><span>${esc(pb ? years(pb) : '')}</span></li>
+      </ul>
+      <div class="acts"><a class="glass-btn" href="index.html#${esc(L.ds)}" data-ego="${esc(L.ds)}|${esc(L.b.P.refs.find((r) => r.ds === L.ds).id)}">${esc(fam.short)} 버블 가계도에서</a></div>`;
+    return html;
+  }
   if (L.kind === 'rel') {
     const c = REL_COLORS[L.rel.type] || '#fff';
     box.style.setProperty('--c', c);
@@ -1241,6 +1351,12 @@ function renderLinkInfo(box, L) {
       ${ev.summary ? `<p class="note">${esc(ev.summary)}</p>` : ''}`;
   }
   return html;
+}
+// 자손 쪽에서 본 조상 호칭(예: 5대조부)
+function M_up(L) {
+  const M = state.models.get(L.ds);
+  const ra = L.a.P.refs.find((r) => r.ds === L.ds), rb = L.b.P.refs.find((r) => r.ds === L.ds);
+  return M && M.kin && ra && rb ? M.kin.relation(rb.id, ra.id).term : '조상';
 }
 function renderInfo() {
   const box = $('info');
@@ -1286,6 +1402,15 @@ function renderInfo() {
       ${P.raw && P.raw.title ? `<p class="note">${esc(P.raw.title)}</p>` : ''}
       <div class="grp"><p class="grp-h">얽힌 사건 (시간순)</p>
       <ul class="plist">${evs.map((r) => `<li><button type="button" data-go="e:${esc(r.ev.id)}"><i class="rdot" style="--c:${TYPE_COLORS[r.ev.type]}"></i>${esc(r.ev.name)}<small>${esc(evYears(r.ev))}</small></button><span>${esc(r.role || '')}</span></li>`).join('')}</ul></div>
+      ${(() => {
+        const kin = linkList.filter((L) => L.kind === 'kin' && L.a.alive && L.b.alive && (L.a === n || L.b === n));
+        if (!kin.length) return '';
+        return `<div class="grp"><p class="grp-h">가계 줄기 (화면에 보이는 조상·자손)</p><ul class="plist">${kin.map((L) => {
+          const o = L.a === n ? L.b : L.a;
+          const t = L.a === n ? L.term : M_up(L);
+          return `<li><button type="button" data-go="${esc(o.key)}">${famDot(L.ds)}${esc(o.P.name)}${o.P.hanja ? `<small>${esc(o.P.hanja)}</small>` : ''}</button><span>${esc(t)}</span></li>`;
+        }).join('')}</ul></div>`;
+      })()}
       ${P.refs.length ? `<div class="acts">${P.refs.map((r) => `<a class="glass-btn" href="index.html#${esc(r.ds)}" data-ego="${esc(r.ds)}|${esc(r.id)}">${esc(state.families.get(r.ds).short)} 버블 가계도에서</a>`).join('')}</div>` : ''}`;
   }
   if (box.hidden) box._openedAt = performance.now();
@@ -1317,6 +1442,17 @@ function setupInfoCard() {
   });
 }
 
+// 화면에 보이는 그래프가 몇 덩어리인지(시험용)
+function components() {
+  const alive = [...nodes.values()].filter((n) => n.alive);
+  const parent = new Map(alive.map((n) => [n, n]));
+  const find = (x) => { while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); } return x; };
+  for (const L of linkList) if (L.a.alive && L.b.alive) parent.set(find(L.a), find(L.b));
+  const groups = new Map();
+  for (const n of alive) { const r = find(n); if (!groups.has(r)) groups.set(r, []); groups.get(r).push(n.ev ? n.ev.name : n.P.name); }
+  return [...groups.values()].sort((a, b) => b.length - a.length);
+}
+
 // ── 범례·필터 ────────────────────────────────────────────
 function buildLegend() {
   const used = new Set(state.events.map((e) => e.type));
@@ -1325,6 +1461,7 @@ function buildLegend() {
     TYPES.filter((t) => used.has(t)).map((t) => `<li data-type="${esc(t)}"><i class="cdot" style="--c:${TYPE_COLORS[t]}"></i>${esc(t)}<em></em></li>`).join('') +
     '<li class="sep"></li>' +
     REL_TYPES.filter((t) => usedRel.has(t)).map((t) => `<li><i class="rline" style="--c:${REL_COLORS[t]}"></i>${esc(t)}</li>`).join('') +
+    '<li><i class="rline kin"></i>가계 줄기(조상→자손)</li>' +
     '<li class="sep"></li><li><i class="dot unknown"></i>가계도 밖 인물</li><li><i class="ring-sample"></i>이름난 인물</li><li><i class="pillar-sample"></i>기간(시작→끝)</li>';
 }
 function updateLegendCounts() {
@@ -1427,6 +1564,7 @@ function main() {
   $('autoRotate').checked = state.autoRotate;
   $('autoRotate').addEventListener('change', (e) => { state.autoRotate = e.target.checked; });
   $('showRelations').addEventListener('change', (e) => { state.showRelations = e.target.checked; rebuild(); });
+  $('showKin').addEventListener('change', (e) => { state.showKin = e.target.checked; rebuild(); });
   $('showExternal').addEventListener('change', (e) => { state.showExternal = e.target.checked; rebuild(); });
   $('toggleControls').addEventListener('click', () => {
     const on = !document.body.classList.contains('controls-open');
@@ -1446,7 +1584,7 @@ function main() {
   setTimeout(() => fit(), 1600);
   requestAnimationFrame(frame);
   // 테스트·디버그용
-  window.__events = { state, nodes, pick, select, selectLink, fit, rebuild, linkCurve, links: () => linkList, camera: () => camera };
+  window.__events = { state, nodes, pick, components, select, selectLink, fit, rebuild, linkCurve, links: () => linkList, camera: () => camera };
 }
 
 try { main(); } catch (err) {
