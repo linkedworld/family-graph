@@ -17,6 +17,7 @@ const $ = (id) => document.getElementById(id) || missing.get(id) ||
   (missing.set(id, document.createElement('div')), missing.get(id));
 
 // ── 설정 ────────────────────────────────────────────────
+const DEFAULT_DATASET = 'yi-sunsin-muui'; // 주소에 #가계도 id가 없을 때 처음 여는 가계도
 const GEN_H = 8;          // 세대 사이 높이
 const R_PERSON = 1;       // 구슬 반지름
 const R_SPOUSE = 0.6;
@@ -1681,7 +1682,7 @@ function main() {
   setupControls();
   window.addEventListener('resize', resize);
   resize();
-  loadDataset(fromHash() || datasets[0]);
+  loadDataset(fromHash() || byId.get(DEFAULT_DATASET) || datasets[0]);
   requestAnimationFrame(frame);
   // 테스트·디버그용
   window.__bubble = { state, nodes, ctl, toggle, tuck, untuck, pickLink, fit, setEgo, camera: () => camera, scene: () => scene };
