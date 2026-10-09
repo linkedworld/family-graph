@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
-const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/yi-wonik.js', 'data/jeong-yakyong.js'];
+const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/yi-wonik.js', 'data/jeong-yakyong.js', 'data/geumcheon-kang.js'];
 const ctx = vm.createContext({ window: {} });
 ctx.globalThis = ctx;
 ctx.window = ctx;
@@ -426,12 +426,13 @@ test('광명의 명사: 명단은 공적 정보만, 사건·관계·출처 검�
   const REL = ['원인', '결과로 이어짐', '일부', '영향', '대립', '계승'];
   for (const ds of GM.families) assert.ok(ctx.GENEALOGY_DATASETS.some((d) => d.meta.id === ds), `없는 가계도 ${ds}`);
   // 현재 인물: 공적 역할만. 가족·주소·연락처·SNS를 담는 칸은 두지 않는다.
-  const ALLOWED = new Set(['id', 'name', 'hanja', 'gender', 'group', 'party', 'district', 'role', 'born', 'gmOrigin', 'career', 'sources']);
-  const roster = new Set();
-  assert.equal(GM.roster.length, 30, `명단 ${GM.roster.length}명`);
-  for (const p of GM.roster) {
-    assert.ok(!roster.has(p.id), `중복 id ${p.id}`);
-    roster.add(p.id);
+  const ALLOWED = new Set(['id', 'name', 'hanja', 'gender', 'group', 'party', 'district', 'role', 'born', 'birth', 'death', 'gmOrigin', 'career', 'sources']);
+  const members = new Map(GM.groups.map((g) => [g.id, new Set()]));
+  assert.equal(GM.groups.find((g) => g.id === 'gm-today').people.length, 30, '오늘의 명사 30명');
+  for (const g of GM.groups) for (const p of g.people) {
+    const set = members.get(g.id);
+    assert.ok(!set.has(p.id), `중복 id ${p.id}`);
+    set.add(p.id);
     for (const k of Object.keys(p)) assert.ok(ALLOWED.has(k), `${p.id}: 공적 정보가 아닌 칸 ${k}`);
     assert.ok(p.name && p.group && Array.isArray(p.career) && p.career.length, `${p.id}: 이름·분류·이력`);
     assert.ok(p.sources.length && p.sources.every((s) => s.title && /^https?:/.test(s.url)), `${p.id}: 출처`);
@@ -447,13 +448,19 @@ test('광명의 명사: 명단은 공적 정보만, 사건·관계·출처 검�
     if (e.end != null) assert.ok(e.end >= e.start, `${e.id}: 끝 연도`);
     assert.ok(e.name && e.summary, `${e.id}: 이름·설명`);
     assert.ok((e.sources || []).length && e.sources.every((s) => s.title && /^https?:/.test(s.url)), `${e.id}: 출처`);
-    assert.ok(e.participants.length > 0, `${e.id}: 명단·가계도 인물이 하나도 없음`);
+    // 인물이 없는 사건(행정 연혁 등)은 시간축의 배경으로 보인다
     for (const p of e.participants) {
-      const ok = p.ds === 'gm-today' ? roster.has(p.id) : GM.families.includes(p.ds) && persons.get(p.ds)?.has(p.id);
+      const ok = members.has(p.ds) ? members.get(p.ds).has(p.id) : GM.families.includes(p.ds) && persons.get(p.ds)?.has(p.id);
       assert.ok(ok, `${e.id}: 없는 인물 ${p.ds}/${p.id}`);
     }
   }
-  for (const id of roster) assert.ok(GM.events.some((e) => e.participants.some((p) => p.ds === 'gm-today' && p.id === id)), `${id}: 얽힌 사건이 없어 화면에 안 보임`);
+  for (const [ds, set] of members) for (const id of set) {
+    assert.ok(GM.events.some((e) => e.participants.some((p) => p.ds === ds && p.id === id)), `${id}: 얽힌 사건이 없어 화면에 안 보임`);
+  }
+  for (const [id, list] of Object.entries(GM.addParticipants || {})) {
+    assert.ok((GM.include || []).includes(id), `addParticipants: 가져오지 않는 사건 ${id}`);
+    for (const p of list) assert.ok(persons.get(p.ds)?.has(p.id), `addParticipants ${id}: 없는 인물 ${p.ds}/${p.id}`);
+  }
   for (const r of GM.relations) {
     assert.ok(ids.has(r.from) && ids.has(r.to), `관계의 사건 없음 ${r.from} → ${r.to}`);
     assert.ok(REL.includes(r.type), `관계 종류 ${r.type}`);

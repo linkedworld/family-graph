@@ -30,3 +30,7 @@
 .info .link-ends li.arrow { justify-content: flex-start; padding-left: 4px; font: 600 0.78rem var(--f-mono); color: var(--c, var(--accent)); }
 
 .rline.kin { height: 2px; background: linear-gradient(90deg, transparent, #ffc95c); box-shadow: 0 0 6px #ffc95c; }
+
+/* 광명의 명사: 명단 인물의 공적 이력은 왼쪽 정렬로 한 줄씩 */
+.info .plist.career li { justify-content: flex-start; }
+.info .plist.career span { flex: 1; max-width: none; text-align: left; color: var(--ink-2); }
