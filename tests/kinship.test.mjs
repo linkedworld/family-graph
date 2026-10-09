@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
-const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/jeong-yakyong.js'];
+const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/yi-wonik.js', 'data/jeong-yakyong.js'];
 const ctx = vm.createContext({ window: {} });
 ctx.globalThis = ctx;
 ctx.window = ctx;
@@ -164,6 +164,25 @@ test('무의공 이순신(충무공의 동명이인)', () => {
   // 같은 이름 '이순'이 둘: 고조부 부림령(李順)과 종현조부 봉산부정(李諄)
   assert.deepEqual(rel(k, E, 'yi_sun_burim'), ['고조부', 4]);
   assert.deepEqual(rel(k, E, 'yi_sun_bongsan'), ['종현조부', 7]);
+});
+
+test('오리 이원익', () => {
+  const k = new Kinship(buildModel(dataset('yi-wonik')));
+  const E = 'yi_wonik';
+  assert.deepEqual(rel(k, E, 'iknyeong'), ['고조부', 4]);
+  assert.deepEqual(rel(k, E, 'sejong'), ['종고조부', 6]);
+  assert.deepEqual(rel(k, E, 'jeong_chi'), ['외조부', 2]);
+  assert.deepEqual(rel(k, E, 'yi_wonbo'), ['형', 2]);
+  assert.deepEqual(rel(k, E, 'heo_mok'), ['손서', 2]);
+  // 양자: 이존도는 큰아버지 이증현의 양자로 이원익의 적장손 계통을 이었다.
+  assert.deepEqual(rel(k, E, 'yi_jondo'), ['현손자', 4]);
+  assert.deepEqual(rel(k, 'yi_jeunghyeon', 'yi_jondo'), ['양자', 1]);
+  // 이원영은 재종숙 이억로에게 출계: 양가 기준 6촌, 생가 기준 4촌
+  const won = k.relation(E, 'yi_wonyeong');
+  assert.deepEqual([won.term, won.chon], ['재종형제', 6]);
+  assert.match(won.detail, /생가 기준 종형제 4촌/);
+  // 사촌누이 이은숙의 계자 김상헌
+  assert.equal(k.relation(E, 'kim_sangheon').chon, 5);
 });
 
 test('다산 정약용', () => {
