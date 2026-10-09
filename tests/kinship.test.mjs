@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
-const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/jeong-yakyong.js'];
+const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/jeong-yakyong.js'];
 const ctx = vm.createContext({ window: {} });
 ctx.globalThis = ctx;
 ctx.window = ctx;
@@ -146,6 +146,24 @@ test('충무공 이순신', () => {
   assert.equal(k.relation(E, 'hong_gasin').term, '사돈');
   // 이완과 서자 이신은 사촌
   assert.deepEqual(rel(k, 'yi_wan', 'yi_sin'), ['종형제', 4]); // 이신의 생년 미상이라 손위·손아래를 정하지 않음
+});
+
+test('무의공 이순신(충무공의 동명이인)', () => {
+  const k = new Kinship(buildModel(dataset('yi-sunsin-muui')));
+  const E = 'yi_sunsin_m';
+  assert.deepEqual(rel(k, E, 'yangnyeong'), ['6대조부', 6]);
+  assert.deepEqual(rel(k, E, 'sejong'), ['종6대조부', 8]);
+  assert.deepEqual(rel(k, E, 'yi_yunui'), ['증조부', 3]);
+  assert.deepEqual(rel(k, E, 'kim_gusu'), ['외조부', 2]);
+  assert.deepEqual(rel(k, E, 'yi_sunji'), ['형', 2]);
+  assert.deepEqual(rel(k, E, 'yi_gwangbo'), ['손자', 2]);
+  assert.deepEqual(rel(k, E, 'nam_suseong'), ['외증손자', 3]);
+  assert.equal(k.relation(E, 'bae_heungrip').term, '사돈');
+  // 서자 계통이라 양녕대군의 정부인은 친할머니가 아니다.
+  assert.equal(k.relation(E, 'gwangsan_kim').term, '전6대조모');
+  // 같은 이름 '이순'이 둘: 고조부 부림령(李順)과 종현조부 봉산부정(李諄)
+  assert.deepEqual(rel(k, E, 'yi_sun_burim'), ['고조부', 4]);
+  assert.deepEqual(rel(k, E, 'yi_sun_bongsan'), ['종현조부', 7]);
 });
 
 test('다산 정약용', () => {
