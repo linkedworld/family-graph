@@ -8,54 +8,101 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="css/bubble.css?v=20261009-15">
-<link rel="stylesheet" href="css/events.css?v=20261009-15">
-<link rel="stylesheet" href="css/nav.css?v=20261009-15">
+<link rel="stylesheet" href="css/bubble.css?v=20261009-16">
+<link rel="stylesheet" href="css/world.css?v=20261009-16">
+<link rel="stylesheet" href="css/nav.css?v=20261009-16">
 </head>
-<!-- data-scope: js/events.js가 data/gwangmyeong.js의 사건·명단과 광명 연고 가계도만 올린다 -->
-<body data-scope="gwangmyeong">
-<main class="space" id="space" aria-label="광명의 명사 3D 화면">
-  <canvas id="gl" aria-label="3D 광명 인물·사건 관계망. 사건이나 인물을 누르면 이어진 관계만 밝게 보입니다."></canvas>
+<!-- 세계사 연관도(루이 14세) 엔진 js/world.js를 그대로 쓴다. 자료는 js/gm-world.js가 광명 데이터로 만든다. -->
+<body class="world">
+<main class="space" id="space" aria-label="광명의 명사 3D 시간 축">
+  <canvas id="gl" aria-label="시간 축 위의 인물 생애선과 사건. 누르면 자세한 정보가 열립니다."></canvas>
   <div id="labels" class="labels" aria-hidden="true"></div>
   <div id="tip" class="tip" hidden></div>
 
   <header class="hud-top">
     <div class="brand">
-      <p class="eyebrow">GWANGMYEONG · PEOPLE &amp; EVENTS</p>
+      <p class="eyebrow">GWANGMYEONG · TIMELINE 3D</p>
       <h1 id="title">광명의 명사</h1>
-      <p class="sub" id="subtitle">광명의 옛 인물과 오늘의 명사 · 왼쪽에서 오른쪽으로 흐르는 시간</p>
+      <p class="sub" id="subtitle"></p>
     </div>
     <button type="button" id="toggleControls" class="glass-btn only-narrow" aria-expanded="false" aria-controls="controls">설정</button>
     <div class="controls" id="controls">
-      <label class="field" for="find"><span>사건·인물 찾기</span>
-        <input id="find" type="search" list="findList" placeholder="이름 입력" autocomplete="off">
-        <datalist id="findList"></datalist>
+      <label class="field" for="dataset"><span>주제</span><select id="dataset"></select></label>
+      <label class="field" for="orient"><span>시간 방향</span>
+        <select id="orient">
+          <option value="auto">자동</option>
+          <option value="h">가로 (왼쪽→오른쪽)</option>
+          <option value="v">세로 (위→아래)</option>
+        </select>
       </label>
-      <label class="field" for="typeFilter"><span>사건 종류</span><select id="typeFilter"></select></label>
-      <div class="chips fam-chips" id="famChips" role="group" aria-label="무리"></div>
-      <div class="chips" role="group" aria-label="표시">
-        <label class="chip" title="사건과 사건 사이의 원인·결과·영향을 흐르는 선으로 그립니다"><input type="checkbox" id="showRelations" checked><span>사건 인과</span></label>
-        <label class="chip" title="옛 인물은 가계도의 핏줄(조상 → 자손)로, 명단 인물은 같은 무리끼리 시간 순으로 잇습니다(혈연·인맥 아님)"><input type="checkbox" id="showKin" checked><span>가계·무리 줄기</span></label>
-        <label class="chip" title="임금·상대 후보처럼 명단 밖의 인물도 회색 구슬로 보입니다"><input type="checkbox" id="showExternal" checked><span>명단 밖 인물</span></label>
-        <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
+      <label class="field range" for="lineK"><span>선 진하기</span>
+        <input type="range" id="lineK" min="0.3" max="2" step="0.1" value="1">
+      </label>
+      <label class="field" for="find"><span>인물·사건 찾기</span>
+        <input id="find" type="search" list="people" placeholder="이름 또는 사건" autocomplete="off">
+        <datalist id="people"></datalist>
+      </label>
+      <div class="chips" role="group" aria-label="연결선">
+        <label class="chip"><input type="checkbox" id="show_family" checked><span>혈통</span></label>
+        <label class="chip"><input type="checkbox" id="show_union" checked><span>혼인</span></label>
+        <label class="chip"><input type="checkbox" id="show_event" checked><span>사건</span></label>
+      </div>
+      <div class="chips" role="group" aria-label="시간">
+        <label class="chip"><input type="checkbox" id="show_era" checked><span>시대 띠</span></label>
+        <label class="chip" title="커서가 가리키는 해에 살아 있던 인물과 그 무렵의 사건만 밝게"><input type="checkbox" id="timeFocus"><span>그 해만 강조</span></label>
+        <label class="chip" title="연도 막의 원판. 꺼 두어도 연도를 옮기거나 재생하는 동안에는 잠깐 보임"><input type="checkbox" id="showPlane" checked><span>시대 판</span></label>
+        <label class="chip" title="연도를 바꾸면 카메라가 그 해로 따라감"><input type="checkbox" id="follow" checked><span>시간 따라가기</span></label>
+        <label class="chip"><input type="checkbox" id="autoRotate"><span>자동 회전</span></label>
       </div>
     </div>
   </header>
 
-  <ul class="legend ev-legend" id="legend" aria-label="보는 법"></ul>
+  <details class="legend world-legend" id="legend">
+    <summary>보는 법</summary>
+    <p>인물 분류 (축 둘레의 구역)</p>
+    <ul id="legendGroups"></ul>
+    <p>사건 (축 위의 수정)</p>
+    <ul id="legendEvents" class="two"></ul>
+    <p>선</p>
+    <ul>
+      <li><i class="ln life"></i>생애 (출생→사망)</li>
+      <li><i class="ln fam"></i>부모→자녀 (자녀가 태어난 해)</li>
+      <li><i class="ln uni"></i>혼인 (연도 미상이면 아내 열여덟 무렵)</li>
+      <li><i class="ln evl"></i>사건 참여</li>
+    </ul>
+    <p>연도</p>
+    <ul>
+      <li>생몰 미상: 부모·자녀의 연도에서 한 세대(27년)로 어림한 자리</li>
+      <li>활동: 생몰년 대신 얽힌 사건의 연도</li>
+    </ul>
+  </details>
 
-  <aside id="info" class="info" aria-live="polite" hidden></aside>
+  <aside id="info" class="info world-info" aria-live="polite" hidden></aside>
+  <!-- 경로만 보기: 중심 인물에서 고른 사람까지 한 걸음씩 -->
+  <section id="routeBar" class="route-bar" aria-live="polite" hidden></section>
 
   <div id="fallback" class="fallback" hidden>
     <p>이 브라우저에서는 3D(WebGL)를 쓸 수 없습니다.</p>
     <a href="tree.html">카드 가계도로 보기</a>
   </div>
 
-  <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
+  <!-- 연도 커서: 시대 띠 위에서 해를 고르고, 재생하면 시간이 흐른다 -->
+  <div class="timebar" id="timebar" role="group" aria-label="연도">
+    <button type="button" id="play" class="play" aria-label="재생"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="i-play" d="M8 5.5v13l11-6.5z"/><path class="i-pause" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg></button>
+    <div class="tb-main">
+      <div class="tb-head"><b id="yearText">1608</b><span id="eraText"></span><em id="aliveText"></em></div>
+      <div class="tb-track">
+        <div class="bands" id="eraBands" aria-hidden="true"></div>
+        <i class="life-mark" id="lifeMark" aria-hidden="true"></i>
+        <input type="range" id="year" step="1" aria-label="연도">
+      </div>
+    </div>
+  </div>
+
   <div class="stagebar" role="toolbar" aria-label="광명의 명사 도구">
     <nav class="navmenu sb-left" data-page="gwangmyeong" aria-label="페이지"></nav>
-    <div class="sb-mid"><p class="hint" id="hint">현재 인물은 공적 역할과 공적 사건만 싣습니다 · 끌기: 회전 · 휠/두 손가락: 확대 · 사건·인물 누르기: 이어진 관계 보기</p></div>
-    <div class="zoom sb-right" role="group" aria-label="보기 조절">
+    <div class="sb-mid"><p class="hint">현재 인물은 공적 정보만 싣습니다 · 끌기: 회전 · 휠/두 손가락: 확대 · 오른쪽 끌기: 이동 · ←/→: 연도 · 누르기: 정보</p></div>
+    <div class="zoom sb-right" role="group" aria-label="확대·축소">
       <button type="button" id="zoomIn" aria-label="확대">＋</button>
       <button type="button" id="zoomOut" aria-label="축소">－</button>
       <button type="button" id="zoomFit">맞춤</button>
@@ -63,14 +110,14 @@
   </div>
 </main>
 <!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 다른 페이지와 같은 캐시 무효화 버전(테스트가 확인). -->
-<script src="vendor/three.min.js?v=20261009-15"></script>
-<script src="data/yi-wonik.js?v=20261009-15"></script>
-<script src="data/geumcheon-kang.js?v=20261009-15"></script>
-<script src="data/events.js?v=20261009-15"></script>
-<script src="data/gwangmyeong.js?v=20261009-15"></script>
-<script src="js/nav.js?v=20261009-15"></script>
-<script src="js/model.js?v=20261009-15"></script>
-<script src="js/kinship.js?v=20261009-15"></script>
-<script src="js/events.js?v=20261009-15"></script>
+<script src="vendor/three.min.js?v=20261009-16"></script>
+<script src="data/yi-wonik.js?v=20261009-16"></script>
+<script src="data/geumcheon-kang.js?v=20261009-16"></script>
+<script src="data/events.js?v=20261009-16"></script>
+<script src="data/gwangmyeong.js?v=20261009-16"></script>
+<script src="js/nav.js?v=20261009-16"></script>
+<script src="js/gm-world.js?v=20261009-16"></script>
+<script src="js/fx3d.js?v=20261009-16"></script>
+<script src="js/world.js?v=20261009-16"></script>
 </body>
 </html>

@@ -466,3 +466,42 @@ test('광명의 명사: 명단은 공적 정보만, 사건·관계·출처 검�
     assert.ok(REL.includes(r.type), `관계 종류 ${r.type}`);
   }
 });
+
+// ── 광명의 명사 → 시간 축 엔진(js/gm-world.js → js/world.js) ─────────────
+test('광명의 명사: 시간 축 자료(WORLD_DATASETS)가 엔진이 읽는 모양', () => {
+  const wctx = vm.createContext({});
+  wctx.window = wctx;
+  for (const f of ['data/yi-wonik.js', 'data/geumcheon-kang.js', 'data/events.js', 'data/gwangmyeong.js', 'js/gm-world.js']) {
+    vm.runInContext(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), wctx, { filename: f });
+  }
+  const W = wctx.WORLD_DATASETS[0];
+  const { meta } = W;
+  const persons = new Map(W.persons.map((p) => [p.id, p]));
+  assert.equal(persons.size, W.persons.length, '인물 id 중복');
+  assert.ok(persons.has(meta.subject), '중심 인물');
+  const groups = new Set(meta.groups.map((g) => g.id));
+  for (const p of W.persons) {
+    assert.ok(Number.isInteger(p.b) && Number.isInteger(p.d) && p.b <= p.d, `${p.id}: 생애 ${p.b}–${p.d}`);
+    assert.ok(p.b >= meta.range[0] && p.d <= meta.range[1], `${p.id}: 시간 축 밖`);
+    assert.ok(groups.has(p.group), `${p.id}: 분류 ${p.group}`);
+    assert.ok(p.life && p.ko, `${p.id}: 이름·생애 표시`);
+    for (const par of [p.f, p.m]) if (par) assert.ok(persons.has(par), `${p.id}: 없는 부모 ${par}`);
+  }
+  for (const [a, b, y] of W.unions) {
+    assert.ok(persons.has(a) && persons.has(b), `혼인 ${a}–${b}`);
+    assert.ok(Number.isInteger(y), `혼인 연도 ${a}–${b}`);
+  }
+  for (const e of W.events) {
+    assert.ok(meta.eventTypes[e.type], `${e.id}: 종류 ${e.type}`);
+    assert.ok(e.from <= e.to, `${e.id}: 연도`);
+    for (const [pid] of e.people) assert.ok(persons.has(pid), `${e.id}: 없는 인물 ${pid}`);
+  }
+  // 오늘의 명사 30명은 모두 실리고, 공적 정보만 담는다(가족 칸 없음)
+  const today = W.persons.filter((p) => p.id.startsWith('gm/') && ['gov', 'province', 'council', 'culture', 'sports'].includes(p.group));
+  assert.equal(today.length, 30);
+  for (const p of today) assert.ok(!p.f && !p.m && !W.unions.some(([a, b]) => a === p.id || b === p.id), `${p.id}: 가족 관계를 싣지 않음`);
+  // 시대 띠가 시간 축을 빈틈없이 덮는다
+  const eras = meta.eras;
+  for (let i = 1; i < eras.length; i++) assert.equal(eras[i].from, eras[i - 1].to, `시대 띠 틈 ${eras[i].name}`);
+  assert.ok(eras[0].from <= meta.range[0] + 50 && eras[eras.length - 1].to >= meta.range[1], '시대 띠 범위');
+});
