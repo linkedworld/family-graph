@@ -246,6 +246,16 @@ body { background: var(--bg); color: var(--ink); font: 14px/1.5 var(--f-body); -
 }
 .fallback a { color: var(--accent); }
 
+/* 남녀 표지(구슬 표면의 작은 원과 같은 색): 남 청색 男, 여 홍색 女 */
+.sex {
+  display: inline-grid; place-items: center; width: 15px; height: 15px; flex: none; border-radius: 50%;
+  font: 700 9.5px/1 var(--f-display); color: #fff; background: var(--c);
+  box-shadow: 0 0 0 1.5px #050a14, 0 0 6px color-mix(in srgb, var(--c) 70%, transparent);
+}
+.sex.m { --c: #307bff; }
+.sex.f { --c: #ff3354; }
+.sex + .sex { margin-left: -2px; }
+
 /* ── 사건(버블 가계도의 결정 · 인물과 사건 페이지 공용) ── */
 /* 이름표: 사건은 조금 크게, 결정 모양 표시를 앞에 둔다 */
 .lbl.ev { border-color: color-mix(in srgb, var(--c) 45%, transparent); background: rgba(8, 10, 22, 0.66); }

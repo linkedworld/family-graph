@@ -218,23 +218,56 @@ const GLSL_NOISE = /* glsl */`
 
 const uTime = { value: 0 };
 
-function sphereMaterial() {
+// 남녀 표지에 쓰는 글자판: 왼쪽 반은 男, 오른쪽 반은 女(흰 글자, 바탕은 투명). 글꼴이 늦게 오면 다시 그린다.
+let glyphTex = null;
+function glyphTexture() {
+  if (glyphTex) return glyphTex;
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 128;
+  const draw = () => {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 256, 128);
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 92px "Noto Serif KR", "Noto Serif CJK KR", serif';
+    g.fillText('男', 64, 70); g.fillText('女', 192, 70);
+    if (glyphTex) glyphTex.needsUpdate = true;
+  };
+  draw();
+  glyphTex = new T.CanvasTexture(cv);
+  glyphTex.anisotropy = 4;
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  return glyphTex;
+}
+
+// badge: 켜면 인스턴스마다 aSex(1 남, -1 여, 0 모름)를 받아 구슬 표면에 남녀 표지를 그린다
+function sphereMaterial(badge = false) {
   return new T.ShaderMaterial({
-    uniforms: { uTime, uLight: { value: new T.Vector3(0.5, 0.75, 0.42).normalize() } },
+    uniforms: { uTime, uLight: { value: new T.Vector3(0.5, 0.75, 0.42).normalize() }, uGlyph: { value: badge ? glyphTexture() : null } },
+    defines: badge ? { BADGE: '' } : {},
+    extensions: { derivatives: true },
     vertexShader: /* glsl */`
       attribute vec3 aColor;
       attribute vec4 aParams; // x 밝기, y 강조(마우스·선택), z 미상(채도 낮춤), w 고유값
       varying vec3 vN, vV, vObj, vColor; varying vec4 vP;
+      #ifdef BADGE
+      attribute float aSex; varying float vSex;
+      #endif
       void main() {
         vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
         vN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
         vV = normalize(cameraPosition - wp.xyz);
         vObj = position; vColor = aColor; vP = aParams;
+        #ifdef BADGE
+        vSex = aSex;
+        #endif
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
       uniform float uTime; uniform vec3 uLight;
       varying vec3 vN, vV, vObj, vColor; varying vec4 vP;
+      #ifdef BADGE
+      uniform sampler2D uGlyph; varying float vSex;
+      #endif
       ${GLSL_NOISE}
       // 스튜디오 조명을 흉내 낸 절차적 환경: 위는 밝은 남청, 아래는 어둡고, 소프트박스 두 개
       vec3 env(vec3 r) {
@@ -263,6 +296,30 @@ function sphereMaterial() {
         c += vec3(1.0, 0.97, 0.92) * pow(max(dot(N, H), 0.0), 260.0) * 2.4;
         // 마우스·선택 강조
         c += vColor * vP.y * (0.12 + 0.9 * pow(1.0 - ndv, 1.6)) * (0.85 + 0.15 * sin(uTime * 4.0));
+        #ifdef BADGE
+        // 남녀 표지: 화면에서 본 구슬의 오른쪽 위 표면에 작은 원. 남자는 청색 바탕에 男, 여자는 홍색 바탕에 女.
+        // 카메라 공간의 법선으로 자리를 잡으므로 화면을 돌려도 늘 보이는 쪽에 있다.
+        if (abs(vSex) > 0.5) {
+          vec3 Nv = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          vec3 B = vec3(0.42, 0.40, 0.8146);
+          vec3 T1 = normalize(vec3(B.z, 0.0, -B.x)), T2 = cross(B, T1);
+          vec2 p = vec2(dot(Nv, T1), dot(Nv, T2)) / 0.42;
+          float d = length(p);
+          float aa = max(fwidth(d), 0.03);
+          float m = (1.0 - smoothstep(1.0 - aa, 1.0 + aa, d)) * step(0.0, dot(Nv, B));
+          if (m > 0.0) {
+            vec3 sc = vSex > 0.0 ? vec3(0.03, 0.2, 1.0) : vec3(1.0, 0.035, 0.09);
+            vec3 paint = sc * (0.45 + 0.75 * ndv);
+            vec2 q = clamp(p * 0.6 + 0.5, 0.0, 1.0);
+            float gly = texture2D(uGlyph, vec2(q.x * 0.5 + (vSex > 0.0 ? 0.0 : 0.5), q.y)).a * (1.0 - step(0.86, d));
+            paint = mix(paint, vec3(0.95), gly);
+            float rim = smoothstep(0.8 - aa, 0.86, d);
+            paint = mix(paint, vec3(0.01, 0.014, 0.03), rim);
+            paint += env(R) * F * 0.8 + vec3(1.0, 0.97, 0.92) * pow(max(dot(N, H), 0.0), 260.0) * 2.0;
+            c = mix(c, paint, m);
+          }
+        }
+        #endif
         float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
         c = mix(c, vec3(l) * vec3(0.8, 0.86, 1.0) * 0.7, vP.z);
         gl_FragColor = vec4(clamp(c, 0.0, 32.0), 1.0);
@@ -600,7 +657,7 @@ function initGL() {
 
   const segs = isNarrow() ? 40 : 56;
   const attrs = [['aColor', 3], ['aParams', 4]];
-  spheres = instanced(new T.SphereGeometry(1, segs, Math.round(segs * 0.7)), sphereMaterial(), 1200, attrs);
+  spheres = instanced(new T.SphereGeometry(1, segs, Math.round(segs * 0.7)), sphereMaterial(true), 1200, [...attrs, ['aSex', 1]]);
   shells = instanced(new T.SphereGeometry(1, 40, 28), shellMaterial(), 1200, attrs);
   // 사건: 면이 보이는 결정(이십면체)
   crystals = instanced(new T.IcosahedronGeometry(1, 0), sphereMaterial(), 400, attrs);
@@ -867,8 +924,9 @@ function simulate(dt) {
         n.pos.x += (left.x * dist - n.pos.x) * q; n.pos.y += (y - n.pos.y) * q; n.pos.z += (left.z * dist - n.pos.z) * q;
       });
     }
-    // 맞춘 직후 가계도가 퍼지며 사건 줄이 바깥으로 밀려나면 다시 맞춘다(손대는 중이거나 한참 지난 뒤에는 그대로 둔다)
-    if (fitLane > 0 && evReach > fitLane + 2 && ctl.idle > 0.5 && fitAge < 6) fit();
+    // 맞춘 직후 가계도가 퍼지며 사건 줄이 바깥으로 밀려나면 다시 맞춘다.
+    // 손대는 중이거나, 한참 지났거나, 그 사이 확대·가까이 보기로 거리를 바꿨으면 그대로 둔다.
+    if (fitLane > 0 && evReach > fitLane + 2 && ctl.idle > 0.5 && fitAge < 6 && ctl.radiusGoal === fitRadius) fit();
   }
   // 크기: 태어날 때 살짝 튀어 오르고(스프링), 사라질 때는 부모 쪽으로 빨려 들어간다.
   for (const n of order) {
@@ -902,7 +960,7 @@ function simulate(dt) {
 const _evL = new T.Vector3();
 // 사건 줄의 기준 거리: 세대 고리와 가장 바깥 구슬보다 한참 바깥. evReach는 가장 먼 사건까지(맞춤에 쓴다).
 const EV_GAP = 14, EV_STEP = 5.2, EV_ROW = 2.4;
-let evReach = 0, fitLane = 0, fitAge = 0; // fitAge: 마지막 맞춤 뒤 흐른 시뮬레이션 시간(초)
+let evReach = 0, fitLane = 0, fitAge = 0, fitRadius = -1; // fitAge: 마지막 맞춤 뒤 흐른 시뮬레이션 시간(초)
 function evLaneBase() {
   let R = 8;
   for (const v of genState.smooth.values()) R = Math.max(R, v);
@@ -918,6 +976,7 @@ let crystalDrawn = [];
 function writeInstances() {
   // 구슬
   const sc = spheres.geometry.attributes.aColor.array, sp = spheres.geometry.attributes.aParams.array;
+  const sx = spheres.geometry.attributes.aSex.array;
   const hc = shells.geometry.attributes.aColor.array, hp = shells.geometry.attributes.aParams.array;
   const rc = rings.geometry.attributes.aColor.array, rp = rings.geometry.attributes.aParams.array;
   drawn = []; shellDrawn = []; crystalDrawn = [];
@@ -943,6 +1002,8 @@ function writeInstances() {
     sc[i * 3] = n.color.r; sc[i * 3 + 1] = n.color.g; sc[i * 3 + 2] = n.color.b;
     const bright = n.id === state.ego ? 1.5 : n.lineal ? 1.2 : n.kind === 'bead' ? 0.8 : n.kind === 'spouse' ? 0.85 : 1.0;
     sp[i * 4] = bright * (n.unknown ? 0.6 : 1) * (1 + pa * 0.8); sp[i * 4 + 1] = Math.min(1.6, n.hl + pa); sp[i * 4 + 2] = n.unknown ? 0.75 : 0; sp[i * 4 + 3] = n.seed;
+    const g = state.model.get(n.id);
+    sx[i] = g && g.gender === 'M' ? 1 : g && g.gender === 'F' ? -1 : 0;
     drawn[i] = n;
     i++;
     if (n.shellVis > 0.01 && n.kind === 'person') {
@@ -971,6 +1032,7 @@ function writeInstances() {
     }
   }
   spheres.count = i; shells.count = h; rings.count = r; crystals.count = c;
+  spheres.geometry.attributes.aSex.needsUpdate = true;
   for (const m of [spheres, shells, rings, crystals]) {
     m.instanceMatrix.needsUpdate = true;
     m.geometry.attributes.aColor.needsUpdate = true;
@@ -1165,10 +1227,12 @@ function fit(onlyAlive = true) {
   const w = Math.max(Math.max(size.x, size.z) + 8, evW), h = size.y * Math.sin(ctl.phi) + 10;
   const dist = Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
   ctl.radiusGoal = Math.max(20, dist + w * 0.35);
+  fitRadius = ctl.radiusGoal;
 }
 function flyTo(n, closer) {
   if (!n) return;
   ctl.goal = n.pos.clone();
+  fitRadius = -1; // 사람을 찾아 옮겼으면 자동 맞춤이 끌어내지 않는다
   if (closer) ctl.radiusGoal = Math.min(ctl.radiusGoal, 46);
 }
 
