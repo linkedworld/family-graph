@@ -155,23 +155,56 @@ const GLSL_NOISE = /* glsl */`
 
 const uTime = { value: 0 };
 
-function sphereMaterial() {
+// 남녀 표지에 쓰는 글자판: 왼쪽 반은 男, 오른쪽 반은 女(흰 글자, 바탕은 투명). 글꼴이 늦게 오면 다시 그린다.
+let glyphTex = null;
+function glyphTexture() {
+  if (glyphTex) return glyphTex;
+  const cv = document.createElement('canvas');
+  cv.width = 256; cv.height = 128;
+  const draw = () => {
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, 256, 128);
+    g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '700 92px "Noto Serif KR", "Noto Serif CJK KR", serif';
+    g.fillText('男', 64, 70); g.fillText('女', 192, 70);
+    if (glyphTex) glyphTex.needsUpdate = true;
+  };
+  draw();
+  glyphTex = new T.CanvasTexture(cv);
+  glyphTex.anisotropy = 4;
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  return glyphTex;
+}
+
+// badge: 켜면 인스턴스마다 aSex(1 남, -1 여, 0 모름)를 받아 구슬 표면에 남녀 표지를 그린다
+function sphereMaterial(badge = false) {
   return new T.ShaderMaterial({
-    uniforms: { uTime, uLight: { value: new T.Vector3(0.5, 0.75, 0.42).normalize() } },
+    uniforms: { uTime, uLight: { value: new T.Vector3(0.5, 0.75, 0.42).normalize() }, uGlyph: { value: badge ? glyphTexture() : null } },
+    defines: badge ? { BADGE: '' } : {},
+    extensions: { derivatives: true },
     vertexShader: /* glsl */`
       attribute vec3 aColor;
       attribute vec4 aParams; // x 밝기, y 강조(마우스·선택), z 미상(채도 낮춤), w 고유값
       varying vec3 vN, vV, vObj, vColor; varying vec4 vP;
+      #ifdef BADGE
+      attribute float aSex; varying float vSex;
+      #endif
       void main() {
         vec4 wp = modelMatrix * instanceMatrix * vec4(position, 1.0);
         vN = normalize(mat3(modelMatrix * instanceMatrix) * normal);
         vV = normalize(cameraPosition - wp.xyz);
         vObj = position; vColor = aColor; vP = aParams;
+        #ifdef BADGE
+        vSex = aSex;
+        #endif
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
     fragmentShader: /* glsl */`
       uniform float uTime; uniform vec3 uLight;
       varying vec3 vN, vV, vObj, vColor; varying vec4 vP;
+      #ifdef BADGE
+      uniform sampler2D uGlyph; varying float vSex;
+      #endif
       ${GLSL_NOISE}
       // 스튜디오 조명을 흉내 낸 절차적 환경: 위는 밝은 남청, 아래는 어둡고, 소프트박스 두 개
       vec3 env(vec3 r) {
@@ -200,6 +233,30 @@ function sphereMaterial() {
         c += vec3(1.0, 0.97, 0.92) * pow(max(dot(N, H), 0.0), 260.0) * 2.4;
         // 마우스·선택 강조
         c += vColor * vP.y * (0.12 + 0.9 * pow(1.0 - ndv, 1.6)) * (0.85 + 0.15 * sin(uTime * 4.0));
+        #ifdef BADGE
+        // 남녀 표지: 화면에서 본 구슬의 오른쪽 위 표면에 작은 원. 남자는 청색 바탕에 男, 여자는 홍색 바탕에 女.
+        // 카메라 공간의 법선으로 자리를 잡으므로 화면을 돌려도 늘 보이는 쪽에 있다.
+        if (abs(vSex) > 0.5) {
+          vec3 Nv = normalize((viewMatrix * vec4(N, 0.0)).xyz);
+          vec3 B = vec3(0.42, 0.40, 0.8146);
+          vec3 T1 = normalize(vec3(B.z, 0.0, -B.x)), T2 = cross(B, T1);
+          vec2 p = vec2(dot(Nv, T1), dot(Nv, T2)) / 0.42;
+          float d = length(p);
+          float aa = max(fwidth(d), 0.03);
+          float m = (1.0 - smoothstep(1.0 - aa, 1.0 + aa, d)) * step(0.0, dot(Nv, B));
+          if (m > 0.0) {
+            vec3 sc = vSex > 0.0 ? vec3(0.03, 0.2, 1.0) : vec3(1.0, 0.035, 0.09);
+            vec3 paint = sc * (0.45 + 0.75 * ndv);
+            vec2 q = clamp(p * 0.6 + 0.5, 0.0, 1.0);
+            float gly = texture2D(uGlyph, vec2(q.x * 0.5 + (vSex > 0.0 ? 0.0 : 0.5), q.y)).a * (1.0 - step(0.86, d));
+            paint = mix(paint, vec3(0.95), gly);
+            float rim = smoothstep(0.8 - aa, 0.86, d);
+            paint = mix(paint, vec3(0.01, 0.014, 0.03), rim);
+            paint += env(R) * F * 0.8 + vec3(1.0, 0.97, 0.92) * pow(max(dot(N, H), 0.0), 260.0) * 2.0;
+            c = mix(c, paint, m);
+          }
+        }
+        #endif
         float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
         c = mix(c, vec3(l) * vec3(0.8, 0.86, 1.0) * 0.7, vP.z);
         gl_FragColor = vec4(clamp(c, 0.0, 32.0), 1.0);
@@ -448,7 +505,7 @@ function initGL() {
 
   const attrs = [['aColor', 3], ['aParams', 4]];
   const segs = isNarrow() ? 32 : 44;
-  spheres = instanced(new T.SphereGeometry(1, segs, Math.round(segs * 0.7)), sphereMaterial(), 1500, attrs);
+  spheres = instanced(new T.SphereGeometry(1, segs, Math.round(segs * 0.7)), sphereMaterial(true), 1500, [...attrs, ['aSex', 1]]);
   // 사건: 면이 보이는 결정(이십면체). 꼭짓점이 면마다 따로 있어 면마다 법선이 선다(평평한 면).
   const crystalGeo = new T.IcosahedronGeometry(1, 0);
   crystals = instanced(crystalGeo, sphereMaterial(), 600, attrs);
@@ -793,6 +850,7 @@ function linkCurve(L, P0, P1, P2, P3) {
 
 function writeInstances() {
   const sc = spheres.geometry.attributes.aColor.array, sp = spheres.geometry.attributes.aParams.array;
+  const sx = spheres.geometry.attributes.aSex.array;
   const cc = crystals.geometry.attributes.aColor.array, cp = crystals.geometry.attributes.aParams.array;
   const rc = rings.geometry.attributes.aColor.array, rp = rings.geometry.attributes.aParams.array;
   drawnS = []; drawnC = [];
@@ -814,6 +872,8 @@ function writeInstances() {
       spheres.setMatrixAt(i, _m);
       sc[i * 3] = n.color.r; sc[i * 3 + 1] = n.color.g; sc[i * 3 + 2] = n.color.b;
       sp[i * 4] = (n.P.external ? 0.7 : 1.05) * dimK; sp[i * 4 + 1] = n.hl; sp[i * 4 + 2] = n.P.external ? Math.max(0.6, n.dim * 0.85) : n.dim * 0.85; sp[i * 4 + 3] = n.seed;
+      const gd = n.P && n.P.raw && n.P.raw.gender;
+      sx[i] = gd === 'M' ? 1 : gd === 'F' ? -1 : 0;
       drawnS[i] = n; i++;
     }
     // 고리: 고른 노드, 그리고 이름난 인물
@@ -833,6 +893,7 @@ function writeInstances() {
   spheres.count = i; crystals.count = c; rings.count = r;
   // 레이캐스트는 경계구로 먼저 거른다. 구슬이 움직이므로 매번 다시 잰다.
   spheres.boundingSphere = null; crystals.boundingSphere = null;
+  spheres.geometry.attributes.aSex.needsUpdate = true;
   for (const m of [spheres, crystals, rings]) {
     m.instanceMatrix.needsUpdate = true;
     m.geometry.attributes.aColor.needsUpdate = true;
@@ -1462,7 +1523,7 @@ function buildLegend() {
     '<li class="sep"></li>' +
     REL_TYPES.filter((t) => usedRel.has(t)).map((t) => `<li><i class="rline" style="--c:${REL_COLORS[t]}"></i>${esc(t)}</li>`).join('') +
     '<li><i class="rline kin"></i>가계 줄기(조상→자손)</li>' +
-    '<li class="sep"></li><li><i class="dot unknown"></i>가계도 밖 인물</li><li><i class="ring-sample"></i>이름난 인물</li><li><i class="pillar-sample"></i>기간(시작→끝)</li>';
+    '<li class="sep"></li><li><i class="sex m">男</i><i class="sex f">女</i>남자 · 여자(구슬 위 작은 원)</li><li><i class="dot unknown"></i>가계도 밖 인물</li><li><i class="ring-sample"></i>이름난 인물</li><li><i class="pillar-sample"></i>기간(시작→끝)</li>';
 }
 function updateLegendCounts() {
   const count = new Map();
