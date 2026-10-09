@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
+<title>광명의 명사</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/bubble.css?v=20261009-14">
+<link rel="stylesheet" href="css/events.css?v=20261009-14">
+<link rel="stylesheet" href="css/nav.css?v=20261009-14">
+</head>
+<!-- data-scope: js/events.js가 data/gwangmyeong.js의 사건·명단과 광명 연고 가계도만 올린다 -->
+<body data-scope="gwangmyeong">
+<main class="space" id="space" aria-label="광명의 명사 3D 화면">
+  <canvas id="gl" aria-label="3D 광명 인물·사건 관계망. 사건이나 인물을 누르면 이어진 관계만 밝게 보입니다."></canvas>
+  <div id="labels" class="labels" aria-hidden="true"></div>
+  <div id="tip" class="tip" hidden></div>
+
+  <header class="hud-top">
+    <div class="brand">
+      <p class="eyebrow">GWANGMYEONG · PEOPLE &amp; EVENTS</p>
+      <h1 id="title">광명의 명사</h1>
+      <p class="sub" id="subtitle">광명의 옛 인물과 오늘의 명사 · 위에서 아래로 흐르는 시간</p>
+    </div>
+    <button type="button" id="toggleControls" class="glass-btn only-narrow" aria-expanded="false" aria-controls="controls">설정</button>
+    <div class="controls" id="controls">
+      <label class="field" for="find"><span>사건·인물 찾기</span>
+        <input id="find" type="search" list="findList" placeholder="이름 입력" autocomplete="off">
+        <datalist id="findList"></datalist>
+      </label>
+      <label class="field" for="typeFilter"><span>사건 종류</span><select id="typeFilter"></select></label>
+      <div class="chips fam-chips" id="famChips" role="group" aria-label="무리"></div>
+      <div class="chips" role="group" aria-label="표시">
+        <label class="chip" title="사건과 사건 사이의 원인·결과·영향을 흐르는 선으로 그립니다"><input type="checkbox" id="showRelations" checked><span>사건 인과</span></label>
+        <label class="chip" title="옛 인물을 가계도의 핏줄(조상 → 자손)로 잇습니다"><input type="checkbox" id="showKin" checked><span>가계 줄기</span></label>
+        <label class="chip" title="임금·상대 후보처럼 명단 밖의 인물도 회색 구슬로 보입니다"><input type="checkbox" id="showExternal" checked><span>명단 밖 인물</span></label>
+        <label class="chip"><input type="checkbox" id="autoRotate" checked><span>자동 회전</span></label>
+      </div>
+    </div>
+  </header>
+
+  <ul class="legend ev-legend" id="legend" aria-label="보는 법"></ul>
+
+  <aside id="info" class="info" aria-live="polite" hidden></aside>
+
+  <div id="fallback" class="fallback" hidden>
+    <p>이 브라우저에서는 3D(WebGL)를 쓸 수 없습니다.</p>
+    <a href="tree.html">카드 가계도로 보기</a>
+  </div>
+
+  <!-- 도구 막대: 왼쪽 페이지 메뉴 · 가운데 안내 · 오른쪽 확대·축소 -->
+  <div class="stagebar" role="toolbar" aria-label="광명의 명사 도구">
+    <nav class="navmenu sb-left" data-page="gwangmyeong" aria-label="페이지"></nav>
+    <div class="sb-mid"><p class="hint" id="hint">현재 인물은 공적 역할과 공적 사건만 싣습니다 · 끌기: 회전 · 휠/두 손가락: 확대 · 사건·인물 누르기: 이어진 관계 보기</p></div>
+    <div class="zoom sb-right" role="group" aria-label="보기 조절">
+      <button type="button" id="zoomIn" aria-label="확대">＋</button>
+      <button type="button" id="zoomOut" aria-label="축소">－</button>
+      <button type="button" id="zoomFit">맞춤</button>
+    </div>
+  </div>
+</main>
+<!-- 서버 없이 바로 열어도 되도록 모두 일반 스크립트. ?v=는 다른 페이지와 같은 캐시 무효화 버전(테스트가 확인). -->
+<script src="vendor/three.min.js?v=20261009-14"></script>
+<script src="data/yi-wonik.js?v=20261009-14"></script>
+<script src="data/geumcheon-kang.js?v=20261009-14"></script>
+<script src="data/events.js?v=20261009-14"></script>
+<script src="data/gwangmyeong.js?v=20261009-14"></script>
+<script src="js/nav.js?v=20261009-14"></script>
+<script src="js/model.js?v=20261009-14"></script>
+<script src="js/kinship.js?v=20261009-14"></script>
+<script src="js/events.js?v=20261009-14"></script>
+</body>
+</html>

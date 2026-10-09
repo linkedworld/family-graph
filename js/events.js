@@ -24,10 +24,12 @@ const R_EVENT = 1.15;
 const R_PERSON = 0.62;
 const SEG = 14;
 const MAX_EDGE_INST = 20000;
-const TYPES = ['전쟁', '전투', '사화·옥사', '정변', '정책·제도', '학문·저술', '교육·서원', '종교', '외교', '기타'];
+// 선거·의회·행정, 문화·체육은 광명의 명사(현대 공적 사건)에서 쓴다.
+const TYPES = ['전쟁', '전투', '사화·옥사', '정변', '정책·제도', '학문·저술', '교육·서원', '종교', '외교', '선거', '의회·행정', '문화·체육', '기타'];
 const TYPE_COLORS = {
   '전쟁': '#ff5a4a', '전투': '#ff9446', '사화·옥사': '#c77dff', '정변': '#ff4f9a', '정책·제도': '#ffd166',
   '학문·저술': '#5fe3ff', '교육·서원': '#7dffd8', '종교': '#b9f26b', '외교': '#8ab4ff', '기타': '#a9c4dc',
+  '선거': '#4f9dff', '의회·행정': '#f2e86b', '문화·체육': '#ff7ad9',
 };
 const REL_TYPES = ['원인', '결과로 이어짐', '일부', '영향', '대립', '계승'];
 const REL_COLORS = {
@@ -62,19 +64,39 @@ function years(p) {
 }
 function evYears(ev) { return ev.end && ev.end !== ev.start ? `${ev.start}–${ev.end}` : `${ev.start}`; }
 
+// 광명의 명사(gwangmyeong.html, <body data-scope="gwangmyeong">): 같은 화면에 data/gwangmyeong.js의 사건과
+// 광명 연고 가계도만 올리고, 현재 인물은 가계도가 아닌 '광명의 현재' 명단(공적 역할만)으로 한 무리를 만든다.
+const GM = document.body.dataset.scope === 'gwangmyeong' ? window.GWANGMYEONG || null : null;
+const ROSTER_ID = 'gm-today';
+
 function loadData() {
-  const sets = window.GENEALOGY_DATASETS || [];
+  const sets = (window.GENEALOGY_DATASETS || []).filter((d) => !GM || GM.families.includes(d.meta.id));
   sets.forEach((d, i) => {
     const persons = new Map(d.persons.map((p) => [p.id, p]));
-    state.families.set(d.meta.id, { id: d.meta.id, short: shortName(d), color: FAMILY_COLORS[i % FAMILY_COLORS.length], index: i, persons, notable: new Set(d.meta.notable || []) });
+    state.families.set(d.meta.id, { id: d.meta.id, short: shortName(d), color: FAMILY_COLORS[i % FAMILY_COLORS.length], index: i, persons, notable: new Set(d.meta.notable || []), genealogy: true });
   });
+  if (GM) {
+    // 명단의 한 사람 = 가계도 인물과 같은 모양({ id, name, gender, title … }). title은 상세 카드의 한 줄 설명.
+    const persons = new Map(GM.roster.map((p) => [p.id, { ...p, title: [p.group, p.party, p.district, p.role].filter(Boolean).join(' · ') }]));
+    state.families.set(ROSTER_ID, { id: ROSTER_ID, short: GM.rosterTitle || '광명의 현재', color: GM.rosterColor || '#7dffd8', index: sets.length, persons, notable: new Set(), genealogy: false });
+  }
   if (G.buildModel) {
     for (const d of sets) {
       try { const model = G.buildModel(d); state.models.set(d.meta.id, { model, kin: G.Kinship ? new G.Kinship(model) : null }); }
       catch (e) { console.warn('가계 모델을 만들지 못함', d.meta.id, e); }
     }
   }
-  const src = window.GENEALOGY_EVENTS || { events: [], relations: [] };
+  let src = window.GENEALOGY_EVENTS || { events: [], relations: [] };
+  if (GM) {
+    // 광명 사건 + 인물과 사건 데이터에서 골라 온 사건(include). 관계는 양쪽 끝이 모두 있는 것만 남는다.
+    const inc = new Set(GM.include || []);
+    const picked = src.events.filter((e) => inc.has(e.id)).map((e) => ({
+      ...e, participants: (e.participants || []).filter((p) => GM.families.includes(p.ds)),
+    }));
+    const events = [...GM.events, ...picked];
+    const ids = new Set(events.map((e) => e.id));
+    src = { events, relations: [...GM.relations, ...(src.relations || [])].filter((r) => ids.has(r.from) && ids.has(r.to)) };
+  }
   // 같은 사람이 두 가계도에 있으면(예: 태종) 이름+한자로 한 구슬에 모은다.
   const personKey = (p) => `${p.name}|${p.hanja || ''}`;
   for (const raw of src.events) {
@@ -642,7 +664,12 @@ function rebuild({ instant = false } = {}) {
 function updateSubtitle(nEv) {
   const on = [...state.famOn].map((d) => state.families.get(d).short);
   const all = state.famOn.size === state.families.size;
-  const fam = all ? '여섯 가계도' : on.join(' · ') + ' 가계';
+  if (GM) {
+    $('subtitle').textContent = `${all ? '광명의 옛 인물과 오늘의 명사' : on.join(' · ')} · 사건 ${nEv}개${state.type ? ` (${state.type})` : ''} · 위에서 아래로 흐르는 시간`;
+    return;
+  }
+  const NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
+  const fam = all ? `${NUM[state.families.size] || state.families.size} 가계도` : on.join(' · ') + ' 가계';
   $('subtitle').textContent = `${fam} 인물이 얽힌 사건 ${nEv}개${state.type ? ` (${state.type})` : ''}` +
     (all ? ' · 위에서 아래로 흐르는 시간' : ' · 함께한 다른 가계도 인물은 숨김(칩으로 켜기)');
 }
@@ -1457,10 +1484,11 @@ function renderInfo() {
     const P = n.P;
     const evs = P.roles;
     html += `
-      <p class="kicker">${P.external ? 'PERSON · 가계도 밖' : 'PERSON · ' + esc(P.refs.map((r) => state.families.get(r.ds).short + ' 가계').join(' · '))}</p>
+      <p class="kicker">${P.external ? 'PERSON · 가계도 밖' : 'PERSON · ' + esc(P.refs.map((r) => state.families.get(r.ds).short + (state.families.get(r.ds).genealogy ? ' 가계' : '')).join(' · '))}</p>
       <h2>${esc(P.name)}${P.hanja ? `<small>${esc(P.hanja)}</small>` : ''}</h2>
-      <div class="rel"><b>${esc(P.raw ? years(P.raw) : '')}</b><span>사건 ${evs.length}개</span></div>
+      <div class="rel"><b>${esc(P.raw ? (P.raw.career ? (P.raw.born ? `${P.raw.born}년생` : '') : years(P.raw)) : '')}</b><span>사건 ${evs.length}개</span></div>
       ${P.raw && P.raw.title ? `<p class="note">${esc(P.raw.title)}</p>` : ''}
+      ${P.raw && P.raw.career ? `<div class="grp"><p class="grp-h">공적 이력</p><ul class="plist career">${P.raw.career.map((c) => `<li><span>${esc(c)}</span></li>`).join('')}</ul></div>` : ''}
       <div class="grp"><p class="grp-h">얽힌 사건 (시간순)</p>
       <ul class="plist">${evs.map((r) => `<li><button type="button" data-go="e:${esc(r.ev.id)}"><i class="rdot" style="--c:${TYPE_COLORS[r.ev.type]}"></i>${esc(r.ev.name)}<small>${esc(evYears(r.ev))}</small></button><span>${esc(r.role || '')}</span></li>`).join('')}</ul></div>
       ${(() => {
@@ -1472,7 +1500,11 @@ function renderInfo() {
           return `<li><button type="button" data-go="${esc(o.key)}">${famDot(L.ds)}${esc(o.P.name)}${o.P.hanja ? `<small>${esc(o.P.hanja)}</small>` : ''}</button><span>${esc(t)}</span></li>`;
         }).join('')}</ul></div>`;
       })()}
-      ${P.refs.length ? `<div class="acts">${P.refs.map((r) => `<a class="glass-btn" href="index.html#${esc(r.ds)}" data-ego="${esc(r.ds)}|${esc(r.id)}">${esc(state.families.get(r.ds).short)} 버블 가계도에서</a>`).join('')}</div>` : ''}`;
+      ${P.raw && P.raw.sources && P.raw.career ? `<p class="srcs">출처: ${P.raw.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`).join(', ')}</p>` : ''}
+      ${(() => {
+        const gen = P.refs.filter((r) => state.families.get(r.ds).genealogy);
+        return gen.length ? `<div class="acts">${gen.map((r) => `<a class="glass-btn" href="index.html#${esc(r.ds)}" data-ego="${esc(r.ds)}|${esc(r.id)}">${esc(state.families.get(r.ds).short)} 버블 가계도에서</a>`).join('')}</div>` : '';
+      })()}`;
   }
   if (box.hidden) box._openedAt = performance.now();
   box.innerHTML = html;
