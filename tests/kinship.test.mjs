@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 
 // 브라우저와 똑같이 일반 스크립트를 순서대로 실행해 전역에 등록된 객체를 꺼낸다.
-const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/yi-wonik.js', 'data/jeong-yakyong.js'];
+const DATA_FILES = ['data/yi-hwang.js', 'data/yi-i.js', 'data/yi-sunsin.js', 'data/yi-sunsin-muui.js', 'data/yi-wonik.js', 'data/jeong-yakyong.js', 'data/geumcheon-kang.js'];
 const ctx = vm.createContext({ window: {} });
 ctx.globalThis = ctx;
 ctx.window = ctx;
@@ -278,16 +278,17 @@ test('출생 순서: 몇남 몇녀 중 몇째 (장남·차남·장녀·차녀)',
   assert.match(m.birthOrder(only).full, /^(외아들|외동딸)$/);
 });
 
-test('index.html·tree.html·events.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
+test('index.html·tree.html·events.html·gwangmyeong.html: 로컬 CSS·JS·데이터에 같은 캐시 버전(?v=)이 붙어 있음', () => {
   const all = new Set();
-  for (const page of ['index.html', 'tree.html', 'events.html']) {
+  for (const page of ['index.html', 'tree.html', 'events.html', 'gwangmyeong.html']) {
     const html = readFileSync(new URL(`../${page}`, import.meta.url), 'utf8');
     const refs = [...html.matchAll(/(?:src|href)="((?:css|js|data|vendor)\/[^"]+)"/g)].map((m) => m[1]);
     assert.ok(refs.length >= 8, `${page}: 로컬 자원 ${refs.length}개`);
     const versions = new Set(refs.map((r) => (r.match(/\?v=([^"&]+)/) || [])[1]));
     assert.ok(!versions.has(undefined), `${page}: 버전이 빠진 자원: ${refs.filter((r) => !r.includes('?v=')).join(', ')}`);
     for (const v of versions) all.add(v);
-    for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 ${page}에 없음`);
+    // 광명의 명사는 광명 연고 가계도만 읽는다
+    if (page !== 'gwangmyeong.html') for (const f of DATA_FILES) assert.ok(refs.some((r) => r.startsWith(f + '?')), `${f}가 ${page}에 없음`);
     for (const r of refs) assert.ok(existsSync(new URL(`../${r.split('?')[0]}`, import.meta.url)), `${page}: 없는 파일 ${r}`);
   }
   assert.equal(all.size, 1, `버전이 서로 다름: ${[...all].join(', ')}`);
@@ -412,5 +413,56 @@ test('사건 데이터: 참여 인물·관계·종류·출처 검사', () => {
     assert.ok(ids.has(r.from) && ids.has(r.to), `관계의 사건 없음 ${r.from} → ${r.to}`);
     assert.ok(REL.includes(r.type), `관계 종류 ${r.type}`);
     assert.notEqual(r.from, r.to);
+  }
+});
+
+// ── 광명의 명사(data/gwangmyeong.js) ─────────────────────────────
+test('광명의 명사: 명단은 공적 정보만, 사건·관계·출처 검사', () => {
+  const gctx = vm.createContext({});
+  gctx.window = gctx;
+  for (const f of ['data/events.js', 'data/gwangmyeong.js']) vm.runInContext(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'), gctx, { filename: f });
+  const GM = gctx.GWANGMYEONG;
+  const TYPES = ['전쟁', '전투', '사화·옥사', '정변', '정책·제도', '학문·저술', '교육·서원', '종교', '외교', '선거', '의회·행정', '문화·체육', '기타'];
+  const REL = ['원인', '결과로 이어짐', '일부', '영향', '대립', '계승'];
+  for (const ds of GM.families) assert.ok(ctx.GENEALOGY_DATASETS.some((d) => d.meta.id === ds), `없는 가계도 ${ds}`);
+  // 현재 인물: 공적 역할만. 가족·주소·연락처·SNS를 담는 칸은 두지 않는다.
+  const ALLOWED = new Set(['id', 'name', 'hanja', 'gender', 'group', 'party', 'district', 'role', 'born', 'birth', 'death', 'gmOrigin', 'career', 'sources']);
+  const members = new Map(GM.groups.map((g) => [g.id, new Set()]));
+  assert.equal(GM.groups.find((g) => g.id === 'gm-today').people.length, 30, '오늘의 명사 30명');
+  for (const g of GM.groups) for (const p of g.people) {
+    const set = members.get(g.id);
+    assert.ok(!set.has(p.id), `중복 id ${p.id}`);
+    set.add(p.id);
+    for (const k of Object.keys(p)) assert.ok(ALLOWED.has(k), `${p.id}: 공적 정보가 아닌 칸 ${k}`);
+    assert.ok(p.name && p.group && Array.isArray(p.career) && p.career.length, `${p.id}: 이름·분류·이력`);
+    assert.ok(p.sources.length && p.sources.every((s) => s.title && /^https?:/.test(s.url)), `${p.id}: 출처`);
+  }
+  const persons = new Map(ctx.GENEALOGY_DATASETS.map((d) => [d.meta.id, new Set(d.persons.map((p) => p.id))]));
+  const ids = new Set([...(GM.include || [])]);
+  for (const id of GM.include || []) assert.ok(gctx.GENEALOGY_EVENTS.events.some((e) => e.id === id), `가져올 사건 없음 ${id}`);
+  for (const e of GM.events) {
+    assert.ok(!ids.has(e.id), `중복 사건 id ${e.id}`);
+    ids.add(e.id);
+    assert.ok(TYPES.includes(e.type), `${e.id}: 종류 ${e.type}`);
+    assert.ok(Number.isInteger(e.start) && e.start > 900 && e.start <= 2026, `${e.id}: 시작 연도 ${e.start}`);
+    if (e.end != null) assert.ok(e.end >= e.start, `${e.id}: 끝 연도`);
+    assert.ok(e.name && e.summary, `${e.id}: 이름·설명`);
+    assert.ok((e.sources || []).length && e.sources.every((s) => s.title && /^https?:/.test(s.url)), `${e.id}: 출처`);
+    // 인물이 없는 사건(행정 연혁 등)은 시간축의 배경으로 보인다
+    for (const p of e.participants) {
+      const ok = members.has(p.ds) ? members.get(p.ds).has(p.id) : GM.families.includes(p.ds) && persons.get(p.ds)?.has(p.id);
+      assert.ok(ok, `${e.id}: 없는 인물 ${p.ds}/${p.id}`);
+    }
+  }
+  for (const [ds, set] of members) for (const id of set) {
+    assert.ok(GM.events.some((e) => e.participants.some((p) => p.ds === ds && p.id === id)), `${id}: 얽힌 사건이 없어 화면에 안 보임`);
+  }
+  for (const [id, list] of Object.entries(GM.addParticipants || {})) {
+    assert.ok((GM.include || []).includes(id), `addParticipants: 가져오지 않는 사건 ${id}`);
+    for (const p of list) assert.ok(persons.get(p.ds)?.has(p.id), `addParticipants ${id}: 없는 인물 ${p.ds}/${p.id}`);
+  }
+  for (const r of GM.relations) {
+    assert.ok(ids.has(r.from) && ids.has(r.to), `관계의 사건 없음 ${r.from} → ${r.to}`);
+    assert.ok(REL.includes(r.type), `관계 종류 ${r.type}`);
   }
 });

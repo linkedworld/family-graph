@@ -8,6 +8,7 @@
     { id: 'bubble', href: 'index.html', title: '버블 가계도', desc: '3D 구슬로 보는 자손의 관계망 (첫 화면)' },
     { id: 'tree', href: 'tree.html', title: '가계도', desc: '카드로 보는 계보도 · 호칭과 촌수' },
     { id: 'events', href: 'events.html', title: '인물과 사건', desc: '가계도 인물이 얽힌 사건과 사건 사이의 인과' },
+    { id: 'gwangmyeong', href: 'gwangmyeong.html', title: '광명의 명사', desc: '광명의 옛 인물 가계와 오늘의 명사 · 한 시간축' },
   ];
   const ROOT = '역사 인물 가계도';
 
