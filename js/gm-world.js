@@ -209,7 +209,7 @@ function build(GM, datasets, eventsSrc) {
   return {
     meta: {
       id: 'gwangmyeong', title: '광명의 명사', page: '광명의 명사', subject: SUBJECT, consort: '아내',
-      range: [Math.floor((minB - 10) / 50) * 50, NOW + 4], startYear: 1608, focus: [1590, 1640],
+      range: [Math.floor((minB - 10) / 50) * 50, NOW + 4], startYear: 1608, focus: [1590, 1640], startFocus: true,
       groups: GROUPS, eventTypes: EVENT_TYPES, eras: ERAS.filter((e) => e.to > minB - 10),
       note: '현재 인물은 공적 정보(직함·이력·출처)만 싣는다.',
     },

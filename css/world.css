@@ -1,5 +1,8 @@
 /* 세계사 연관도(world.html): bubble.css의 유리판·이름표 위에 타임바·범례·카드 차이만 더한다. */
 
+/* 시간 판 위: 잡아서 끌 수 있음 */
+#gl.grab { cursor: grab; }
+
 /* 이름표: 사건은 색 테두리, 연도·시대·분류 표시는 글자만 */
 .lbl.ev { border-color: color-mix(in srgb, var(--c) 55%, transparent); background: rgba(10, 8, 22, 0.6); }
 .lbl.ev b { color: var(--c); font: 600 12px/1.25 var(--f-body); }

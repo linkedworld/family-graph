@@ -1,7 +1,8 @@
 // 시간 축 3D 연관도: 시간이 흐르는 축 위에 인물의 생애와 사건을 3D로 엮는다.
 // lonycell/videojs-simpleoverlay의 세계사 연관도(world.html, 루이 14세) 엔진을 그대로 가져와, 이 저장소에서는
 // 광명의 명사(gwangmyeong.html)가 쓴다. 자료는 js/gm-world.js가 만든다. 원본과 다른 점은 자료에서 읽는 몇 가지
-// (분류 각도 groups[].angle, 생애 표시 life, 출처 links, 시작 연도 startYear·focus, 배우자 호칭 consort, 사건 크기 size)뿐이다.
+// (분류 각도 groups[].angle, 생애 표시 life, 출처 links, 시작 연도 startYear·focus·startFocus, 배우자 호칭 consort, 사건 크기 size)와
+// 시간 판 끌기(판을 잡고 끌면 그 해가 시간 축을 따라 움직인다), 먼 해로 옮길 때의 '시간 따라가기' 수정이다.
 //   · 가로축(x)이 연도. 시대마다 바닥에 색 띠와 경계 고리를 두고, 연도 커서로 그 해를 훑어볼 수 있다.
 //   · 인물은 태어나서 죽을 때까지의 생애선(빛나는 관)으로, 가문·분야별로 축 둘레의 각도 구역에 놓인다.
 //     중심 인물(루이 14세)은 축 한가운데를 지난다.
@@ -46,6 +47,7 @@ const state = {
   autoRotate: false,
   lineK: 1, // 선 진하기(0.3~2): 평소 선의 투명도 배율
   orient: 'auto', // 시간 방향: auto(휴대폰 세로 화면은 세로) | h(가로, 왼쪽→오른쪽) | v(세로, 위→아래)
+  plateDrag: false, // 시간 판을 끄는 중
   route: null, // 경로만 보기: { ids, steps, ps:Set, pairs:Set, event }
 };
 
@@ -712,7 +714,13 @@ function setupControls() {
     if (pointers.size === 1) {
       downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
       mode = e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey ? 'pan' : 'rotate';
+      // 시간 판을 잡으면 끄는 동안 그 해가 시간 축을 따라 움직인다(잡은 자리와 판의 어긋남은 그대로 둔다).
+      if (mode === 'rotate' && plateHit(e.clientX, e.clientY)) {
+        const y = yearAtPointer(e.clientX, e.clientY);
+        if (y != null) { mode = 'plate'; plateOff = state.year - y; }
+      }
     } else if (pointers.size === 2) {
+      endPlate();
       const [a, b] = [...pointers.values()];
       lastPinch = Math.hypot(a.x - b.x, a.y - b.y);
       lastMid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
@@ -727,7 +735,10 @@ function setupControls() {
     ctl.idle = 0;
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; canvas.classList.add('dragging'); hideTip(); }
     if (downAt) return;
-    if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
+    if (mode === 'plate') {
+      const y = yearAtPointer(e.clientX, e.clientY);
+      if (y != null) { state.plateDrag = true; setYear(y + plateOff, true); }
+    } else if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
     else if (mode === 'pan') panBy(dx, dy);
     else if (mode === 'pinch' && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
@@ -742,6 +753,7 @@ function setupControls() {
     if (!pointers.has(e.pointerId)) return;
     pointers.delete(e.pointerId);
     canvas.classList.remove('dragging');
+    if (mode === 'plate') endPlate();
     if (downAt && pointers.size === 0 && performance.now() - downAt.t < 600) clickAt(e.clientX, e.clientY);
     downAt = null;
     if (pointers.size === 1) { mode = 'rotate'; lastPinch = 0; lastMid = null; }
@@ -792,6 +804,45 @@ function pick(x, y) {
   hits.sort((a, b) => a.d - b.d);
   return hits[0] ? hits[0].sel : null;
 }
+// ── 시간 판 끌기 ──
+let plateOff = 0;
+function endPlate() {
+  if (!state.plateDrag) return;
+  state.plateDrag = false;
+  cursorMovedAt = performance.now() / 1000; // 놓은 뒤에는 '시간 따라가기'가 판을 화면 안에 붙잡는다
+}
+function rayAt(x, y) {
+  const rect = canvas.getBoundingClientRect();
+  ndc.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+}
+// 판이 충분히 보일 때 그 자리를 누르면 무엇을 잡는가: 판 위(판에 걸린 구슬)나 판 앞의 구슬·수정이면 그것을,
+// 아니면 판을 잡는다. 판을 꿰뚫는 생애선과 판 뒤의 것은 거의 불투명한 판에 가려 보이지 않으므로 판이 먼저다. 반환 { plate, sel }.
+function pointAt(x, y) {
+  const sel = pick(x, y);
+  const u = cursor.material.uniforms;
+  if (!cursor.visible || u.uVis.value * u.uPlane.value < 0.5) return { plate: false, sel };
+  rayAt(x, y);
+  const h = ray.intersectObject(cursor, false)[0];
+  if (!h) return { plate: false, sel };
+  const front = [ray.intersectObject(beads, false)[0], state.show.event && ray.intersectObject(gems, false)[0]]
+    .filter(Boolean).some((f) => f.distance < h.distance + 0.3);
+  return front ? { plate: false, sel } : { plate: true, sel: null };
+}
+const plateHit = (x, y) => pointAt(x, y).plate;
+// 화면의 한 점 → 시간 축에서 그 시선에 가장 가까운 점의 연도(시선이 축과 거의 나란하면 null)
+const _ao = new T.Vector3(), _ad = new T.Vector3(), _aw = new T.Vector3();
+function yearAtPointer(x, y) {
+  rayAt(x, y);
+  _ao.copy(toWorld(new T.Vector3(0, 0, 0)));
+  _ad.copy(toWorld(new T.Vector3(1, 0, 0))).sub(_ao).normalize();
+  const d1 = ray.ray.direction;
+  _aw.copy(ray.ray.origin).sub(_ao);
+  const b = d1.dot(_ad), den = 1 - b * b;
+  if (den < 1e-3) return null;
+  const s = (_ad.dot(_aw) - b * d1.dot(_aw)) / den; // 축 위의 거리
+  return s / YS + X0;
+}
 let hoverQ = null;
 function setHover(sel) {
   const same = (a, b) => (!a && !b) || (a && b && a.kind === b.kind && a.id === b.id);
@@ -803,12 +854,14 @@ function processHover() {
   if (!hoverQ) return;
   const { x, y } = hoverQ;
   hoverQ = null;
-  const sel = pick(x, y);
+  // 시간 판이 맨 앞이면 판을 잡을 수 있다고 보인다.
+  const { plate, sel } = pointAt(x, y);
   setHover(sel);
   if (sel) showTip(sel, x, y);
+  canvas.classList.toggle('grab', plate);
 }
 function clickAt(x, y) {
-  const sel = pick(x, y);
+  const { sel } = pointAt(x, y);
   if (!sel) { if (isNarrow()) select(null); return; }
   haptic(10);
   select(sel, true);
@@ -1129,7 +1182,8 @@ function cursorBounds() {
   return hi - lo > 0.4 ? [lo, hi] : [-1, 1];
 }
 function keepCursorInView(dt) {
-  if (!state.follow || !state.timeFocus || performance.now() / 1000 - cursorMovedAt > 2.5) return;
+  // 판을 끄는 동안에는 장면을 밀지 않는다(판이 손가락·커서 아래에 머물게).
+  if (!state.follow || !state.timeFocus || state.plateDrag || performance.now() / 1000 - cursorMovedAt > 2.5) return;
   camera.updateMatrixWorld();
   const target = new T.Vector3(xOf(state.year), 0, 0); // 막이 가 있을 자리(움직이는 중이어도 목표 기준)
   _cv.copy(toWorld(target)).project(camera);
@@ -1273,7 +1327,7 @@ function main() {
     if (ev.target.closest('[data-act="route-off"]')) { haptic(8); setRoute(false); }
   });
   setupTimebar();
-  setYear(data.meta.startYear ?? 1661, false);
+  setYear(data.meta.startYear ?? 1661, !!data.meta.startFocus); // startFocus: 처음부터 시간 판을 보인다(끌어서 옮길 수 있게)
   window.addEventListener('resize', resize);
   resize();
   // 멀리서 시작해 중심 인물의 시대로 다가간다.
@@ -1285,7 +1339,7 @@ function main() {
   else fitRange(S.b - 12, S.d + 8);
   if (!isNarrow()) select({ kind: 'p', id: state.subject }, false);
   requestAnimationFrame(frame);
-  window.__world = { state, ctl, select, setYear, setRoute, camera: () => camera, plane: () => +cursor.material.uniforms.uPlane.value.toFixed(2), cursorNdc: () => { const v = toWorld(new T.Vector3(xOf(state.year), 0, 0)).project(camera); return +(vertical ? -v.y : v.x).toFixed(2); }, relationToSubject, pathFromSubject, routeTo };
+  window.__world = { state, ctl, select, setYear, setRoute, camera: () => camera, plane: () => +cursor.material.uniforms.uPlane.value.toFixed(2), plateHit, yearAtPointer, plateScreen: (h = 20) => { const v = toWorld(new T.Vector3(cursor.position.x, h, 0)).project(camera); const r = canvas.getBoundingClientRect(); return { x: r.left + (v.x * 0.5 + 0.5) * r.width, y: r.top + (-v.y * 0.5 + 0.5) * r.height }; }, cursorNdc: () => { const v = toWorld(new T.Vector3(xOf(state.year), 0, 0)).project(camera); return +(vertical ? -v.y : v.x).toFixed(2); }, relationToSubject, pathFromSubject, routeTo };
 }
 
 main();
