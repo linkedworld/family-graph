@@ -1,6 +1,5 @@
 // 인물과 사건: 가계도 인물들이 얽힌 역사적 사건과, 사건 사이의 인과를 3D 관계망으로 그린다.
 //   · 세로는 시간(위에서 아래로). 사건이 몰린 시기는 넓게 펴서(밀도 보정) 겹치지 않게 한다.
-//     광명의 명사(GM)는 카메라를 옆으로 눕혀 시간이 왼쪽(과거)에서 오른쪽(현재)으로 흐르게 본다(가로 연표).
 //   · 사건은 종류별 색의 결정(多面體) 구슬, 기간이 있는 사건은 시작에서 끝까지 빛기둥을 세운다.
 //   · 인물은 가계도별 색의 작은 유리 구슬로, 자기가 얽힌 사건들 가까이에 모인다.
 //     가계도마다 둘레의 한 방향을 맡아, 여러 집안이 한 사건에 모이는 모습이 드러난다.
@@ -25,7 +24,7 @@ const R_EVENT = 1.15;
 const R_PERSON = 0.62;
 const SEG = 14;
 const MAX_EDGE_INST = 20000;
-// 선거·의회·행정, 문화·체육은 광명의 명사(현대 공적 사건)에서 쓴다.
+// 선거·의회·행정, 문화·체육은 광명의 명사(data/gwangmyeong.js, 엔진은 js/world.js)의 현대 공적 사건 종류다.
 const TYPES = ['전쟁', '전투', '사화·옥사', '정변', '정책·제도', '학문·저술', '교육·서원', '종교', '외교', '선거', '의회·행정', '문화·체육', '기타'];
 const TYPE_COLORS = {
   '전쟁': '#ff5a4a', '전투': '#ff9446', '사화·옥사': '#c77dff', '정변': '#ff4f9a', '정책·제도': '#ffd166',
@@ -65,26 +64,12 @@ function years(p) {
 }
 function evYears(ev) { return ev.end && ev.end !== ev.start ? `${ev.start}–${ev.end}` : `${ev.start}`; }
 
-// 광명의 명사(gwangmyeong.html, <body data-scope="gwangmyeong">): 같은 화면에 data/gwangmyeong.js의 사건과
-// 광명 연고 가계도만 올리고, 가계도에 없는 인물은 명단 무리(옛 명사, 오늘의 명사: 공적 역할만)로 묶는다.
-const GM = document.body.dataset.scope === 'gwangmyeong' ? window.GWANGMYEONG || null : null;
-// 가로 시간축: 장면은 그대로(시간 = -y) 두고 카메라만 90° 눕혀, 세계의 위(+y)가 화면 왼쪽으로 가게 한다.
-const HORIZ = !!GM;
-const TIME_FLOW = HORIZ ? '왼쪽에서 오른쪽으로 흐르는 시간' : '위에서 아래로 흐르는 시간';
-
 function loadData() {
-  const sets = (window.GENEALOGY_DATASETS || []).filter((d) => !GM || GM.families.includes(d.meta.id));
+  const sets = (window.GENEALOGY_DATASETS || []).slice();
   sets.forEach((d, i) => {
     const persons = new Map(d.persons.map((p) => [p.id, p]));
-    state.families.set(d.meta.id, { id: d.meta.id, short: shortName(d), color: FAMILY_COLORS[i % FAMILY_COLORS.length], index: i, persons, notable: new Set(d.meta.notable || []), genealogy: true });
+    state.families.set(d.meta.id, { id: d.meta.id, short: shortName(d), color: FAMILY_COLORS[i % FAMILY_COLORS.length], index: i, persons, notable: new Set(d.meta.notable || []) });
   });
-  if (GM) {
-    // 명단의 한 사람 = 가계도 인물과 같은 모양({ id, name, gender, title … }). title은 상세 카드의 한 줄 설명.
-    GM.groups.forEach((g, k) => {
-      const persons = new Map(g.people.map((p) => [p.id, { ...p, title: [p.group, p.party, p.district, p.role].filter(Boolean).join(' · ') }]));
-      state.families.set(g.id, { id: g.id, short: g.title, color: g.color, index: sets.length + k, persons, notable: new Set(), genealogy: false });
-    });
-  }
   if (G.buildModel) {
     for (const d of sets) {
       try { const model = G.buildModel(d); state.models.set(d.meta.id, { model, kin: G.Kinship ? new G.Kinship(model) : null }); }
@@ -92,17 +77,6 @@ function loadData() {
     }
   }
   let src = window.GENEALOGY_EVENTS || { events: [], relations: [] };
-  if (GM) {
-    // 광명 사건 + 인물과 사건 데이터에서 골라 온 사건(include). 관계는 양쪽 끝이 모두 있는 것만 남는다.
-    // addParticipants: 가져온 사건에 광명 가계도 인물을 더한다(예: 인조반정에 민회빈 가계의 인조).
-    const inc = new Set(GM.include || []);
-    const picked = src.events.filter((e) => inc.has(e.id)).map((e) => ({
-      ...e, participants: [...(e.participants || []).filter((p) => GM.families.includes(p.ds)), ...((GM.addParticipants || {})[e.id] || [])],
-    }));
-    const events = [...GM.events, ...picked];
-    const ids = new Set(events.map((e) => e.id));
-    src = { events, relations: [...GM.relations, ...(src.relations || [])].filter((r) => ids.has(r.from) && ids.has(r.to)) };
-  }
   // 같은 사람이 두 가계도에 있으면(예: 태종) 이름+한자로 한 구슬에 모은다.
   const personKey = (p) => `${p.name}|${p.hanja || ''}`;
   for (const raw of src.events) {
@@ -135,7 +109,7 @@ function loadData() {
     const rel = { a, b, type: r.type, note: r.note };
     a.rels.push(rel); b.rels.push(rel);
   }
-  // 사건이 하나도 없는 가계도는 칩·범례에서 뺀다(예: 인물과 사건 화면의 민회빈 가계는 광명의 명사에서 보인다)
+  // 사건이 하나도 없는 가계도는 칩·범례에서 뺀다
   const used = new Set([...state.people.values()].flatMap((P) => P.refs.map((r) => r.ds)));
   for (const id of [...state.families.keys()]) if (!used.has(id)) state.families.delete(id);
   [...state.families.values()].forEach((f, i) => { f.index = i; }); // 집 방향(homeOf)을 고르게
@@ -594,8 +568,6 @@ function famLabel(P) {
 
 function eventVisible(ev) {
   if (state.type && ev.type !== state.type) return false;
-  // 광명의 명사: 명단·가계도 인물이 없는 지역 사건(행정 연혁 등)은 시간축의 배경으로 늘 보인다.
-  if (GM && !ev.parts.some(({ P }) => !P.external)) return true;
   return ev.parts.some(({ P }) => !P.external && P.refs.some((r) => state.famOn.has(r.ds)));
 }
 function personVisible(P) {
@@ -676,10 +648,6 @@ function rebuild({ instant = false } = {}) {
 function updateSubtitle(nEv) {
   const on = [...state.famOn].map((d) => state.families.get(d).short);
   const all = state.famOn.size === state.families.size;
-  if (GM) {
-    $('subtitle').textContent = `${all ? '광명의 옛 인물과 오늘의 명사' : on.join(' · ')} · 사건 ${nEv}개${state.type ? ` (${state.type})` : ''} · ${TIME_FLOW}`;
-    return;
-  }
   const NUM = ['', '한', '두', '세', '네', '다섯', '여섯', '일곱', '여덟', '아홉', '열'];
   const fam = all ? `${NUM[state.families.size] || state.families.size} 가계도` : on.join(' · ') + ' 가계';
   $('subtitle').textContent = `${fam} 인물이 얽힌 사건 ${nEv}개${state.type ? ` (${state.type})` : ''}` +
@@ -725,17 +693,6 @@ function addKinLinks() {
     }
   }
   bridgeKin(byRef);
-  if (GM) addGroupLinks();
-}
-// 광명의 명사: 가계도가 없는 명단 무리(옛 명사·오늘의 명사)는 시간 순으로 한 줄로 잇는다.
-// 혈연·인맥이 아니라 '같은 명단에 실렸다'는 뜻이므로 상세 카드에도 그렇게 밝힌다.
-function addGroupLinks() {
-  for (const f of state.families.values()) {
-    if (f.genealogy || !state.famOn.has(f.id)) continue;
-    const list = [...nodes.values()].filter((n) => n.alive && n.kind === 'person' && !n.P.external && n.P.refs.some((r) => r.ds === f.id))
-      .sort((a, b) => b.y - a.y);
-    for (let i = 1; i < list.length; i++) linkList.push({ a: list[i - 1], b: list[i], kind: 'kin', ds: f.id, group: true, term: '같은 무리' });
-  }
 }
 // 조상 사슬로도 안 이어지는 덩어리(예: 숙부·처가 쪽 사람들만 나온 사건)는, 같은 가계도 안에서
 // 가장 가까운 친척(혈족 촌수가 작은 쪽, 인척은 한 촌 더 먼 것으로 친다)과 한 줄로 잇는다.
@@ -1043,8 +1000,7 @@ function timeTicks() {
 }
 
 // ── 카메라 ──────────────────────────────────────────────
-// 가로 시간축은 옆(phi = 90°)에서 보아 시간축이 화면에 곧게 눕게 한다
-const ctl = { target: new T.Vector3(), goal: null, theta: 0.6, phi: HORIZ ? Math.PI / 2 : 1.2, radius: 160, radiusGoal: 160, vTheta: 0, vPhi: 0, idle: 0 };
+const ctl = { target: new T.Vector3(), goal: null, theta: 0.6, phi: 1.2, radius: 160, radiusGoal: 160, vTheta: 0, vPhi: 0, idle: 0 };
 function updateCamera(dt) {
   if (ctl.goal) {
     ctl.target.lerp(ctl.goal, 1 - Math.exp(-dt * 3.2));
@@ -1060,15 +1016,8 @@ function updateCamera(dt) {
   ctl.radiusGoal = Math.min(900, Math.max(6, ctl.radiusGoal));
   const s = Math.sin(ctl.phi);
   camera.position.set(ctl.target.x + ctl.radius * s * Math.sin(ctl.theta), ctl.target.y + ctl.radius * Math.cos(ctl.phi), ctl.target.z + ctl.radius * s * Math.cos(ctl.theta));
-  if (HORIZ) {
-    // 화면 오른쪽 = 시간이 흐르는 쪽(-y를 시선에 수직으로 투영), 화면 위 = 오른쪽 × 시선
-    _cf.subVectors(ctl.target, camera.position).normalize();
-    _cr.set(0, -1, 0).addScaledVector(_cf, _cf.y).normalize();
-    camera.up.crossVectors(_cr, _cf);
-  }
   camera.lookAt(ctl.target);
 }
-const _cf = new T.Vector3(), _cr = new T.Vector3();
 function fit(keys) {
   const box = new T.Box3();
   let any = false;
@@ -1083,8 +1032,7 @@ function fit(keys) {
   ctl.goal = box.getCenter(new T.Vector3());
   const tanV = Math.tan((camera.fov * Math.PI) / 360);
   const w = Math.max(size.x, size.z) + 10, h = size.y * Math.sin(ctl.phi) + 12;
-  // 가로 시간축이면 시간 폭(h)이 화면 가로에, 둘레 폭(w)이 화면 세로에 놓인다
-  const dist = HORIZ ? Math.max(w / 2 / tanV, h / 2 / (tanV * camera.aspect)) : Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
+  const dist = Math.max(h / 2 / tanV, w / 2 / (tanV * camera.aspect));
   ctl.radiusGoal = Math.max(24, dist + w * 0.3);
 }
 function flyTo(n, closer) {
@@ -1127,10 +1075,7 @@ function setupControls() {
     ctl.idle = 0;
     if (downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 8) { downAt = null; canvas.classList.add('dragging'); hideTip(); }
     if (downAt) return;
-    // 가로 시간축은 화면이 90° 돌아 있으니 끄는 방향도 돌려 준다(위아래 끌기: 시간축 둘레로 돌기)
-    if (mode === 'rotate') {
-      if (HORIZ) { ctl.vTheta = dy * 0.0055; ctl.vPhi = -dx * 0.0045; } else { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
-    }
+    if (mode === 'rotate') { ctl.vTheta = -dx * 0.0055; ctl.vPhi = -dy * 0.0045; }
     else if (mode === 'pan') panBy(dx, dy);
     else if (mode === 'pinch' && pointers.size === 2) {
       const [a, b] = [...pointers.values()];
@@ -1313,7 +1258,6 @@ function showTip(n, x, y) {
   tip.style.top = `${Math.min(H - th - 10, Math.max(10, y + 16))}px`;
 }
 function linkText(L) {
-  if (L.kind === 'kin' && L.group) return { title: `${L.a.P.name} · ${L.b.P.name}`, kind: '같은 무리', note: `${state.families.get(L.ds).short} 명단에 함께 실림(혈연·인맥 아님)` };
   if (L.kind === 'kin') return { title: `${L.a.P.name} → ${L.b.P.name}`, kind: '가계 줄기', note: `${L.b.P.name}은(는) ${L.a.P.name}의 ${L.term}` };
   if (L.kind === 'rel') return { title: `${L.a.ev.name} → ${L.b.ev.name}`, kind: L.rel.type, note: L.rel.note || '' };
   return { title: `${L.b.P.name} · ${L.a.ev.name}`, kind: '역할', note: L.role || '' };
@@ -1359,13 +1303,12 @@ function updateLabelsContent() {
     if (el.dataset.key !== key) { el.dataset.key = key; el.innerHTML = html; el.style.setProperty('--c', c); el._w = 0; }
   }
 }
-const _p = new T.Vector3(), _lu = new T.Vector3();
+const _p = new T.Vector3();
 function updateLabels() {
   const W = canvas.clientWidth, H = canvas.clientHeight;
   const camPos = camera.position;
   const placed = [];
   const items = [];
-  const up = _lu.setFromMatrixColumn(camera.matrix, 1); // 이름표는 화면 위쪽(가로 시간축에서는 세계 y가 아니다)
   for (const n of order) {
     const el = labels.get(n.key);
     if (!el) continue;
@@ -1380,7 +1323,7 @@ function updateLabels() {
   items.sort((a, b) => (b.pri - a.pri) || (a.dist - b.dist));
   for (const it of items) {
     const { n, el, dist, pri, foc } = it;
-    _p.copy(n.pos).addScaledVector(up, n.radius * n.scale + 0.4);
+    _p.copy(n.pos); _p.y += n.radius * n.scale + 0.4;
     _p.project(camera);
     const behind = _p.z > 1 || _p.z < -1;
     const x = (_p.x * 0.5 + 0.5) * W, y = (-_p.y * 0.5 + 0.5) * H;
@@ -1406,11 +1349,9 @@ function updateLabels() {
     el.classList.toggle('sel', n.key === state.selected);
     el.classList.toggle('hov', n.key === state.hovered);
   }
-  // 연도 표시: 고리의 카메라 오른쪽 끝(가로 시간축이면 고리 아래 끝)
-  const right = HORIZ ? new T.Vector3().setFromMatrixColumn(camera.matrix, 1).setY(0).normalize().negate()
-    : new T.Vector3().setFromMatrixColumn(camera.matrix, 0).setY(0).normalize();
+  // 연도 표시: 고리의 카메라 오른쪽 끝
+  const right = new T.Vector3().setFromMatrixColumn(camera.matrix, 0).setY(0).normalize();
   const seen = new Set();
-  const shown = []; // 가로 시간축: 화면에서 겹치는 연도는 건너뛴다(휴대폰 폭)
   for (const t of timeTicks()) {
     seen.add(t);
     let el = timeLabels.get(t);
@@ -1418,13 +1359,8 @@ function updateLabels() {
     _p.copy(right).multiplyScalar(timeState.R + 1.5); _p.y = yearToY(t);
     _p.project(camera);
     if (_p.z > 1) { el.style.opacity = '0'; continue; }
-    if (HORIZ) {
-      const sx = (_p.x * 0.5 + 0.5) * W;
-      if (shown.some((q) => Math.abs(q - sx) < 46)) { el.style.opacity = '0'; continue; }
-      shown.push(sx);
-    }
     el.style.opacity = '1';
-    el.style.transform = `translate3d(${((_p.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-_p.y * 0.5 + 0.5) * H).toFixed(1)}px, 0) ${HORIZ ? 'translate(-50%, 4px)' : 'translate(4px, -50%)'}`;
+    el.style.transform = `translate3d(${((_p.x * 0.5 + 0.5) * W).toFixed(1)}px, ${((-_p.y * 0.5 + 0.5) * H).toFixed(1)}px, 0) translate(4px, -50%)`;
   }
   for (const [t, el] of timeLabels) if (!seen.has(t)) { el.remove(); timeLabels.delete(t); }
 }
@@ -1444,14 +1380,6 @@ function relPhrase(rel, ev) {
 function renderLinkInfo(box, L) {
   const ev = L.a.ev;
   let html = '<button type="button" class="close" aria-label="닫기"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10.25"/><path d="M8.6 8.6l6.8 6.8M15.4 8.6l-6.8 6.8"/></svg></button>';
-  if (L.kind === 'kin' && L.group) {
-    const fam = state.families.get(L.ds);
-    box.style.setProperty('--c', fam.color);
-    return html + `<p class="kicker">GROUP · 같은 무리</p>
-      <h2>${esc(fam.short)}</h2>
-      <p class="note">${esc(L.a.P.name)}과(와) ${esc(L.b.P.name)}은(는) 같은 '${esc(fam.short)}' 명단에 실려 시간 순으로 이어 놓았습니다. 혈연이나 인맥을 뜻하지 않습니다.</p>
-      <ul class="plist link-ends"><li><button type="button" data-go="${esc(L.a.key)}">${esc(L.a.P.name)}</button></li><li><button type="button" data-go="${esc(L.b.key)}">${esc(L.b.P.name)}</button></li></ul>`;
-  }
   if (L.kind === 'kin') {
     const fam = state.families.get(L.ds);
     box.style.setProperty('--c', fam.color);
@@ -1494,7 +1422,6 @@ function renderLinkInfo(box, L) {
 }
 // 자손 쪽에서 본 조상 호칭(예: 5대조부)
 function M_up(L) {
-  if (L.group) return L.term;
   const M = state.models.get(L.ds);
   const ra = L.a.P.refs.find((r) => r.ds === L.ds), rb = L.b.P.refs.find((r) => r.ds === L.ds);
   return M && M.kin && ra && rb ? M.kin.relation(rb.id, ra.id).term : '조상';
@@ -1537,26 +1464,23 @@ function renderInfo() {
     const P = n.P;
     const evs = P.roles;
     html += `
-      <p class="kicker">${P.external ? 'PERSON · 가계도 밖' : 'PERSON · ' + esc(P.refs.map((r) => state.families.get(r.ds).short + (state.families.get(r.ds).genealogy ? ' 가계' : '')).join(' · '))}</p>
+      <p class="kicker">${P.external ? 'PERSON · 가계도 밖' : 'PERSON · ' + esc(P.refs.map((r) => state.families.get(r.ds).short + ' 가계').join(' · '))}</p>
       <h2>${esc(P.name)}${P.hanja ? `<small>${esc(P.hanja)}</small>` : ''}</h2>
-      <div class="rel"><b>${esc(!P.raw ? '' : P.raw.birth || P.raw.death ? years(P.raw) : P.raw.born ? `${P.raw.born}년생` : P.raw.career ? '' : years(P.raw))}</b><span>사건 ${evs.length}개</span></div>
+      <div class="rel"><b>${esc(!P.raw ? '' : years(P.raw))}</b><span>사건 ${evs.length}개</span></div>
       ${P.raw && P.raw.title ? `<p class="note">${esc(P.raw.title)}</p>` : ''}
-      ${P.raw && P.raw.career ? `<div class="grp"><p class="grp-h">공적 이력</p><ul class="plist career">${P.raw.career.map((c) => `<li><span>${esc(c)}</span></li>`).join('')}</ul></div>` : ''}
-      ${P.raw && P.raw.gmOrigin ? `<p class="srcs">광명 연고: ${esc(P.raw.gmOrigin)}</p>` : ''}
       <div class="grp"><p class="grp-h">얽힌 사건 (시간순)</p>
       <ul class="plist">${evs.map((r) => `<li><button type="button" data-go="e:${esc(r.ev.id)}"><i class="rdot" style="--c:${TYPE_COLORS[r.ev.type]}"></i>${esc(r.ev.name)}<small>${esc(evYears(r.ev))}</small></button><span>${esc(r.role || '')}</span></li>`).join('')}</ul></div>
       ${(() => {
         const kin = linkList.filter((L) => L.kind === 'kin' && L.a.alive && L.b.alive && (L.a === n || L.b === n));
         if (!kin.length) return '';
-        return `<div class="grp"><p class="grp-h">${kin.some((L) => L.group) ? '같은 무리 (명단에서 앞뒤 사람, 혈연 아님)' : '가계 줄기 (화면에 보이는 조상·자손)'}</p><ul class="plist">${kin.map((L) => {
+        return `<div class="grp"><p class="grp-h">가계 줄기 (화면에 보이는 조상·자손)</p><ul class="plist">${kin.map((L) => {
           const o = L.a === n ? L.b : L.a;
           const t = L.a === n ? L.term : M_up(L);
           return `<li><button type="button" data-go="${esc(o.key)}">${famDot(L.ds)}${esc(o.P.name)}${o.P.hanja ? `<small>${esc(o.P.hanja)}</small>` : ''}</button><span>${esc(t)}</span></li>`;
         }).join('')}</ul></div>`;
       })()}
-      ${P.raw && P.raw.sources && P.raw.career ? `<p class="srcs">출처: ${P.raw.sources.map((s) => `<a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a>`).join(', ')}</p>` : ''}
       ${(() => {
-        const gen = P.refs.filter((r) => state.families.get(r.ds).genealogy);
+        const gen = P.refs;
         return gen.length ? `<div class="acts">${gen.map((r) => `<a class="glass-btn" href="index.html#${esc(r.ds)}" data-ego="${esc(r.ds)}|${esc(r.id)}">${esc(state.families.get(r.ds).short)} 버블 가계도에서</a>`).join('')}</div>` : '';
       })()}`;
   }
@@ -1609,8 +1533,7 @@ function buildLegend() {
     '<li class="sep"></li>' +
     REL_TYPES.filter((t) => usedRel.has(t)).map((t) => `<li><i class="rline" style="--c:${REL_COLORS[t]}"></i>${esc(t)}</li>`).join('') +
     '<li><i class="rline kin"></i>가계 줄기(조상→자손)</li>' +
-    (GM ? '<li><i class="rline kin"></i>같은 무리(명단 순서, 혈연 아님)</li>' : '') +
-    `<li class="sep"></li><li><i class="sex m">男</i><i class="sex f">女</i>남자 · 여자(구슬 위 작은 원)</li><li><i class="dot unknown"></i>${GM ? '명단 밖 인물' : '가계도 밖 인물'}</li>` + '<li><i class="ring-sample"></i>이름난 인물</li><li><i class="pillar-sample"></i>기간(시작→끝)</li>';
+    `<li class="sep"></li><li><i class="sex m">男</i><i class="sex f">女</i>남자 · 여자(구슬 위 작은 원)</li><li><i class="dot unknown"></i>가계도 밖 인물</li>` + '<li><i class="ring-sample"></i>이름난 인물</li><li><i class="pillar-sample"></i>기간(시작→끝)</li>';
 }
 function updateLegendCounts() {
   const count = new Map();

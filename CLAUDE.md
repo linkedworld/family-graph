@@ -17,7 +17,8 @@ node tools/check-dataset.cjs <id> [--list]  # 데이터 검사: 참조 오류, 1
 - `tree.html` + `js/app.js` + `css/style.css`: 카드 가계도(SVG, dagre 배치).
 - `events.html` + `js/events.js` + `css/events.css` + `data/events.js`: 인물과 사건(3D). css/bubble.css를 함께 쓰고(사건 이름표·상세 목록 스타일은 bubble.css에 있다),
   셰이더·후처리 함수는 js/bubble.js에서 복사해 왔다(한쪽을 고치면 다른 쪽도 맞출 것). 사건 데이터는 `npm test`가 검사한다.
-- `gwangmyeong.html` + `data/gwangmyeong.js`: 광명의 명사. js/events.js를 `<body data-scope="gwangmyeong">`로 재사용(GM 분기).
+- `gwangmyeong.html` + `data/gwangmyeong.js`: 광명의 명사. 엔진은 `js/world.js`+`js/fx3d.js`+`css/world.css`(lonycell/videojs-simpleoverlay의
+  세계사 연관도·루이 14세 화면에서 그대로 가져옴, 원본과 다른 점은 world.js 머리 주석). `js/gm-world.js`가 광명 데이터를 엔진 자료로 바꾼다(테스트 있음).
   현재 인물은 공적 정보만 싣는다(가족·주소·SNS 금지, 테스트가 칸을 검사). 원자료 조립은 직접 고친 data 파일이 기준.
 - `js/nav.js`, `css/nav.css`: 네 페이지 공용 도구 막대·페이지 메뉴. 기준 인물은 sessionStorage로 넘긴다.
 - 엔진(두 페이지 공용, DOM 없음 → Node 테스트 가능):
