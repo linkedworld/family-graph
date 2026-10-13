@@ -2,13 +2,17 @@
 // 계보도(tree.html)는 지금 모습을 지킨다.
 // 계보도와 다른 점: 부부를 한 칸으로 묶고, 사돈으로 잇는 선은 두 줄 겹선,
 // 이름은 한자를 크게 병기, 카드는 겹테두리의 공식 꼴.
-// 가운데는 프레젠테이션처럼 A4 가로 용지를 한 장씩 보여 준다. 한 장에는 카드가 세로로 최대 6줄,
+// 가운데는 PDF 보기처럼 A4 가로 용지들을 위에서 아래로 이어 보여 준다. 한 장에는 카드가 세로로 최대 6줄,
 // 가로는 카드 비율 그대로 용지 안에 들어간다. 인쇄는 장마다 한 쪽이다.
 // 엔진(js/model.js·js/kinship.js·js/layout.js)은 계보도와 함께 쓴다.
 (function () {
 'use strict';
 
 const { buildModel, Kinship, buildView, layout, coreSet, CARD } = window.Genealogy;
+// 이 페이지는 부부를 한 칸에 담으므로 칸을 크게 잡는다(layout.js를 따로 읽어 오니 계보도에는 영향이 없다).
+// 위 MAIN_H는 칸 주인, 그 아래 띠는 배우자 자리.
+Object.assign(CARD, { w: 200, h: 132 });
+const MAIN_H = 96;
 
 
 const SVGNS = 'http://www.w3.org/2000/svg';
@@ -32,7 +36,7 @@ const state = {
   showLine: true, // 정통 표시: 종통(대를 잇는 맏아들) 줄기, 맏아들·맏딸, 이름난 인물
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   lay: null, view: null,
-  book: null, slide: 0, focusId: null,
+  book: null,
   t: { k: 1, x: 0, y: 0 },
 };
 
@@ -154,49 +158,51 @@ function reveal(id) {
   for (const s of model.spouses(id)) up(s.id);
 }
 
-function toggleExpand(id) {
-  if (state.expanded.has(id) || state.expandAll) {
+// ids: 한 사람 또는 한 칸(부부)의 사람들. 함께 펼치고 함께 접는다.
+function toggleExpand(ids) {
+  ids = [].concat(ids);
+  if (state.expandAll || ids.some((id) => state.expanded.has(id))) {
     if (state.expandAll) {
-      // '모두 펼치기' 상태에서 하나를 접으면, 지금 보이는 사람을 펼친 상태로 옮긴 뒤 그 사람만 접는다.
+      // '모두 펼치기' 상태에서 하나를 접으면, 지금 보이는 사람을 펼친 상태로 옮긴 뒤 그 칸만 접는다.
       state.expandAll = false;
       for (const p of state.shown) state.expanded.add(p);
     }
-    state.expanded.delete(id);
+    for (const id of ids) state.expanded.delete(id);
   } else {
-    state.expanded.add(id);
+    for (const id of ids) state.expanded.add(id);
   }
   render();
   renderRelations();
 }
 
-// 한 장은 A4 가로. 카드 비율은 그대로 두고, 세로는 최대 6줄, 가로는 그 장 너비를 넘지 않는다.
-// 전문서적처럼 위에는 머리말 선, 아래에는 꼬리말 선을 긋고, 카드와 선은 그 사이 판면에만 그린다.
+// 한 장은 A4 가로(297×210mm). 여백은 한컴 한글의 기본 편집 용지를 따른다:
+// 위 20, 머리말 15, 꼬리말 15, 아래 15, 좌우 30mm. 남는 판면(237×145mm)에 카드가 세로로 최대 6줄 들어가고,
+// 머리말 선과 꼬리말 선은 판면 위아래에 긋는다. 카드와 선은 두 선 사이에만 그린다.
+const PAPER = { w: 297, h: 210 };
+const MARGIN = { top: 20, head: 15, foot: 15, bottom: 15, side: 30 };
+const BODY = { w: PAPER.w - MARGIN.side * 2, h: PAPER.h - MARGIN.top - MARGIN.head - MARGIN.foot - MARGIN.bottom };
+const BODY_TOP = MARGIN.top + MARGIN.head;
+const BODY_BOTTOM = PAPER.h - MARGIN.bottom - MARGIN.foot;
 const SLIDE_ROWS = 6;
-const SLIDE_PAD = 44;    // 좌우 여백
-const SLIDE_HEAD = 72;   // 용지 위 끝에서 판면까지(머리말 포함)
-const SLIDE_FOOT = 68;   // 판면에서 용지 아래 끝까지(꼬리말 포함)
-const RULE_INSET = 28;   // 머리말·꼬리말 선의 좌우 들여쓰기
-const HEAD_RULE_Y = 40;  // 머리말 선 높이
-const FOOT_RULE_GAP = 38; // 용지 아래 끝에서 꼬리말 선까지
 const SLIDE_ROW_GAP = 96;
-const A4_LANDSCAPE = 297 / 210;
 const blockTop = (b) => b.y - CARD.h / 2;
 const blockBottom = (b) => b.y + CARD.h / 2;
 const blockLeft = (b) => b.x - b.width / 2;
 const blockRight = (b) => b.x + b.width / 2;
 
-function paginate(lay) {
+// trunkX: 기준 인물 칸의 가로 위치. 직계 줄기가 지나는 장은 이 줄기를 판면 가운데에 두어,
+// 위아래로 이어지는 장마다 직계가 같은 자리에 곧게 선다.
+function paginate(lay, trunkX) {
   const blocks = lay.blocks.filter((b) => b.order.some((id) => lay.pos.has(id)));
   const maxW = blocks.reduce((m, b) => Math.max(m, b.width), CARD.w);
   const rowsH = SLIDE_ROWS * CARD.h + (SLIDE_ROWS - 1) * SLIDE_ROW_GAP;
-  let pageH = rowsH + SLIDE_HEAD + SLIDE_FOOT;
-  let pageW = pageH * A4_LANDSCAPE;
-  if (pageW - SLIDE_PAD * 2 < maxW) {
-    pageW = maxW + SLIDE_PAD * 2;
-    pageH = pageW / A4_LANDSCAPE;
-  }
-  const innerW = pageW - SLIDE_PAD * 2;
-  const innerH = pageH - SLIDE_HEAD - SLIDE_FOOT;
+  const mm = Math.max(rowsH / BODY.h, maxW / BODY.w); // 1mm에 해당하는 그림 단위
+  const pageW = PAPER.w * mm;
+  const pageH = PAPER.h * mm;
+  const innerW = BODY.w * mm;
+  const innerH = BODY.h * mm;
+  const left0 = MARGIN.side * mm;
+  const top0 = BODY_TOP * mm;
   const rowMap = new Map();
   for (const b of blocks) {
     const y = Math.round(b.y);
@@ -220,51 +226,120 @@ function paginate(lay) {
   if (cur.length) bands.push(cur);
 
   const pages = [];
-  const push = (group) => {
+  const push = (group, dx, dy) => {
     if (!group.length) return;
-    const left = Math.min(...group.map(blockLeft));
-    const top = Math.min(...group.map(blockTop));
-    pages.push({
-      blocks: group,
-      ids: new Set(group.flatMap((b) => b.order)),
-      dx: SLIDE_PAD - left,
-      dy: SLIDE_HEAD - top,
-    });
+    pages.push({ blocks: group, ids: new Set(group.flatMap((b) => b.order)), dx, dy });
   };
-  for (const band of bands) {
-    const list = band.flat().slice().sort((a, b) => blockLeft(a) - blockLeft(b) || a.y - b.y);
+  // 왼쪽부터 판면 너비만큼씩 묶는다. fromRight면 오른쪽 끝에서 왼쪽으로 묶고 순서를 되돌린다.
+  const chunk = (list, fromRight) => {
+    const sorted = list.slice().sort((a, b) => fromRight ? blockRight(b) - blockRight(a) : blockLeft(a) - blockLeft(b));
+    const groups = [];
     let group = [];
     let origin = null;
-    for (const b of list) {
-      if (origin == null) { origin = blockLeft(b); group = [b]; continue; }
-      if (blockRight(b) - origin <= innerW + 0.5) group.push(b);
-      else { push(group); origin = blockLeft(b); group = [b]; }
+    for (const b of sorted) {
+      const span = fromRight ? origin - blockLeft(b) : blockRight(b) - origin;
+      if (origin != null && span <= innerW + 0.5) { group.push(b); continue; }
+      if (group.length) groups.push(group);
+      group = [b];
+      origin = fromRight ? blockRight(b) : blockLeft(b);
     }
-    push(group);
+    if (group.length) groups.push(group);
+    return fromRight ? groups.reverse() : groups;
+  };
+  for (const band of bands) {
+    const list = band.flat();
+    const dy = top0 - Math.min(...list.map(blockTop));
+    if (trunkX == null) {
+      for (const g of chunk(list, false)) push(g, left0 - Math.min(...g.map(blockLeft)), dy);
+      continue;
+    }
+    const lo = trunkX - innerW / 2;
+    const hi = trunkX + innerW / 2;
+    const mid = list.filter((b) => blockLeft(b) >= lo - 0.5 && blockRight(b) <= hi + 0.5);
+    const rest = list.filter((b) => !mid.includes(b));
+    for (const g of chunk(rest.filter((b) => b.x < trunkX), true)) {
+      push(g, left0 + innerW - Math.max(...g.map(blockRight)), dy);
+    }
+    push(mid, left0 + innerW / 2 - trunkX, dy);
+    for (const g of chunk(rest.filter((b) => b.x >= trunkX), false)) {
+      push(g, left0 - Math.min(...g.map(blockLeft)), dy);
+    }
   }
-  if (!pages.length) pages.push({ blocks: [], ids: new Set(), dx: SLIDE_PAD, dy: SLIDE_HEAD });
-  return { pages, pageW, pageH };
+  if (!pages.length) pages.push({ blocks: [], ids: new Set(), dx: left0, dy: top0 });
+  return { pages, pageW, pageH, mm };
 }
 
-function updateSlideUi() {
-  const n = state.book ? state.book.pages.length : 1;
-  const i = state.slide || 0;
-  $('slideLabel').textContent = `${i + 1} / ${n}`;
-  const prev = $('slidePrev');
-  const next = $('slideNext');
-  if (prev.disabled !== undefined) prev.disabled = i <= 0;
-  if (next.disabled !== undefined) next.disabled = i >= n - 1;
+// 부부 한 칸: 혼인으로 이어진 사람들 가운데 한 사람(기준 인물 > 시조 혈통 > 배우자가 많은 사람 > 남자)을
+// 칸의 주인으로 두고, 나머지 배우자는 그 칸 안에 함께 적는다. 배치 엔진에는 주인만 넘기고,
+// 배우자에게 닿던 선(배우자의 부모 → 배우자)은 주인 칸으로 옮겨 viaSpouse에 원래 사람을 남긴다.
+function mergeHouseholds(view) {
+  const { model } = state;
+  const partners = new Map(view.persons.map((id) => [id, []]));
+  for (const un of view.unions) {
+    if (un.partners.length !== 2) continue;
+    const [a, b] = un.partners;
+    partners.get(a).push(b);
+    partners.get(b).push(a);
+  }
+  const score = (id) => (id === state.ego ? 1e6 : 0) + (state.lineage.has(id) ? 1e4 : 0)
+    + partners.get(id).length * 10 + (model.get(id).gender === 'M' ? 1 : 0);
+  const mainOf = new Map();
+  const members = new Map();
+  const seen = new Set();
+  for (const start of view.persons) {
+    if (seen.has(start)) continue;
+    const comp = [];
+    const stack = [start];
+    seen.add(start);
+    while (stack.length) {
+      const id = stack.pop();
+      comp.push(id);
+      for (const p of partners.get(id)) if (!seen.has(p)) { seen.add(p); stack.push(p); }
+    }
+    const main = comp.reduce((a, b) => (score(b) > score(a) ? b : a));
+    const order = model.spouses(main).map((s) => s.id);
+    const rank = (id) => (order.includes(id) ? order.indexOf(id) : 99);
+    const spouses = comp.filter((id) => id !== main).sort((a, b) => rank(a) - rank(b));
+    for (const id of comp) mainOf.set(id, main);
+    members.set(main, [main, ...spouses]);
+  }
+
+  const byMain = new Map();
+  for (const un of view.unions) {
+    const m = mainOf.get(un.partners[0]);
+    let merged = byMain.get(m);
+    if (!merged) {
+      const male = model.get(m).gender === 'M';
+      merged = {
+        u: { id: `hh:${m}`, husband: male ? m : un.u.husband, wife: male ? un.u.wife : m, type: '정실', adoptees: [] },
+        partners: [m],
+        children: [],
+      };
+      byMain.set(m, merged);
+    }
+    for (const c of un.children) {
+      const id = mainOf.get(c.id) ?? c.id;
+      if (id === m || merged.children.some((x) => x.id === id)) continue;
+      merged.children.push({ ...c, id, viaSpouse: id !== c.id ? c.id : undefined });
+    }
+  }
+  const unions = [...byMain.values()];
+  for (const un of unions) un.children.sort((a, b) => a.rank - b.rank);
+  const persons = view.persons.filter((id) => mainOf.get(id) === id);
+  return { ...view, persons, unions, nodes: persons.map((id) => ({ id, kind: 'person' })), mainOf, members };
 }
 
-function goToSlide(index) {
-  if (!state.book) return;
-  const n = state.book.pages.length;
-  const next = Math.max(0, Math.min(n - 1, index));
-  if (next === state.slide) return;
-  state.slide = next;
-  if (state.paint) state.paint(svg, state.book.pages[state.slide]);
-  applyTransform();
-  updateSlideUi();
+// 화면에서는 PDF 보기처럼 모든 장을 위에서 아래로 이어 붙인다.
+const pageGap = () => state.book.mm * 8;
+const pageTop = (i) => i * (state.book.pageH + pageGap());
+const bookHeight = () => pageTop(state.book.pages.length) - pageGap();
+
+function paintBook() {
+  svg.replaceChildren();
+  const vp = el('g', { class: 'viewport' }, svg);
+  state.book.pages.forEach((page, i) => {
+    state.paint(el('g', { transform: `translate(0 ${pageTop(i)})` }, vp), page, `s${i}`);
+  });
 }
 
 function render({ refit = false } = {}) {
@@ -272,10 +347,11 @@ function render({ refit = false } = {}) {
   const { shown, lineal: linealAll, rels: allRels, heir } = computeShown();
   state.heir = heir;
   state.shown = shown;
-  state.view = buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core, keep: shown });
+  state.view = mergeHouseholds(buildView(model, { hideUnknown: state.hideUnknown, showInlaws: state.showInlaws, core: state.core, keep: shown }));
   state.view.fold = state.fold;
+  const mainOf = (id) => state.view.mainOf.get(id) ?? id;
   // 배치용 직계 줄기: 기준 인물과 부계 직계(조상·자손). 이 사람들의 카드를 세로로 맞춘다.
-  const trunk = new Set([state.ego]);
+  const trunk = new Set([mainOf(state.ego)]);
   for (const id of state.view.persons) {
     const r = allRels.get(id);
     if (r.kind !== 'blood' || !r.path || (r.path.up !== 0 && r.path.down !== 0)) continue;
@@ -286,43 +362,45 @@ function render({ refit = false } = {}) {
   state.view.male = (id) => model.get(id).gender === 'M';
   state.lay = layout(state.view);
   const { pos } = state.lay;
-  state.book = paginate(state.lay);
-  if (state.focusId) {
-    const i = state.book.pages.findIndex((p) => p.ids.has(state.focusId));
-    if (i >= 0) state.slide = i;
-    state.focusId = null;
-  }
-  if (state.slide >= state.book.pages.length) state.slide = Math.max(0, state.book.pages.length - 1);
-  const pageNow = state.book.pages[state.slide];
+  state.book = paginate(state.lay, pos.get(mainOf(state.ego))?.x);
 
-  state.paint = (host, page) => {
-  const clipId = host === svg ? 'sheetClip' : `sheetClip-${state.book.pages.indexOf(page)}`;
-  host.replaceChildren();
-  const vp = el('g', { class: 'viewport' }, host);
-  el('rect', { class: 'sheet-shadow', x: 8, y: 10, width: state.book.pageW, height: state.book.pageH }, vp);
-  el('rect', { class: 'sheet', width: state.book.pageW, height: state.book.pageH }, vp);
-  const defs = el('defs', {}, host);
+  // 장 하나를 parent 그룹 안에 그린다. 화면과 인쇄가 같이 쓰므로 clipPath id는 prefix로 가른다.
+  // 머리말·꼬리말은 mm 단위로 잡아, 장의 그림 단위가 바뀌어도 인쇄한 종이에서 같은 자리·크기가 된다.
+  state.paint = (parent, page, prefix) => {
+  const clipId = `sheetClip-${prefix}`;
+  const vp = parent;
+  const { pageW, pageH, mm } = state.book;
+  el('rect', { class: 'sheet-shadow', x: mm, y: mm * 1.3, width: pageW, height: pageH }, vp);
+  el('rect', { class: 'sheet', width: pageW, height: pageH }, vp);
+  const defs = el('defs', {}, vp);
   const clip = el('clipPath', { id: clipId }, defs);
-  const { pageW, pageH } = state.book;
-  const footRuleY = pageH - FOOT_RULE_GAP;
-  el('rect', { x: RULE_INSET, y: HEAD_RULE_Y + 1, width: pageW - RULE_INSET * 2, height: footRuleY - HEAD_RULE_Y - 2 }, clip);
+  const x0 = MARGIN.side * mm;
+  const x1 = pageW - x0;
+  const headRuleY = (BODY_TOP - 4) * mm;
+  const footRuleY = (BODY_BOTTOM + 4) * mm;
+  // 판면 밖으로 조금 나가는 접기 단추·선 끝은 좌우 여백 안쪽 5mm까지 보인다.
+  el('rect', { x: x0 - 5 * mm, y: headRuleY + mm, width: x1 - x0 + 10 * mm, height: footRuleY - headRuleY - 1.3 * mm }, clip);
 
   const pageNo = state.book.pages.indexOf(page) + 1;
   const total = state.book.pages.length;
   const meta = state.data.meta;
-  const headL = el('text', { class: 'sheet-head', x: RULE_INSET, y: HEAD_RULE_Y - 9 }, vp);
-  headL.textContent = meta.title;
-  const headR = el('text', { class: 'sheet-head sub', x: pageW - RULE_INSET, y: HEAD_RULE_Y - 9, 'text-anchor': 'end' }, vp);
-  headR.textContent = `기준 인물 ${personLabel(state.ego)}`;
-  el('line', { class: 'sheet-rule head', x1: RULE_INSET, y1: HEAD_RULE_Y, x2: pageW - RULE_INSET, y2: HEAD_RULE_Y }, vp);
-  el('line', { class: 'sheet-rule head-thin', x1: RULE_INSET, y1: HEAD_RULE_Y + 3, x2: pageW - RULE_INSET, y2: HEAD_RULE_Y + 3 }, vp);
-  el('line', { class: 'sheet-rule foot', x1: RULE_INSET, y1: footRuleY, x2: pageW - RULE_INSET, y2: footRuleY }, vp);
-  const footL = el('text', { class: 'sheet-foot', x: RULE_INSET, y: footRuleY + 18 }, vp);
-  footL.textContent = [meta.clan, meta.updated].filter(Boolean).join(' · ');
-  const folio = el('text', { class: 'sheet-folio', x: pageW / 2, y: footRuleY + 19, 'text-anchor': 'middle' }, vp);
-  folio.textContent = `— ${pageNo} —`;
-  const footR = el('text', { class: 'sheet-foot', x: pageW - RULE_INSET, y: footRuleY + 18, 'text-anchor': 'end' }, vp);
-  footR.textContent = `${pageNo} / ${total}`;
+  const text = (cls, x, y, size, content, anchor) => {
+    const t = el('text', { class: cls, x, y, ...(anchor ? { 'text-anchor': anchor } : {}) }, vp);
+    t.style.fontSize = `${size * mm}px`;
+    t.textContent = content;
+  };
+  const rule = (cls, y, w) => {
+    const l = el('line', { class: `sheet-rule ${cls}`, x1: x0, y1: y, x2: x1, y2: y }, vp);
+    l.style.strokeWidth = `${w * mm}px`;
+  };
+  text('sheet-head', x0, headRuleY - 2 * mm, 3.6, meta.title);
+  text('sheet-head sub', x1, headRuleY - 2 * mm, 3.2, `기준 인물 ${personLabel(state.ego)}`, 'end');
+  rule('head', headRuleY, 0.35);
+  rule('head-thin', headRuleY + 0.8 * mm, 0.12);
+  rule('foot', footRuleY, 0.2);
+  text('sheet-foot', x0, footRuleY + 5 * mm, 2.9, [meta.clan, meta.updated].filter(Boolean).join(' · '));
+  text('sheet-folio', pageW / 2, footRuleY + 5.2 * mm, 3.3, `— ${pageNo} —`, 'middle');
+  text('sheet-foot', x1, footRuleY + 5 * mm, 2.9, `${pageNo} / ${total}`, 'end');
   const clipG = el('g', { 'clip-path': `url(#${clipId})` }, vp);
   const content = el('g', { transform: `translate(${page.dx} ${page.dy})` }, clipG);
   const gEdges = el('g', {}, content);
@@ -337,7 +415,7 @@ function render({ refit = false } = {}) {
   const rels = allRels;
   const line = new Map();
   if (state.lineMode !== 'none') {
-    for (const id of state.view.persons) {
+    for (const id of state.view.mainOf.keys()) {
       const r = rels.get(id);
       if (id === state.ego) { line.set(id, 'P'); continue; }
       if (r.kind !== 'blood' || !r.path || (r.path.up !== 0 && r.path.down !== 0)) continue;
@@ -353,37 +431,45 @@ function render({ refit = false } = {}) {
   const gHeir = el('g', {});
   const gSadon = el('g', {});
   const fatherOf = (un) => un.u.husband;
-  const blockOf = new Map();
-  for (const b of state.lay.blocks) for (const id of b.order) blockOf.set(id, b);
-  // 화면에 함께 놓인 부부는 한 칸이다.
-  const sameCell = (un) => un.partners.length === 2
-    && blockOf.get(un.partners[0]) && blockOf.get(un.partners[0]) === blockOf.get(un.partners[1]);
-  // 사돈(자녀의 배우자의 부모)과 그 자녀(사위·며느리)를 잇는 선.
+  const membersOf = (id) => state.view.members.get(id) || [id];
+  // 사돈(자녀의 배우자의 부모)과 그 자녀(사위·며느리)를 잇는 선. 부모 쪽은 칸 안의 모든 사람을 본다.
   const isSadonEdge = (un, childId) => {
     const childKind = rels.get(childId)?.kind;
-    const parentKinds = un.partners.map((p) => rels.get(p)?.kind);
+    const parentKinds = membersOf(un.partners[0]).map((p) => rels.get(p)?.kind);
     if (childKind === 'sadon' && parentKinds.some((k) => k === 'affinal' || k === 'spouse' || k === 'blood' || k === 'self')) return true;
     if (parentKinds.includes('sadon') && (childKind === 'affinal' || childKind === 'spouse')) return true;
     return false;
   };
 
+  // 선 이름표: 부모 칸에서 본 자녀의 자리(장남·차녀…). 배우자를 거쳐 들어오는 선(사돈 쪽)은
+  // 그 배우자가 친정에서 몇째인지 적고, 칸에 배우자가 여럿이면 누구인지 이름을 앞에 붙인다.
+  const edgeLabel = (c) => {
+    if (c.adopt || c.adoptedOut || c.skipped) return null;
+    const id = c.viaSpouse || c.id;
+    const order = model.birthOrder(id);
+    const g = model.get(id).gender;
+    const base = order?.label || (c.viaSpouse ? (g === 'M' ? '아들' : g === 'F' ? '딸' : '') : '');
+    if (!base) return null;
+    return c.viaSpouse && membersOf(c.id).length > 2 ? `${model.displayName(id)} · ${base}` : base;
+  };
+  const labelAt = (text, x, y) => {
+    const w = text.length * 9.6 + 8;
+    el('rect', { class: 'edge-label-bg', x, y: y - 11, width: w, height: 14, rx: 2 }, gLabels);
+    const t = el('text', { class: 'edge-label', x: x + 4, y }, gLabels);
+    t.textContent = text;
+  };
+
   for (const un of state.lay.unions) {
     const cls = ['edge', 'marriage'];
-    if (un.u.type === '첩') cls.push('concubine');
-    // 직계가 이 혼인을 지나 자녀로 이어지면 결혼선도 직계 줄기로 표시한다.
-    const linealUnion = un.partners.some((p) => lineal.has(p)) && un.children.some((c) => lineal.has(c.id));
+    // 직계가 이 칸을 지나 자녀로 이어지면 자녀 줄기도 직계 줄기로 표시한다.
+    const linealUnion = membersOf(un.partners[0]).some((p) => lineal.has(p)) && un.children.some((c) => lineal.has(c.id));
     // 부모 쪽과 자녀 쪽이 모두 부계면 부계 줄기, 그 밖에는 모계 줄기
     const unionCat = un.partners.some((p) => line.get(p) === 'P') && un.children.some((c) => line.get(c.id) === 'P') ? 'P' : 'M';
     if (linealUnion) cls.push('lineal', unionCat === 'M' ? 'maternal' : 'paternal');
     const { bottom, drop } = un;
-    // 한 칸 부부는 칸이 혼인을 나타내므로 ㄷ자 선 없이 자녀 줄기만 내린다. 첩의 점선은 칸 안 구분선에 둔다.
-    const stemCls = cls.filter((c) => c !== 'concubine');
-    const d = sameCell(un)
-      ? (un.children.length ? `M${drop.x} ${bottom} V${drop.y}` : '')
-      : un.xs.length === 2
-        ? `M${un.xs[0]} ${bottom} V${drop.y} H${un.xs[1]} V${bottom}`
-        : `M${un.xs[0]} ${bottom} V${drop.y}`;
-    if (d) el('path', { class: (sameCell(un) ? stemCls : cls).join(' '), d }, linealUnion ? gLineal : gEdges);
+    // 부부가 한 칸이라 혼인선은 없고, 자녀가 있으면 칸 아래 가운데에서 짧은 줄기만 내린다.
+    const d = un.children.length ? `M${drop.x} ${bottom} V${drop.y}` : '';
+    if (d) el('path', { class: cls.join(' '), d }, linealUnion ? gLineal : gEdges);
     if (un.children.length) {
       const dotCls = linealUnion ? `union-dot lineal ${unionCat === 'M' ? 'maternal' : 'paternal'}` : 'union-dot';
       el('circle', { class: dotCls, cx: drop.x, cy: drop.y, r: linealUnion ? 3.4 : 2.6 }, gNodes);
@@ -399,26 +485,33 @@ function render({ refit = false } = {}) {
       if (c.gap) ecls.push('gap');
       if (c.adopt) ecls.push('adopt');
       if (c.adoptedOut) ecls.push('adopted-out');
-      const linealEdge = linealUnion && lineal.has(c.id) && !c.adoptedOut;
+      const linealEdge = linealUnion && lineal.has(c.id) && !c.adoptedOut && !c.viaSpouse;
       if (linealEdge) {
         const cat = line.get(c.id) === 'P' && un.partners.some((p) => line.get(p) === 'P') ? 'paternal' : 'maternal';
         ecls.push('lineal', cat);
       }
       // 직계 줄기로 세로 정렬된 자녀는 직계 부모 카드에서 곧게 내려간다.
       const trunk = state.view.trunk;
-      const straight = c.spineX == null && !c.adoptedOut && trunk.has(c.id)
+      const straight = c.spineX == null && !c.adoptedOut && !c.viaSpouse && trunk.has(c.id)
         && un.partners.some((p, i) => trunk.has(p) && Math.abs(un.xs[i] - b.x) < 3);
+      // 배우자를 거쳐 들어오는 선은 칸 위 가운데가 아니라 오른쪽으로 비켜 들어가, 제 부모 선과 갈린다.
+      const tx = c.viaSpouse ? b.x + b.w * 0.28 : b.x;
       // 접힌 형제는 열 왼쪽 줄기선을 따라 내려가 카드 왼쪽으로 들어간다.
       const d = straight
         ? `M${b.x} ${bottom} V${top}`
         : c.spineX != null
           ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
-          : `M${drop.x} ${drop.y} V${bus} H${b.x} V${top}`;
-      const heirEdge = state.showLine && state.heir.edges.has(`${fatherOf(un)}>${c.id}`);
+          : `M${drop.x} ${drop.y} V${bus} H${tx} V${top}`;
+      const label = edgeLabel(c);
+      if (label) {
+        if (c.spineX != null) labelAt(label, c.spineX + 4, b.y - 4);
+        else labelAt(label, tx + 4, top - 5);
+      }
+      const heirEdge = state.showLine && !c.viaSpouse && state.heir.edges.has(`${fatherOf(un)}>${c.id}`);
       if (heirEdge) {
         el('path', { class: 'heir-outer', d }, gHeir);
         el('path', { class: 'heir-inner', d }, gHeir);
-      } else if (isSadonEdge(un, c.id)) {
+      } else if (isSadonEdge(un, c.viaSpouse || c.id)) {
         el('path', { class: 'sadon-outer', d }, gSadon);
         el('path', { class: 'sadon-inner', d }, gSadon);
       }
@@ -455,30 +548,29 @@ function render({ refit = false } = {}) {
     }
     return parentId;
   };
+  // 한 칸에 배우자가 함께 있으므로, 칸 안 사람들의 단추를 칸 주인 하나로 모은다.
   const toggles = new Map();
-  for (const id of state.view.persons) {
-    const kids = model.children(id, 'all').filter((c) => passesFilters(c) && owner(c, id) === id);
-    const hidden = kids.filter((c) => !shown.has(c)).length;
-    const opened = (state.expandAll || state.expanded.has(id)) && kids.some((c) => shown.has(c) && !linealAll.has(c));
-    if (hidden) toggles.set(id, `+${hidden}`);
-    else if (opened) toggles.set(id, '−');
+  for (const main of state.view.persons) {
+    let hidden = 0;
+    let opened = false;
+    const owners = [];
+    for (const id of membersOf(main)) {
+      const kids = model.children(id, 'all').filter((c) => passesFilters(c) && owner(c, id) === id);
+      if (!kids.length) continue;
+      owners.push(id);
+      hidden += kids.filter((c) => !shown.has(c)).length;
+      opened ||= (state.expandAll || state.expanded.has(id)) && kids.some((c) => shown.has(c) && !linealAll.has(c));
+    }
+    if (hidden) toggles.set(main, { text: `+${hidden}`, ids: owners });
+    else if (opened) toggles.set(main, { text: '−', ids: owners });
   }
-  const drawn = new Set();
-  for (const b of state.lay.blocks) {
-    if (!b.order.some((id) => page.ids.has(id))) continue;
-    const ids = b.order.filter((id) => pos.has(id));
-    if (!ids.length) continue;
-    for (const id of ids) drawn.add(id);
-    drawCell(gNodes, ids, pos, rels, line, toggles);
-  }
   for (const id of state.view.persons) {
-    if (!drawn.has(id) && page.ids.has(id)) drawCell(gNodes, [id], pos, rels, line, toggles);
+    if (page.ids.has(id) && pos.has(id)) drawHousehold(gNodes, id, pos, rels, line, toggles.get(id));
   }
   };
 
-  state.paint(svg, pageNow);
+  paintBook();
   applyTransform();
-  updateSlideUi();
   if (refit) fit();
 }
 
@@ -501,36 +593,91 @@ function unionBetween(a, b) {
 }
 
 // 한 가구(부부, 또는 배우자가 여럿인 사람)를 겹테두리 한 칸으로 그린다.
-function drawCell(parent, ids, pos, rels, line, toggles) {
+// 위쪽(MAIN_H)은 칸 주인, 그 아래 띠에는 배우자들을 작게 적는다. 배우자가 없으면 주인을 칸 가운데에 둔다.
+function drawHousehold(parent, main, pos, rels, line, toggle) {
   const { model } = state;
-  const left = Math.min(...ids.map((id) => pos.get(id).x - CARD.w / 2));
-  const top = pos.get(ids[0]).y - CARD.h / 2;
-  const width = Math.max(...ids.map((id) => pos.get(id).x + CARD.w / 2)) - left;
+  const ids = state.view.members.get(main) || [main];
+  const spouses = ids.slice(1);
+  const p = pos.get(main);
   const cls = ['cell'];
-  if (ids.length > 1) cls.push('couple');
+  if (spouses.length) cls.push('couple');
   if (ids.includes(state.ego)) cls.push('ego');
   else if (ids.some((id) => line.get(id) === 'P')) cls.push('lineal');
   else if (ids.some((id) => line.get(id) === 'M')) cls.push('lineal', 'maternal');
   if (ids.every((id) => model.isUnknown(id))) cls.push('unknown');
   if (ids.includes(state.selected)) cls.push('has-selected');
-  const g = el('g', { class: cls.join(' '), transform: `translate(${left} ${top})` }, parent);
-  el('rect', { class: 'frame', width, height: CARD.h }, g);
-  el('rect', { class: 'frame-inner', x: 3, y: 3, width: Math.max(0, width - 6), height: CARD.h - 6 }, g);
-  ids.forEach((id, i) => {
-    if (i > 0) {
-      const prev = pos.get(ids[i - 1]);
-      const cur = pos.get(id);
-      const dx = ((prev.x + CARD.w / 2) + (cur.x - CARD.w / 2)) / 2 - left;
-      const u = unionBetween(ids[i - 1], id);
-      const dcls = u?.type === '첩' ? 'divider concubine' : 'divider';
-      el('line', { class: dcls, x1: dx, y1: 5, x2: dx, y2: CARD.h - 5 }, g);
-    }
-    const x = pos.get(id).x - CARD.w / 2 - left;
-    drawPerson(g, id, x, rels.get(id), line.get(id), toggles.get(id));
+  const g = el('g', { class: cls.join(' '), transform: `translate(${p.x - CARD.w / 2} ${p.y - CARD.h / 2})` }, parent);
+  el('rect', { class: 'frame', width: CARD.w, height: CARD.h }, g);
+  el('rect', { class: 'frame-inner', x: 3, y: 3, width: CARD.w - 6, height: CARD.h - 6 }, g);
+  drawPerson(g, main, rels.get(main), line.get(main), toggle, spouses.length ? MAIN_H : CARD.h);
+  if (!spouses.length) return;
+  el('line', { class: 'divider', x1: 8, y1: MAIN_H, x2: CARD.w - 8, y2: MAIN_H }, g);
+  // 배우자는 넷까지 두 칸씩 적고, 더 있으면 마지막 자리에 '외 N명'을 둔다.
+  const slots = spouses.length > 4 ? spouses.slice(0, 3) : spouses;
+  const cols = spouses.length === 1 ? 1 : 2;
+  const rows = Math.ceil(Math.max(slots.length, spouses.length > 4 ? 4 : 0) / cols);
+  const areaH = CARD.h - MAIN_H - 4;
+  const sw = (CARD.w - 8) / cols;
+  const sh = areaH / rows;
+  slots.forEach((id, i) => {
+    const sx = 4 + (i % cols) * sw;
+    const sy = MAIN_H + 1 + Math.floor(i / cols) * sh;
+    drawSpouse(g, id, main, sx, sy, sw, sh, rels.get(id), line.get(id), cols === 1);
+  });
+  if (spouses.length > 4) {
+    const t = el('text', { class: 'spouse-more', x: 4 + sw + 10, y: MAIN_H + 1 + sh * 1.5 + 4 }, g);
+    t.textContent = `외 ${spouses.length - 3}명`;
+    el('title', {}, t).textContent = spouses.slice(3).map((id) => model.displayName(id)).join(', ');
+  }
+}
+
+// 칸 아래 띠의 배우자 한 사람. 누르면 선택, 두 번 누르면 기준 인물이 된다.
+function drawSpouse(parent, id, main, x, y, w, h, rel, isLineal, wide) {
+  const { model } = state;
+  const person = model.get(id);
+  const cls = ['card', 'spouse'];
+  if (model.isUnknown(id)) cls.push('unknown');
+  if (person.gender === 'M') cls.push('male');
+  else if (person.gender === 'F') cls.push('female');
+  if (id === state.selected) cls.push('selected');
+  if (isLineal) cls.push('lineal', isLineal === 'M' ? 'maternal' : 'paternal');
+  if (unionBetween(main, id)?.type === '첩') cls.push('concubine');
+  const g = el('g', { class: cls.join(' '), transform: `translate(${x} ${y})`, tabindex: 0, role: 'button' }, parent);
+  g.dataset.id = id;
+  el('rect', { class: 'col-bg', width: w, height: h - 1, rx: 1.5 }, g);
+  el('rect', { class: 'gender-bar', x: 0, y: 3, width: 2, height: h - 7 }, g);
+  const hanja = person.hanja || (model.isNameless(id) ? person.clanHanja : '');
+  const hangul = model.displayName(id);
+  const termText = rel.term;
+  const base = h / 2 + 4.5;
+  const name = el('text', { class: 'spouse-name', x: 8, y: base }, g);
+  if (wide && hanja && hanja !== hangul) {
+    el('tspan', {}, name).textContent = hanja;
+    el('tspan', { class: 'hangul', dx: 4 }, name).textContent = hangul;
+  } else {
+    name.textContent = hangul;
+  }
+  const nameLen = wide && hanja && hanja !== hangul ? hanja.length * 14 + 4 + hangul.length * 10.5 : hangul.length * 12.5;
+  const termRoom = w - 14 - nameLen - (wide ? 70 : 6);
+  if (termRoom > 20) {
+    const t = el('text', { class: 'spouse-term', x: 8 + nameLen + 6, y: base }, g);
+    t.textContent = fitText(termText, termRoom, 10.5);
+    t.style.fontSize = `${fontFor(termText, termRoom, 10.5)}px`;
+  }
+  if (wide) {
+    const yr = el('text', { class: 'spouse-meta', x: w - 6, y: base, 'text-anchor': 'end' }, g);
+    yr.textContent = years(person);
+  }
+  el('title', {}, g).textContent = `${hangul} · ${termText}${rel.alt ? ` (${rel.alt})` : ''}`;
+  g.addEventListener('click', (ev) => { ev.stopPropagation(); if (!state.suppressClick) select(id); });
+  g.addEventListener('dblclick', (ev) => { ev.stopPropagation(); setEgo(id); });
+  g.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.stopPropagation(); ev.shiftKey ? setEgo(id) : select(id); }
   });
 }
 
-function drawPerson(parent, id, x, rel, isLineal, toggle) {
+// h: 칸 안에서 주인 인물이 차지하는 높이. 글줄 묶음(96)은 그 가운데에 놓는다.
+function drawPerson(parent, id, rel, isLineal, toggle, h) {
   const { model } = state;
   const person = model.get(id);
   const unknown = model.isUnknown(id);
@@ -541,10 +688,11 @@ function drawPerson(parent, id, x, rel, isLineal, toggle) {
   if (id === state.ego) cls.push('ego');
   else if (isLineal) cls.push('lineal', isLineal === 'M' ? 'maternal' : 'paternal');
   if (id === state.selected) cls.push('selected');
-  const g = el('g', { class: cls.join(' '), transform: `translate(${x} 0)`, tabindex: 0, role: 'button' }, parent);
-  g.dataset.id = id;
-  el('rect', { class: 'col-bg', width: CARD.w, height: CARD.h }, g);
-  el('rect', { class: 'gender-bar', x: 0, y: 0, width: 3, height: CARD.h }, g);
+  const card = el('g', { class: cls.join(' '), tabindex: 0, role: 'button' }, parent);
+  card.dataset.id = id;
+  el('rect', { class: 'col-bg', width: CARD.w, height: h }, card);
+  el('rect', { class: 'gender-bar', x: 0, y: 0, width: 3, height: h }, card);
+  const g = el('g', { transform: `translate(0 ${(h - MAIN_H) / 2})` }, card);
 
   const hanja = person.hanja || (model.isNameless(id) ? person.clanHanja : '');
   const hangul = model.displayName(id);
@@ -595,18 +743,18 @@ function drawPerson(parent, id, x, rel, isLineal, toggle) {
   if (toggle) {
     // 카드 밖 오른쪽 아래 글자 단추: +N(숨은 자녀 펼치기) / −(접기). 배경·테두리 없이 글자만 그리고,
     // 누르기 쉽게 보이지 않는 넓은 영역(hit)을 깐다. 결혼선은 카드 가운데서 LEVEL_BASE 아래로 내려가므로 겹치지 않는다.
-    const btn = el('g', { class: `fold-btn${toggle === '−' ? ' open' : ''}`, role: 'button', tabindex: 0,
-      'aria-label': toggle === '−' ? '자녀 접기' : `자녀 ${toggle.slice(1)}명 펼치기` }, g);
+    const btn = el('g', { class: `fold-btn${toggle.text === '−' ? ' open' : ''}`, role: 'button', tabindex: 0,
+      'aria-label': toggle.text === '−' ? '자녀 접기' : `자녀 ${toggle.text.slice(1)}명 펼치기` }, card);
     const narrow = isNarrow();
     const [hw, hh] = narrow ? [52, 30] : [40, 20];
     el('rect', { class: 'hit', x: CARD.w - hw + 6, y: CARD.h - 2, width: hw, height: hh, rx: 4 }, btn);
     const bt = el('text', { x: CARD.w + 2, y: CARD.h + (narrow ? 15 : 12), 'text-anchor': 'end' }, btn);
     if (narrow) bt.style.fontSize = '15px';
-    bt.textContent = toggle;
+    bt.textContent = toggle.text;
     const stop = (ev) => ev.stopPropagation();
-    btn.addEventListener('click', (ev) => { stop(ev); if (!state.suppressClick) toggleExpand(id); });
+    btn.addEventListener('click', (ev) => { stop(ev); if (!state.suppressClick) toggleExpand(toggle.ids); });
     btn.addEventListener('dblclick', stop);
-    btn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { stop(ev); ev.preventDefault(); toggleExpand(id); } });
+    btn.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { stop(ev); ev.preventDefault(); toggleExpand(toggle.ids); } });
   }
 
   // 정통 표시: 宗(종통 줄기), 名(이름난 인물). 오른쪽 위에서 왼쪽으로 차례로 붙인다.
@@ -616,7 +764,7 @@ function drawPerson(parent, id, x, rel, isLineal, toggle) {
     if (state.notable.includes(id)) marks.push(['名', 'mark-notable', '이름난 인물']);
     let mx = CARD.w - 24 - (id === state.ego ? 19 : 0);
     for (const [ch, cls, title] of marks) {
-      const mg = el('g', { class: cls }, g);
+      const mg = el('g', { class: cls }, card);
       el('rect', { x: mx, y: 8, width: 15, height: 15, rx: 1.5 }, mg);
       const mt = el('text', { x: mx + 7.5, y: 19.5, 'text-anchor': 'middle' }, mg);
       mt.textContent = ch;
@@ -626,17 +774,17 @@ function drawPerson(parent, id, x, rel, isLineal, toggle) {
   }
 
   if (id === state.ego) {
-    el('rect', { class: 'seal', x: CARD.w - 24, y: 8, width: 15, height: 15, rx: 1.5 }, g);
-    const s = el('text', { class: 'seal-text', x: CARD.w - 16.5, y: 19.5, 'text-anchor': 'middle' }, g);
+    el('rect', { class: 'seal', x: CARD.w - 24, y: 8, width: 15, height: 15, rx: 1.5 }, card);
+    const s = el('text', { class: 'seal-text', x: CARD.w - 16.5, y: 19.5, 'text-anchor': 'middle' }, card);
     s.textContent = '基';
   }
 
-  const tip = el('title', {}, g);
+  const tip = el('title', {}, card);
   tip.textContent = `${model.displayName(id)} · ${termText}${rel.alt ? ` (${rel.alt})` : ''}`;
 
-  g.addEventListener('click', () => { if (!state.suppressClick) select(id); });
-  g.addEventListener('dblclick', () => setEgo(id));
-  g.addEventListener('keydown', (ev) => {
+  card.addEventListener('click', () => { if (!state.suppressClick) select(id); });
+  card.addEventListener('dblclick', () => setEgo(id));
+  card.addEventListener('keydown', (ev) => {
     if (ev.key === 'Enter') { ev.shiftKey ? setEgo(id) : select(id); }
   });
 }
@@ -654,22 +802,37 @@ function fitText(text, room, base) {
 
 // ── 확대·이동 ────────────────────────────────────────────
 
+const BOOK_MARGIN = 20;
+
+// 책 밖으로 너무 멀리 밀려나지 않게 한다. 책이 화면보다 좁으면 가운데에 둔다.
+function clampT() {
+  if (!state.book) return;
+  const r = svg.getBoundingClientRect();
+  const t = state.t;
+  const w = state.book.pageW * t.k;
+  const h = bookHeight() * t.k;
+  t.x = w + BOOK_MARGIN * 2 <= r.width
+    ? (r.width - w) / 2
+    : Math.min(BOOK_MARGIN, Math.max(r.width - w - BOOK_MARGIN, t.x));
+  t.y = Math.min(BOOK_MARGIN, Math.max(Math.min(BOOK_MARGIN, r.height - h - BOOK_MARGIN), t.y));
+}
+
 function applyTransform() {
+  clampT();
   const vp = svg.querySelector('.viewport');
   if (vp) vp.setAttribute('transform', `translate(${state.t.x} ${state.t.y}) scale(${state.t.k})`);
 }
 
+// 맞춤: 장 너비를 화면 너비에 맞추고, 지금 보던 장의 맨 위로 간다.
 function fit() {
   if (!state.book) return;
   const r = svg.getBoundingClientRect();
-  const { pageW, pageH } = state.book;
-  const side = 24;
-  const topGap = 16;
-  const bottomGap = 68;
-  const availW = Math.max(120, r.width - side * 2);
-  const availH = Math.max(120, r.height - topGap - bottomGap);
-  const k = Math.min(availW / pageW, availH / pageH);
-  state.t = { k, x: (r.width - pageW * k) / 2, y: topGap };
+  const old = state.t;
+  const center = old.k ? (r.height / 2 - old.y) / old.k : 0;
+  const i = Math.max(0, Math.min(state.book.pages.length - 1,
+    Math.floor(center / (state.book.pageH + pageGap()))));
+  const k = Math.min(1, Math.max(0.05, (r.width - BOOK_MARGIN * 2) / state.book.pageW));
+  state.t = { k, x: 0, y: BOOK_MARGIN - pageTop(i) * k };
   applyTransform();
 }
 
@@ -686,10 +849,9 @@ function beginPrint() {
     const s = document.createElementNS(SVGNS, 'svg');
     s.setAttribute('viewBox', `0 0 ${state.book.pageW} ${state.book.pageH}`);
     s.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    state.paint(s, page);
+    state.paint(el('g', {}, s), page, `p${i}`);
     sheet.appendChild(s);
     host.appendChild(sheet);
-    void i;
   });
   document.body.appendChild(host);
 }
@@ -697,8 +859,6 @@ function endPrint() {
   if (!printing) return;
   printing = false;
   document.getElementById('printBook')?.remove();
-  if (state.paint && state.book) state.paint(svg, state.book.pages[state.slide]);
-  applyTransform();
 }
 
 function zoomAt(factor, cx, cy) {
@@ -709,10 +869,20 @@ function zoomAt(factor, cx, cy) {
   applyTransform();
 }
 
+// 그 사람의 칸이 화면 가운데 오도록 책을 옮긴다(배율은 그대로).
 function centerOn(id) {
-  state.focusId = id;
-  render();
-  fit();
+  if (!state.book) return;
+  id = state.view.mainOf.get(id) ?? id;
+  const i = state.book.pages.findIndex((p) => p.ids.has(id));
+  const p = state.lay.pos.get(id);
+  if (i < 0 || !p) return;
+  const page = state.book.pages[i];
+  const r = svg.getBoundingClientRect();
+  const k = state.t.k;
+  const x = p.x + page.dx;
+  const y = pageTop(i) + p.y + page.dy;
+  state.t = { k, x: r.width / 2 - x * k, y: r.height / 2 - y * k };
+  applyTransform();
 }
 
 // 마우스·터치 공통: 한 손가락(또는 마우스)으로 끌어 이동, 두 손가락으로 확대·축소.
@@ -760,10 +930,19 @@ function setupPanZoom() {
   };
   svg.addEventListener('pointerup', end);
   svg.addEventListener('pointercancel', end);
+  // 휠은 PDF 보기처럼 위아래로 넘기고(Shift는 좌우), Ctrl·⌘을 누르고 굴리면 확대·축소한다.
   svg.addEventListener('wheel', (ev) => {
     ev.preventDefault();
     const r = svg.getBoundingClientRect();
-    zoomAt(ev.deltaY < 0 ? 1.12 : 1 / 1.12, ev.clientX - r.left, ev.clientY - r.top);
+    if (ev.ctrlKey || ev.metaKey) {
+      zoomAt(ev.deltaY < 0 ? 1.12 : 1 / 1.12, ev.clientX - r.left, ev.clientY - r.top);
+      return;
+    }
+    const unit = ev.deltaMode === 1 ? 32 : ev.deltaMode === 2 ? r.height : 1;
+    const dx = (ev.shiftKey ? ev.deltaY : ev.deltaX) * unit;
+    const dy = (ev.shiftKey ? 0 : ev.deltaY) * unit;
+    state.t = { ...state.t, x: state.t.x - dx, y: state.t.y - dy };
+    applyTransform();
   }, { passive: false });
   const mid = () => { const r = svg.getBoundingClientRect(); return [r.width / 2, r.height / 2]; };
   $('zoomIn').addEventListener('click', () => zoomAt(1.25, ...mid()));
@@ -808,15 +987,6 @@ function setupChrome() {
     if (ev.target.checked && isNarrow()) setFiltersOpen(false);
   });
   $('closeDetail').addEventListener('click', () => setDetailOpen(false));
-  $('slidePrev').addEventListener('click', () => goToSlide(state.slide - 1));
-  $('slideNext').addEventListener('click', () => goToSlide(state.slide + 1));
-  document.addEventListener('keydown', (ev) => {
-    if (ev.altKey || ev.ctrlKey || ev.metaKey) return;
-    const tag = ev.target && ev.target.tagName;
-    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
-    if (ev.key === 'ArrowLeft') { ev.preventDefault(); goToSlide(state.slide - 1); }
-    else if (ev.key === 'ArrowRight') { ev.preventDefault(); goToSlide(state.slide + 1); }
-  });
   $('scrim').addEventListener('click', () => {
     if (performance.now() < ignoreScrimUntil) return;
     setFiltersOpen(false);
@@ -999,6 +1169,7 @@ function loadDataset(data) {
   $('find').value = '';
 
   render();
+  fit();
   centerOn(state.ego);
   renderDetail();
   renderRelations();
@@ -1033,7 +1204,7 @@ function main() {
     const hit = ids.find((id) => personLabel(id) === q) ||
       ids.find((id) => personLabel(id).includes(q) || (model.get(id).hanja || '').includes(q));
     if (!hit) return;
-    if (!state.lay.pos.has(hit)) {
+    if (!state.view.mainOf.has(hit)) {
       // 접혀 있거나 숨김 옵션 때문에 안 보이는 인물이면 그 사람까지 펼쳐서 보여 준다.
       reveal(hit);
       render(); renderRelations();

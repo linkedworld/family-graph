@@ -157,7 +157,7 @@ npm test
 | `index.html`, `css/bubble.css`, `js/bubble.js` | 버블 가계도(3D) 화면, 첫 화면 |
 | `tree.html`, `css/style.css`, `js/app.js` | 카드 가계도 화면 |
 | `bubble.html` | 예전 주소용: `index.html`로 넘겨 줌 |
-| `lineage.html`, `css/lineage.css`, `js/lineage.js` | 인물 계보 화면 — 부부 한 칸, 한자 병기, 사돈 겹선, A4를 장으로 넘겨 본다 |
+| `lineage.html`, `css/lineage.css`, `js/lineage.js` | 인물 계보 화면 — 부부 한 칸, 한자 병기, 사돈 겹선, 선마다 출생 순서 이름표, A4 장들(한글 기본 여백)을 PDF처럼 세로로 이어 보며 직계는 장마다 같은 자리에 세로로 선다 |
 | `events.html`, `css/events.css`, `js/events.js`, `data/events.js` | 인물과 사건 화면과 사건 데이터 |
 | `gwangmyeong.html`, `data/gwangmyeong.js` | 광명의 명사 화면과 그 사건·명단 데이터 |
 | `js/world.js`, `js/fx3d.js`, `css/world.css` | 시간 축 3D 엔진·셰이더(세계사 연관도에서 가져옴), 광명의 명사가 씀 |

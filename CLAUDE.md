@@ -18,7 +18,9 @@ node tools/check-dataset.cjs <id> [--list]  # 데이터 검사: 참조 오류, 1
 - `lineage.html` + `js/lineage.js` + `css/lineage.css`: 인물 계보. `tree.html`의 `js/app.js`·`css/style.css`를 복사해 와 거기서부터 따로 간다
   (계보도는 지금 모습을 지킨다). 엔진은 계보도와 함께 쓴다. 부부는 한 칸, 사돈은 두 줄 겹선, 이름은 한자를 크게 병기,
   인쇄는 장마다 A4 가로 한 쪽이고, 한 장에는 카드가 세로로 최대 6줄이다. 장마다 머리말·꼬리말 선과 쪽 번호가 있고
-  카드와 선은 그 사이 판면에만 그린다. 카드는 겹테두리의 공식 꼴이다.
+  카드와 선은 그 사이 판면에만 그린다. 카드는 겹테두리의 공식 꼴이다. 여백은 한글 기본 편집 용지(위 20·머리말 15·꼬리말 15·아래 15·좌우 30mm).
+  배우자는 칸 주인의 칸 아래 띠에 함께 적고(`mergeHouseholds`, 엔진에는 주인만 넘긴다), 기준 인물의 직계는 장마다 같은 가로 자리에 세로로 선다.
+  자녀선마다 출생 순서(장남·차녀…) 이름표를 단다.
 - `events.html` + `js/events.js` + `css/events.css` + `data/events.js`: 인물과 사건(3D). css/bubble.css를 함께 쓰고(사건 이름표·상세 목록 스타일은 bubble.css에 있다),
   셰이더·후처리 함수는 js/bubble.js에서 복사해 왔다(한쪽을 고치면 다른 쪽도 맞출 것). 사건 데이터는 `npm test`가 검사한다.
 - `gwangmyeong.html` + `data/gwangmyeong.js`: 광명의 명사. 엔진은 `js/world.js`+`js/fx3d.js`+`css/world.css`(lonycell/videojs-simpleoverlay의

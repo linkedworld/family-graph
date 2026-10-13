@@ -150,19 +150,6 @@ input[type="search"]::placeholder { color: var(--unknown); }
 .sheet-head.sub { font-weight: 500; fill: var(--ink-2); }
 .sheet-foot { font: 400 11px var(--f-body); fill: var(--ink-2); letter-spacing: 0.03em; }
 .sheet-folio { font: 500 12px var(--f-display); fill: var(--ink); letter-spacing: 0.08em; }
-.slide-nav {
-  position: absolute; z-index: 2; left: 50%; bottom: 12px; transform: translateX(-50%);
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 2px;
-  box-shadow: 0 8px 24px rgb(22 21 19 / 0.12);
-}
-.slide-nav button {
-  font: 600 0.8rem var(--f-body); color: var(--ink-2); background: var(--paper);
-  border: 1px solid var(--line); border-radius: 2px; min-width: 52px; height: 30px; padding: 0 10px; cursor: pointer;
-}
-.slide-nav button:hover:not(:disabled) { border-color: var(--indigo); color: var(--indigo); }
-.slide-nav button:disabled { opacity: 0.35; cursor: default; }
-.slide-nav span { min-width: 64px; text-align: center; font: 500 0.8rem var(--f-mono); color: var(--ink-2); }
 .panel { display: none; }
 .body.detail-open .panel { display: flex; }
 #tree { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -254,6 +241,19 @@ tbody tr.is-folded td { color: var(--ink-2); }
 .union-dot.lineal.maternal { fill: var(--maternal); }
 .skip-label { font: 500 10.5px var(--f-body); fill: var(--unknown); }
 .skip-label-bg { fill: var(--paper); }
+/* 선 이름표: 부모 칸에서 본 자녀의 자리(장남·차녀…) */
+.edge-label { font: 500 10px var(--f-body); fill: var(--ink-2); letter-spacing: 0.01em; pointer-events: none; }
+.edge-label-bg { fill: var(--paper); opacity: 0.92; pointer-events: none; }
+/* 칸 아래 띠의 배우자 */
+.card.spouse .spouse-name { font: 700 13px var(--f-display); fill: var(--ink); }
+.card.spouse .spouse-name .hangul { font-size: 10.5px; }
+.card.spouse.unknown .spouse-name { fill: var(--unknown); font-weight: 500; }
+.card.spouse .spouse-term { font: 500 10.5px var(--f-body); fill: var(--indigo); }
+.card.spouse.concubine .spouse-term { fill: var(--ink-2); }
+.card.spouse .spouse-meta { font: 400 9.5px var(--f-mono); fill: var(--ink-2); opacity: 0.75; }
+.card.spouse.lineal.paternal .spouse-name { fill: var(--lineal); }
+.card.spouse.lineal.maternal .spouse-name { fill: var(--maternal); }
+.cell .spouse-more { font: 500 10.5px var(--f-body); fill: var(--ink-2); }
 .gen-label { font: 500 11px var(--f-display); fill: var(--ink-2); letter-spacing: 0.08em; }
 .gen-rule { stroke: var(--line-soft); stroke-width: 1; stroke-dasharray: 1 5; }
 
