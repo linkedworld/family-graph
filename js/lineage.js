@@ -35,6 +35,9 @@ const state = {
   expandAll: false,
   showLine: true, // 정통 표시: 종통(대를 잇는 맏아들) 줄기, 맏아들·맏딸, 이름난 인물
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
+  // 쪽 나눔: book(족보식 — 세대 경계에서 끊고 부모를 다음 장 첫 줄에 다시 실어 見上·見下로 잇는다, 기본)
+  //        | clip(그림 자르기 — 전체 배치를 판면 크기로 잘라 이어 붙인다, 이전 방식)
+  pageMode: 'book',
   lay: null, view: null,
   book: null,
   t: { k: 1, x: 0, y: 0 },
@@ -185,6 +188,10 @@ const BODY_TOP = MARGIN.top + MARGIN.head;
 const BODY_BOTTOM = PAPER.h - MARGIN.bottom - MARGIN.foot;
 const SLIDE_ROWS = 6;
 const SLIDE_ROW_GAP = 96;
+// 족보식 쪽 나눔에서 맨 아래 줄 카드 밑에 남기는 자리: 다음 장으로 가는 짧은 줄기와 '見下 N쪽' 꼬리표.
+const BOOK_TAIL = 64;
+const STUB_IN = 16;  // 다른 장의 부모에게서 들어오는 선의 길이
+const STUB_OUT = 16; // 다른 장의 자녀에게 가는 선이 혼인 점 아래로 더 내려가는 길이
 const blockTop = (b) => b.y - CARD.h / 2;
 const blockBottom = (b) => b.y + CARD.h / 2;
 const blockLeft = (b) => b.x - b.width / 2;
@@ -195,7 +202,8 @@ const blockRight = (b) => b.x + b.width / 2;
 function paginate(lay, trunkX) {
   const blocks = lay.blocks.filter((b) => b.order.some((id) => lay.pos.has(id)));
   const maxW = blocks.reduce((m, b) => Math.max(m, b.width), CARD.w);
-  const rowsH = SLIDE_ROWS * CARD.h + (SLIDE_ROWS - 1) * SLIDE_ROW_GAP;
+  const book = state.pageMode === 'book';
+  const rowsH = SLIDE_ROWS * CARD.h + (SLIDE_ROWS - 1) * SLIDE_ROW_GAP + (book ? BOOK_TAIL : 0);
   const mm = Math.max(rowsH / BODY.h, maxW / BODY.w); // 1mm에 해당하는 그림 단위
   const pageW = PAPER.w * mm;
   const pageH = PAPER.h * mm;
@@ -203,6 +211,12 @@ function paginate(lay, trunkX) {
   const innerH = BODY.h * mm;
   const left0 = MARGIN.side * mm;
   const top0 = BODY_TOP * mm;
+  if (book) {
+    const { pages, realPage } = window.Genealogy.paginateBook(blocks, lay.unions, {
+      cardH: CARD.h, innerW, innerH: innerH - BOOK_TAIL, rows: SLIDE_ROWS, trunkX, left0, top0,
+    });
+    return { pages, pageW, pageH, mm, mode: 'book', realPage };
+  }
   const rowMap = new Map();
   for (const b of blocks) {
     const y = Math.round(b.y);
@@ -459,25 +473,63 @@ function render({ refit = false } = {}) {
     t.textContent = text;
   };
 
+  // 족보식 쪽 나눔: 이 장에 실제 칸(ids)이나 다시 실은 사본 칸(ghosts)이 있는 사람만 그리고,
+  // 사본은 ghosts에 적힌 만큼 가로로 옮겨 그린다. 그림 자르기에서는 모두 그린 뒤 판면으로 자른다.
+  const book = state.book.mode === 'book';
+  const shiftOf = (id) => (book ? page.ghosts.get(id) ?? 0 : 0);
+  const onPage = (id) => page.ids.has(id) || page.ghosts.has(id);
+  const realPageNo = (id) => state.book.realPage.get(id) + 1;
+  const shortName = (id) => model.get(id).hanja || model.displayName(id);
+  const refAt = (text, x, y, anchor) => {
+    const w = text.length * 9.6 + 8;
+    const x0 = anchor === 'end' ? x - w : x;
+    el('rect', { class: 'page-ref-bg', x: x0, y: y - 11, width: w, height: 15, rx: 2 }, gLabels);
+    const t = el('text', { class: 'page-ref', x: x0 + 4, y }, gLabels);
+    t.textContent = text;
+  };
+
   for (const un of state.lay.unions) {
+    const parent = un.partners[0];
+    if (book && !onPage(parent) && !un.children.some((c) => page.ids.has(c.id))) continue;
+    const ps = shiftOf(parent);
+    // full: 부모와 자녀가 모두 이 장에, in: 자녀만 이 장에(부모는 다른 장), out: 실제 부모만 이 장에
+    const modeOf = (c) => {
+      if (!book) return 'full';
+      if (onPage(parent) && onPage(c.id)) return 'full';
+      if (page.ids.has(c.id)) return state.book.realPage.has(parent) ? 'in' : null;
+      if (page.ids.has(parent) && state.book.realPage.has(c.id)) return 'out';
+      return null;
+    };
+    const modes = new Map(un.children.map((c) => [c.id, modeOf(c)]));
+    const outPages = [...new Set(un.children.filter((c) => modes.get(c.id) === 'out').map((c) => realPageNo(c.id)))].sort((a, b) => a - b);
+    const hasFull = un.children.some((c) => modes.get(c.id) === 'full');
     const cls = ['edge', 'marriage'];
     // 직계가 이 칸을 지나 자녀로 이어지면 자녀 줄기도 직계 줄기로 표시한다.
     const linealUnion = membersOf(un.partners[0]).some((p) => lineal.has(p)) && un.children.some((c) => lineal.has(c.id));
     // 부모 쪽과 자녀 쪽이 모두 부계면 부계 줄기, 그 밖에는 모계 줄기
     const unionCat = un.partners.some((p) => line.get(p) === 'P') && un.children.some((c) => line.get(c.id) === 'P') ? 'P' : 'M';
     if (linealUnion) cls.push('lineal', unionCat === 'M' ? 'maternal' : 'paternal');
-    const { bottom, drop } = un;
+    const { bottom } = un;
+    const drop = { x: un.drop.x + ps, y: un.drop.y };
     // 부부가 한 칸이라 혼인선은 없고, 자녀가 있으면 칸 아래 가운데에서 짧은 줄기만 내린다.
-    const d = un.children.length ? `M${drop.x} ${bottom} V${drop.y}` : '';
-    if (d) el('path', { class: cls.join(' '), d }, linealUnion ? gLineal : gEdges);
-    if (un.children.length) {
+    // 다른 장으로만 자녀가 이어지면 줄기를 조금 더 내려 '見下 N쪽'을 단다.
+    if (hasFull || outPages.length) {
+      const end = hasFull ? drop.y : drop.y + STUB_OUT;
+      el('path', { class: cls.join(' '), d: `M${drop.x} ${bottom} V${end}` }, linealUnion ? gLineal : gEdges);
       const dotCls = linealUnion ? `union-dot lineal ${unionCat === 'M' ? 'maternal' : 'paternal'}` : 'union-dot';
       el('circle', { class: dotCls, cx: drop.x, cy: drop.y, r: linealUnion ? 3.4 : 2.6 }, gNodes);
+      if (outPages.length) {
+        if (hasFull) el('path', { class: cls.join(' '), d: `M${drop.x} ${drop.y} V${drop.y + STUB_OUT}` }, linealUnion ? gLineal : gEdges);
+        refAt(`見下 ${outPages.join('·')}쪽`, drop.x + 5, drop.y + STUB_OUT + 4);
+      }
     }
 
     for (const c of un.children) {
-      const b = pos.get(c.id);
-      if (!b) continue;
+      const mode = modes.get(c.id);
+      if (!mode || mode === 'out') continue;
+      const p0 = pos.get(c.id);
+      if (!p0) continue;
+      const b = { ...p0, x: p0.x + shiftOf(c.id) };
       const top = b.y - b.h / 2;
       const bus = c.busY ?? top - 12;
       const ecls = ['edge'];
@@ -493,18 +545,29 @@ function render({ refit = false } = {}) {
       // 직계 줄기로 세로 정렬된 자녀는 직계 부모 카드에서 곧게 내려간다.
       const trunk = state.view.trunk;
       const straight = c.spineX == null && !c.adoptedOut && !c.viaSpouse && trunk.has(c.id)
-        && un.partners.some((p, i) => trunk.has(p) && Math.abs(un.xs[i] - b.x) < 3);
+        && un.partners.some((p, i) => trunk.has(p) && Math.abs(un.xs[i] + ps - b.x) < 3);
       // 배우자를 거쳐 들어오는 선은 칸 위 가운데가 아니라 오른쪽으로 비켜 들어가, 제 부모 선과 갈린다.
       const tx = c.viaSpouse ? b.x + b.w * 0.28 : b.x;
+      const spineX = c.spineX != null ? c.spineX + shiftOf(c.id) : null;
       // 접힌 형제는 열 왼쪽 줄기선을 따라 내려가 카드 왼쪽으로 들어간다.
-      const d = straight
-        ? `M${b.x} ${bottom} V${top}`
-        : c.spineX != null
-          ? `M${drop.x} ${drop.y} V${bus} H${c.spineX} V${b.y} H${b.x - b.w / 2}`
-          : `M${drop.x} ${drop.y} V${bus} H${tx} V${top}`;
+      // 부모가 다른 장에 있으면 카드 위로 짧은 줄기만 세우고 부모 이름과 '見上 N쪽'을 적는다.
+      // 생가에서 들어오는 출계선은 양자선과 같은 자리로 들어오므로 오른쪽으로 비켜 세운다.
+      const sx = c.adoptedOut ? tx + 14 : tx;
+      const d = mode === 'in'
+        ? `M${sx} ${top - STUB_IN} V${top}`
+        : straight
+          ? `M${b.x} ${bottom} V${top}`
+          : spineX != null
+            ? `M${drop.x} ${drop.y} V${bus} H${spineX} V${b.y} H${b.x - b.w / 2}`
+            : `M${drop.x} ${drop.y} V${bus} H${tx} V${top}`;
       const label = edgeLabel(c);
-      if (label) {
-        if (c.spineX != null) labelAt(label, c.spineX + 4, b.y - 4);
+      if (mode === 'in') {
+        const who = c.adoptedOut ? `생가 ${shortName(parent)}`
+          : c.viaSpouse ? `${shortName(parent)} 쪽` : `${shortName(parent)}의 ${label || '자녀'}`;
+        // 양자·출계 표시가 카드 바로 위에 있으면 그 위로 올린다.
+        refAt(`${who} · 見上 ${realPageNo(parent)}쪽`, sx + 4, c.adopt || c.adoptedOut ? top - 19 : top - 4);
+      } else if (label) {
+        if (spineX != null) labelAt(label, spineX + 4, b.y - 4);
         else labelAt(label, tx + 4, top - 5);
       }
       const heirEdge = state.showLine && !c.viaSpouse && state.heir.edges.has(`${fatherOf(un)}>${c.id}`);
@@ -525,7 +588,7 @@ function render({ refit = false } = {}) {
         const t = el('text', { class: c.adopt ? 'adopt-label' : 'skip-label', x: lx + 3, y: ly }, gLabels);
         t.textContent = text;
       }
-      if (c.skipped) {
+      if (c.skipped && mode === 'full') {
         const text = `${c.skipped}대 미상`;
         const ly = (drop.y + bus) / 2;
         el('rect', { class: 'skip-label-bg', x: drop.x + 4, y: ly - 9, width: text.length * 9 + 6, height: 16, rx: 3 }, gLabels);
@@ -567,6 +630,16 @@ function render({ refit = false } = {}) {
   for (const id of state.view.persons) {
     if (page.ids.has(id) && pos.has(id)) drawHousehold(gNodes, id, pos, rels, line, toggles.get(id));
   }
+  // 다시 실은 사본 칸: 흐린 점선 칸으로 그리고, 실제 칸이 있는 장을 '見上 N쪽'으로 가리킨다.
+  if (book) {
+    for (const [id, shift] of page.ghosts) {
+      const p = pos.get(id);
+      if (!p) continue;
+      const at = new Map([[id, { ...p, x: p.x + shift }]]);
+      drawHousehold(gNodes, id, at, rels, line, null, true);
+      refAt(`見上 ${realPageNo(id)}쪽`, p.x + shift + CARD.w / 2, p.y - CARD.h / 2 - 4, 'end');
+    }
+  }
   };
 
   paintBook();
@@ -594,12 +667,14 @@ function unionBetween(a, b) {
 
 // 한 가구(부부, 또는 배우자가 여럿인 사람)를 겹테두리 한 칸으로 그린다.
 // 위쪽(MAIN_H)은 칸 주인, 그 아래 띠에는 배우자들을 작게 적는다. 배우자가 없으면 주인을 칸 가운데에 둔다.
-function drawHousehold(parent, main, pos, rels, line, toggle) {
+// ghost: 앞 장에서 다시 실은 사본 칸(족보식 쪽 나눔)
+function drawHousehold(parent, main, pos, rels, line, toggle, ghost = false) {
   const { model } = state;
   const ids = state.view.members.get(main) || [main];
   const spouses = ids.slice(1);
   const p = pos.get(main);
   const cls = ['cell'];
+  if (ghost) cls.push('ghost');
   if (spouses.length) cls.push('couple');
   if (ids.includes(state.ego)) cls.push('ego');
   else if (ids.some((id) => line.get(id) === 'P')) cls.push('lineal');
@@ -980,7 +1055,25 @@ function setFiltersOpen(on) {
   syncScrim();
 }
 
+// 넓은 화면에서 왼쪽 필터를 접는다. 접으면 계보 왼쪽 위에 펼치기 단추가 나온다. 다음에 열 때도 그대로 둔다.
+const COLLAPSE_KEY = 'lineage.filtersCollapsed';
+const PAGE_MODE_KEY = 'lineage.pageMode';
+function setFiltersCollapsed(on, { focus = false } = {}) {
+  document.querySelector('.body').classList.toggle('filters-collapsed', on);
+  $('collapseFilters').setAttribute('aria-expanded', String(!on));
+  $('expandFilters').setAttribute('aria-expanded', String(!on));
+  $('expandFilters').hidden = !on;
+  try { localStorage.setItem(COLLAPSE_KEY, on ? '1' : '0'); } catch { /* file://에서 막히면 기억하지 않는다 */ }
+  if (focus) (on ? $('expandFilters') : $('collapseFilters')).focus();
+  if (!isNarrow() && state.lay) fit();
+}
+
 function setupChrome() {
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch { /* 기억 없음 */ }
+  setFiltersCollapsed(collapsed);
+  $('collapseFilters').addEventListener('click', () => setFiltersCollapsed(true, { focus: true }));
+  $('expandFilters').addEventListener('click', () => setFiltersCollapsed(false, { focus: true }));
   $('toggleFilters').addEventListener('click', () => setFiltersOpen(!document.body.classList.contains('filters-open')));
   $('showDetail').addEventListener('change', (ev) => {
     setDetailOpen(ev.target.checked);
@@ -1236,6 +1329,17 @@ function main() {
   $('lineMode').addEventListener('change', (ev) => {
     state.lineMode = ev.target.value;
     render();
+  });
+  try {
+    const kept = localStorage.getItem(PAGE_MODE_KEY);
+    if (kept === 'book' || kept === 'clip') state.pageMode = kept;
+  } catch { /* file://에서 막히면 기본값 */ }
+  $('pageMode').value = state.pageMode;
+  $('pageMode').addEventListener('change', (ev) => {
+    state.pageMode = ev.target.value;
+    try { localStorage.setItem(PAGE_MODE_KEY, state.pageMode); } catch { /* 기억하지 않는다 */ }
+    render({ refit: true });
+    centerOn(state.ego);
   });
   $('showInlaws').addEventListener('change', (ev) => {
     state.showInlaws = ev.target.checked;

@@ -6,12 +6,12 @@
 <title>인물 계보 · 한국 역사 인물 가계도</title>
 <!-- 글꼴은 vendor/fonts에 내려받아 두었다(본명조·마루 부리). 인터넷 없이 file://로 열어도 같은 모습이고,
      인쇄할 때 글꼴이 바뀌어 쪽이 밀리는 일이 없다. 출처와 다시 만드는 법은 vendor/fonts/NOTICE.md. -->
-<link rel="stylesheet" href="css/fonts.css?v=20261013-3">
+<link rel="stylesheet" href="css/fonts.css?v=20261013-6">
 <!-- 인물 계보: css/style.css·js/app.js를 복사해 와 여기서부터 따로 간다(계보도는 건드리지 않는다).
      부부는 한 칸, 사돈은 두 줄 겹선, 이름은 한자를 크게 병기.
      가운데는 A4 가로 용지를 한 장씩 보여 주고, 한 장에는 카드가 세로로 최대 6줄이다. -->
-<link rel="stylesheet" href="css/lineage.css?v=20261013-3">
-<link rel="stylesheet" href="css/nav.css?v=20261013-3">
+<link rel="stylesheet" href="css/lineage.css?v=20261013-6">
+<link rel="stylesheet" href="css/nav.css?v=20261013-6">
 </head>
 <body>
 <div class="app">
@@ -32,6 +32,12 @@
 
   <div class="body">
     <aside class="filters" id="filters" aria-label="필터">
+      <div class="filters-head">
+        <span class="filters-title">필터</span>
+        <button type="button" id="collapseFilters" class="side-toggle only-wide" aria-controls="filters" aria-expanded="true" aria-label="필터 접기" title="필터 접기">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m16 15-3-3 3-3"/></svg>
+        </button>
+      </div>
       <label class="field">
         <span class="label">가계도</span>
         <select id="dataset"></select>
@@ -51,6 +57,13 @@
           <option value="paternal" selected>부계만</option>
           <option value="both">부계·모계</option>
           <option value="none">표시 안 함</option>
+        </select>
+      </label>
+      <label class="field">
+        <span class="label">쪽 나눔</span>
+        <select id="pageMode">
+          <option value="book" selected>족보식 이어 싣기 (見上·見下)</option>
+          <option value="clip">그림 자르기 (이전 방식)</option>
         </select>
       </label>
       <div class="field expand-btns" role="group" aria-label="접기·펴기">
@@ -78,11 +91,15 @@
         <input type="checkbox" id="showDetail" aria-expanded="false">
         <span>상세 보기</span>
       </label>
-      <p class="hint">칸을 누르면 선택되고, 두 번 누르면 기준 인물로 바뀝니다. 한 장에는 카드가 세로로 여섯 줄까지 들어가고, 장들은 아래로 이어집니다. 휠로 넘기고, Ctrl을 누른 채 굴리면 확대·축소합니다.</p>
+      <p class="hint">칸을 누르면 선택되고, 두 번 누르면 기준 인물로 바뀝니다. 한 장에는 카드가 세로로 여섯 줄까지 들어가고, 장들은 아래로 이어집니다. 족보식 쪽 나눔에서는 앞 장의 마지막 세대를 다음 장 첫 줄에 흐린 점선 칸으로 다시 싣고, 다른 장으로 이어지는 선에 見上(앞 장)·見下(뒤 장) 쪽 번호를 적습니다. 휠로 넘기고, Ctrl을 누른 채 굴리면 확대·축소합니다.</p>
     </aside>
 
     <main class="stage" aria-label="가계도">
-      <svg id="tree" role="img" aria-label="가계도 다이어그램"></svg>    </main>
+      <svg id="tree" role="img" aria-label="가계도 다이어그램"></svg>
+      <button type="button" id="expandFilters" class="stage-toggle only-wide" aria-controls="filters" aria-expanded="false" aria-label="필터 펼치기" title="필터 펼치기" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg>
+      </button>
+    </main>
 
     <aside class="panel" id="detailPanel" aria-label="상세">
       <div class="panel-head">
@@ -134,19 +151,20 @@
 </div>
 <!-- 서버 없이 lineage.html을 바로 열어도 되도록 모두 일반 스크립트로, 순서대로 읽는다.
      ?v=는 캐시 무효화용 버전: CSS·JS·데이터를 바꿔 배포할 때 모두 같은 값으로 올린다(테스트가 확인). -->
-<script src="vendor/dagre.min.js?v=20261013-3"></script>
+<script src="vendor/dagre.min.js?v=20261013-6"></script>
 <!-- 가계도 데이터: 파일 하나가 window.GENEALOGY_DATASETS에 가계도 하나를 추가한다. 순서대로 선택 목록에 나온다. -->
-<script src="data/yi-hwang.js?v=20261013-3"></script>
-<script src="data/yi-i.js?v=20261013-3"></script>
-<script src="data/yi-sunsin.js?v=20261013-3"></script>
-<script src="data/yi-sunsin-muui.js?v=20261013-3"></script>
-<script src="data/yi-wonik.js?v=20261013-3"></script>
-<script src="data/jeong-yakyong.js?v=20261013-3"></script>
-<script src="data/geumcheon-kang.js?v=20261013-3"></script>
-<script src="js/nav.js?v=20261013-3"></script>
-<script src="js/model.js?v=20261013-3"></script>
-<script src="js/kinship.js?v=20261013-3"></script>
-<script src="js/layout.js?v=20261013-3"></script>
-<script src="js/lineage.js?v=20261013-3"></script>
+<script src="data/yi-hwang.js?v=20261013-6"></script>
+<script src="data/yi-i.js?v=20261013-6"></script>
+<script src="data/yi-sunsin.js?v=20261013-6"></script>
+<script src="data/yi-sunsin-muui.js?v=20261013-6"></script>
+<script src="data/yi-wonik.js?v=20261013-6"></script>
+<script src="data/jeong-yakyong.js?v=20261013-6"></script>
+<script src="data/geumcheon-kang.js?v=20261013-6"></script>
+<script src="js/nav.js?v=20261013-6"></script>
+<script src="js/model.js?v=20261013-6"></script>
+<script src="js/kinship.js?v=20261013-6"></script>
+<script src="js/layout.js?v=20261013-6"></script>
+<script src="js/pagebook.js?v=20261013-6"></script>
+<script src="js/lineage.js?v=20261013-6"></script>
 </body>
 </html>
