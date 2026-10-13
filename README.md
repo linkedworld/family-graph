@@ -19,6 +19,7 @@
 |---|---|---|
 | 버블 가계도 (첫 화면) | `index.html` | 3D 구슬로 보는 자손의 관계망 |
 | 가계도 | `tree.html` | 카드로 보는 계보도, 호칭·촌수 |
+| 인물 계보 | `lineage.html` | 인쇄용 공식 계보도. 부부 한 칸, 한자 병기, 사돈 겹선, A4 한 장에 세로 6줄 |
 | 인물과 사건 | `events.html` | 가계도 인물이 얽힌 사건과 사건 사이의 인과(3D) |
 | 광명의 명사 | `gwangmyeong.html` | 광명의 옛 인물 가계와 오늘의 명사를 한 시간축에(3D) |
 
@@ -156,10 +157,12 @@ npm test
 | `index.html`, `css/bubble.css`, `js/bubble.js` | 버블 가계도(3D) 화면, 첫 화면 |
 | `tree.html`, `css/style.css`, `js/app.js` | 카드 가계도 화면 |
 | `bubble.html` | 예전 주소용: `index.html`로 넘겨 줌 |
+| `lineage.html`, `css/lineage.css`, `js/lineage.js` | 인물 계보 화면 — 부부 한 칸, 한자 병기, 사돈 겹선, A4를 장으로 넘겨 본다 |
 | `events.html`, `css/events.css`, `js/events.js`, `data/events.js` | 인물과 사건 화면과 사건 데이터 |
 | `gwangmyeong.html`, `data/gwangmyeong.js` | 광명의 명사 화면과 그 사건·명단 데이터 |
 | `js/world.js`, `js/fx3d.js`, `css/world.css` | 시간 축 3D 엔진·셰이더(세계사 연관도에서 가져옴), 광명의 명사가 씀 |
 | `js/gm-world.js` | 광명 데이터 → 시간 축 엔진 자료 |
+| `vendor/fonts/`, `css/fonts.css` | 인물 계보가 쓰는 내려받은 글꼴(본명조·마루 부리) |
 | `js/nav.js`, `css/nav.css` | 두 페이지가 함께 쓰는 도구 막대·페이지 메뉴 |
 | `js/app.js` | 화면 동작(다이어그램, 상세 패널, 관계표, 확대·이동) |
 | `js/model.js` | 가계 데이터를 그래프 모델로 변환, 미상 인물 생성 |
