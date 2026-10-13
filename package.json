@@ -4,6 +4,6 @@
   "private": true,
   "description": "한국 역사 인물 가계도와 친족 호칭·촌수 계산 (목업)",
   "scripts": {
-    "test": "node --test tests/kinship.test.mjs"
+    "test": "node --test tests/kinship.test.mjs tests/pagebook.test.mjs"
   }
 }
