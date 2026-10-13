@@ -28,16 +28,20 @@ const svg = $('tree');
 const state = {
   model: null, kin: null, core: null,
   ego: null, selected: null,
-  hideUnknown: false, showInlaws: true, // 외가·처가는 기본으로 보인다
-  fold: true, // 자손이 이어지지 않는 형제가 많으면 여러 줄로 접는다
-  // 접기·펴기: 기본은 기준 인물의 직계와 그 배우자만 보이고, 나머지 자녀는 접혀 있다.
+  hideUnknown: true, showInlaws: true, // 미상 인물은 기본으로 숨기고, 외가·처가는 보인다
+  fold: false, // 켜면 자손이 이어지지 않는 형제가 많을 때 여러 줄로 접는다(기본은 펼쳐 둔다)
+  // 접기·펴기: 기본은 모두 펼쳐 둔다. '모두 펼치기'를 끄면 기준 인물의 직계와 그 배우자만 보이고,
+  // 칸마다 +N으로 자녀를 펼친다.
   expanded: new Set(), // 자녀를 펼친 사람
-  expandAll: false,
+  expandAll: true, // 모두 펼치기(기본). 끄면 직계만 보인다.
   showLine: true, // 정통 표시: 종통(대를 잇는 맏아들) 줄기, 맏아들·맏딸, 이름난 인물
   lineMode: 'paternal', // 직계 표시: paternal(부계만, 기본) | both(부계·모계) | none
   // 쪽 나눔: book(족보식 — 세대 경계에서 끊고 부모를 다음 장 첫 줄에 다시 실어 見上·見下로 잇는다, 기본)
-  //        | clip(그림 자르기 — 전체 배치를 판면 크기로 잘라 이어 붙인다, 이전 방식)
+  //        | clip(연이어 계속 — 전체 배치를 판면 크기로 잘라 이어 붙인다, 이전 방식)
   pageMode: 'book',
+  // 보기: default(기본 보기 — 흰 지면, 먹 글씨, 겹테두리 명패) | present(강조 보기 — 쪽빛 카드에 흰·노란 글씨)
+  // 색은 css/lineage.css의 .view-present가 정하고, 여기서는 그림(#tree)과 인쇄본에 클래스만 붙인다.
+  viewMode: 'default',
   lay: null, view: null,
   book: null,
   t: { k: 1, x: 0, y: 0 },
@@ -167,7 +171,9 @@ function toggleExpand(ids) {
   if (state.expandAll || ids.some((id) => state.expanded.has(id))) {
     if (state.expandAll) {
       // '모두 펼치기' 상태에서 하나를 접으면, 지금 보이는 사람을 펼친 상태로 옮긴 뒤 그 칸만 접는다.
+      // 그래서 '모두 펼치기' 토글은 꺼진다.
       state.expandAll = false;
+      $('expandAll').checked = false;
       for (const p of state.shown) state.expanded.add(p);
     }
     for (const id of ids) state.expanded.delete(id);
@@ -387,6 +393,14 @@ function render({ refit = false } = {}) {
   el('rect', { class: 'sheet-shadow', x: mm, y: mm * 1.3, width: pageW, height: pageH }, vp);
   el('rect', { class: 'sheet', width: pageW, height: pageH }, vp);
   const defs = el('defs', {}, vp);
+  // 카드 바탕 그라데이션(강조 보기에서 쓴다). 색은 CSS의 stop-color가 정하고, 칸은 --card-fill·--ego-fill로 가리킨다.
+  for (const [name, cls] of [['cardFill', 'card-fill'], ['egoFill', 'ego-fill']]) {
+    const grad = el('linearGradient', { id: `${name}-${prefix}`, x1: 0, y1: 0, x2: 0, y2: 1 }, defs);
+    el('stop', { offset: 0, class: `${cls}-top` }, grad);
+    el('stop', { offset: 1, class: `${cls}-bottom` }, grad);
+  }
+  vp.style.setProperty('--card-fill', `url(#cardFill-${prefix})`);
+  vp.style.setProperty('--ego-fill', `url(#egoFill-${prefix})`);
   const clip = el('clipPath', { id: clipId }, defs);
   const x0 = MARGIN.side * mm;
   const x1 = pageW - x0;
@@ -474,7 +488,7 @@ function render({ refit = false } = {}) {
   };
 
   // 족보식 쪽 나눔: 이 장에 실제 칸(ids)이나 다시 실은 사본 칸(ghosts)이 있는 사람만 그리고,
-  // 사본은 ghosts에 적힌 만큼 가로로 옮겨 그린다. 그림 자르기에서는 모두 그린 뒤 판면으로 자른다.
+  // 사본은 ghosts에 적힌 만큼 가로로 옮겨 그린다. 연이어 계속에서는 모두 그린 뒤 판면으로 자른다.
   const book = state.book.mode === 'book';
   const shiftOf = (id) => (book ? page.ghosts.get(id) ?? 0 : 0);
   const onPage = (id) => page.ids.has(id) || page.ghosts.has(id);
@@ -768,6 +782,8 @@ function drawPerson(parent, id, rel, isLineal, toggle, h) {
   el('rect', { class: 'col-bg', width: CARD.w, height: h }, card);
   el('rect', { class: 'gender-bar', x: 0, y: 0, width: 3, height: h }, card);
   const g = el('g', { transform: `translate(0 ${(h - MAIN_H) / 2})` }, card);
+  // 강조 보기의 남녀 표시: 카드 왼쪽 띠 대신 이름 옆의 짧은 알약(기본 보기에서는 숨긴다)
+  el('rect', { class: 'gender-pill', x: 6, y: 14, width: 3.5, height: 26, rx: 1.75 }, g);
 
   const hanja = person.hanja || (model.isNameless(id) ? person.clanHanja : '');
   const hangul = model.displayName(id);
@@ -918,6 +934,7 @@ function beginPrint() {
   printing = true;
   const host = document.createElement('div');
   host.id = 'printBook';
+  host.classList.toggle('view-present', state.viewMode === 'present');
   state.book.pages.forEach((page, i) => {
     const sheet = document.createElement('div');
     sheet.className = 'print-sheet';
@@ -1058,6 +1075,7 @@ function setFiltersOpen(on) {
 // 넓은 화면에서 왼쪽 필터를 접는다. 접으면 계보 왼쪽 위에 펼치기 단추가 나온다. 다음에 열 때도 그대로 둔다.
 const COLLAPSE_KEY = 'lineage.filtersCollapsed';
 const PAGE_MODE_KEY = 'lineage.pageMode';
+const VIEW_MODE_KEY = 'lineage.viewMode';
 function setFiltersCollapsed(on, { focus = false } = {}) {
   document.querySelector('.body').classList.toggle('filters-collapsed', on);
   $('collapseFilters').setAttribute('aria-expanded', String(!on));
@@ -1225,7 +1243,7 @@ function loadDataset(data) {
   state.model = model;
   state.kin = new Kinship(model);
   state.expanded = new Set();
-  state.expandAll = false;
+  state.expandAll = $('expandAll').checked;
 
   let root = data.meta.subject;
   while (model.father(root)) root = model.father(root);
@@ -1313,12 +1331,9 @@ function main() {
     state.showLine = ev.target.checked;
     render(); renderRelations();
   });
-  $('expandAll').addEventListener('click', () => {
-    state.expandAll = true;
-    render(); centerOn(state.ego); renderRelations();
-  });
-  $('collapseAll').addEventListener('click', () => {
-    state.expandAll = false;
+  // 모두 펼치기: 켜면 모든 자녀를 펼치고, 끄면 직계만 남기고 접는다.
+  $('expandAll').addEventListener('change', (ev) => {
+    state.expandAll = ev.target.checked;
     state.expanded.clear();
     render(); centerOn(state.ego); renderRelations();
   });
@@ -1335,6 +1350,17 @@ function main() {
     if (kept === 'book' || kept === 'clip') state.pageMode = kept;
   } catch { /* file://에서 막히면 기본값 */ }
   $('pageMode').value = state.pageMode;
+  try {
+    const kept = localStorage.getItem(VIEW_MODE_KEY);
+    if (kept === 'default' || kept === 'present') state.viewMode = kept;
+  } catch { /* file://에서 막히면 기본값 */ }
+  $('viewMode').value = state.viewMode;
+  svg.classList.toggle('view-present', state.viewMode === 'present');
+  $('viewMode').addEventListener('change', (ev) => {
+    state.viewMode = ev.target.value;
+    try { localStorage.setItem(VIEW_MODE_KEY, state.viewMode); } catch { /* 기억하지 않는다 */ }
+    svg.classList.toggle('view-present', state.viewMode === 'present');
+  });
   $('pageMode').addEventListener('change', (ev) => {
     state.pageMode = ev.target.value;
     try { localStorage.setItem(PAGE_MODE_KEY, state.pageMode); } catch { /* 기억하지 않는다 */ }

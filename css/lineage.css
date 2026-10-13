@@ -138,7 +138,6 @@ input[type="search"]::placeholder { color: var(--unknown); }
   background: var(--paper-2);
 }
 .filters .hint { margin: 8px 0 0; font-size: 0.74rem; line-height: 1.55; color: var(--ink-2); }
-.filters .expand-btns { display: flex; flex-wrap: wrap; gap: 6px; }
 .stage { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--desk); }
 .sheet-shadow { fill: rgb(22 21 19 / 0.16); }
 .sheet { fill: var(--paper); stroke: var(--line); stroke-width: 1; }
@@ -228,12 +227,6 @@ input[type="search"]::placeholder { color: var(--unknown); }
 .fold-sample { display: inline-block; min-width: 18px; margin-right: 4px; text-align: center;
   font: 700 0.78rem var(--f-body); color: var(--indigo); }
 .fold-sample.open { color: var(--ink-2); font-size: 0.9rem; }
-.expand-btns button {
-  font: 500 0.82rem var(--f-body); color: var(--ink-2); background: var(--card);
-  border: 1px solid var(--line); border-radius: 2px; padding: 6px 10px; cursor: pointer;
-  transition: color 0.14s ease, border-color 0.14s ease;
-}
-.expand-btns button:hover { border-color: var(--indigo); color: var(--indigo); }
 tbody tr.is-folded td { color: var(--ink-2); }
 .edge.lineal { stroke: var(--lineal); stroke-width: 1.8; }
 .edge.lineal.maternal { stroke: var(--maternal); }
@@ -461,12 +454,9 @@ body.filters-open #toggleFilters { background: var(--chrome-active); color: #fff
 .filters select option { background: var(--chrome-side); color: var(--chrome-ink); }
 .filters select:hover, .filters input[type="search"]:hover { border-color: rgb(255 255 255 / 0.32); }
 .filters input[type="search"]::placeholder { color: var(--chrome-ink-3); }
-.filters .expand-btns { gap: 6px; }
-.filters .expand-btns button {
-  flex: 1; font: 600 0.8rem var(--f-ui); color: var(--chrome-ink);
-  background: transparent; border: 1px solid rgb(255 255 255 / 0.3); border-radius: 6px; padding: 6px 8px;
-}
-.filters .expand-btns button:hover { background: var(--chrome-hover); border-color: rgb(255 255 255 / 0.5); color: var(--chrome-ink); }
+/* '계보' 이름표 바로 아래에 체크 항목들이 붙는다. */
+.filters .group-label { margin-top: 2px; }
+.filters .group-label + .toggle { margin-top: -6px; }
 /* 체크 항목은 슬랙 채널 줄처럼: 둥근 줄, 올리면 밝아지고, 켜진 항목은 흰 글씨 */
 .filters .toggle {
   gap: 9px; min-height: 30px; margin: 0 -4px; padding: 0 8px; border-radius: 6px;
@@ -479,6 +469,12 @@ body.filters-open #toggleFilters { background: var(--chrome-active); color: #fff
 .filters .toggle input { accent-color: var(--chrome-check); width: 15px; height: 15px; }
 /* 상세 보기는 열려 있으면 슬랙의 선택된 채널처럼 파랗게 */
 .filters .toggle:has(#showDetail) { margin-top: 6px; }
+/* 필터 안의 묶음(표시 방식): 가는 선으로 위 항목들과 가르고 굵은 제목을 단다. */
+.filters .filter-group {
+  display: flex; flex-direction: column; gap: 9px;
+  margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--chrome-line);
+}
+.filters .group-title { font: 800 0.8rem var(--f-ui); color: var(--chrome-ink); letter-spacing: -0.01em; padding-left: 2px; }
 .filters .toggle:has(#showDetail:checked) { background: var(--chrome-active); color: #fff; }
 .filters .hint {
   margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--chrome-line);
@@ -523,6 +519,100 @@ body.filters-open #toggleFilters { background: var(--chrome-active); color: #fff
   .filters .toggle { min-height: 38px; }
   .filters select, .filters input[type="search"] { min-height: 36px; font-size: 16px; }
 }
+
+/* ── 보기(지면의 색·글꼴 짜임) ──────────────────────────────
+   기본 보기: 위 :root의 값 그대로 — 흰 지면, 먹 글씨, 쪽빛 강조, 겹테두리 명패(학술 도판).
+   강조 보기(.view-present): 발표 자료처럼. 옅은 청회색 지면에 머리말·꼬리말은 기본 보기의 책자 꼴 그대로,
+   쪽빛 그라데이션 카드(둥근 모서리, 그림자)에 흰 이름·노란 호칭, 고딕 잔글씨.
+   기준 인물은 짙은 남색에 금테, 직계는 금테, 미상은 흐린 청회색 점선. 화면 틀(막대·필터)은 바꾸지 않는다.
+   그림(#tree)과 인쇄본(#printBook)에만 붙으므로 인쇄의 :root 덮어쓰기보다 앞선다. */
+.card-fill-top, .card-fill-bottom { stop-color: var(--card); }
+.ego-fill-top, .ego-fill-bottom { stop-color: var(--card); }
+.view-present {
+  --paper: #f2f5fa; --paper-2: #e3eaf4; --card: #1d4f91;
+  --ink: #12284a; --ink-2: #52678a; --line: #8fa3c2; --line-soft: #d2dbe8;
+  --indigo: #1d4f91; --indigo-soft: #dbe5f4; --seal: #c0392b; --unknown: #8593a8;
+  --male: #8fd0ff; --female: #ffa9c9;
+  --lineal: #e0a11b; --maternal: #8c6fd8; --heir: #11a28c;
+  --f-body: var(--f-ui);
+  /* 강조 보기 전용 */
+  --pv-card-top: #2a6bbd; --pv-card-bottom: #183f79;
+  --pv-ego-top: #123665; --pv-ego-bottom: #0a1f40;
+  --pv-unknown: #71839f;
+  --pv-band: #13386b;
+  --pv-on: #ffffff;           /* 카드 위 주 글씨 */
+  --pv-on-2: #c7d8f0;         /* 카드 위 잔글씨 */
+  --pv-gold: #ffd166;         /* 카드 위 강조(호칭·맏이·기준 인물) */
+}
+.view-present .card-fill-top { stop-color: var(--pv-card-top); }
+.view-present .card-fill-bottom { stop-color: var(--pv-card-bottom); }
+.view-present .ego-fill-top { stop-color: var(--pv-ego-top); }
+.view-present .ego-fill-bottom { stop-color: var(--pv-ego-bottom); }
+
+/* 지면: 머리말은 기본 보기와 같은 책자 꼴(명조 제목, 굵은 선·가는 선 두 줄). 색만 지면의 남색 먹을 따른다. */
+.view-present .sheet { fill: var(--paper); stroke: none; }
+.view-present .sheet-shadow { fill: rgb(10 31 64 / 0.22); }
+.view-present .sheet-rule.foot { stroke: var(--pv-band); opacity: 0.5; }
+.view-present .sheet-foot { fill: var(--ink-2); font-family: var(--f-ui); }
+.view-present .sheet-folio { fill: var(--pv-band); font-family: var(--f-ui); font-weight: 800; letter-spacing: 0.04em; }
+
+/* 카드: 둥근 쪽빛 판. 겹테두리 대신 안쪽에 가는 흰 선 하나. */
+.view-present .cell { filter: drop-shadow(0 2.5px 3px rgb(10 31 64 / 0.3)); }
+.view-present .cell .frame { fill: var(--card-fill); stroke: none; rx: 9px; }
+.view-present .cell .frame-inner { stroke: rgb(255 255 255 / 0.2); stroke-width: 0.8; opacity: 1; rx: 7px; }
+.view-present .cell .divider { stroke: rgb(255 255 255 / 0.28); stroke-width: 0.8; }
+.view-present .cell .divider.concubine { stroke: rgb(255 255 255 / 0.4); }
+.view-present .cell.lineal .frame { stroke: var(--pv-gold); stroke-width: 1.8; }
+.view-present .cell.lineal.maternal .frame { stroke: #c9b6ff; }
+.view-present .cell.ego .frame { fill: var(--ego-fill); stroke: var(--pv-gold); stroke-width: 2.6; }
+.view-present .cell.ego .frame-inner { stroke: var(--pv-gold); opacity: 0.45; }
+.view-present .cell.unknown .frame { fill: var(--pv-unknown); stroke: rgb(255 255 255 / 0.55); stroke-dasharray: 4 3; stroke-width: 1; }
+.view-present .cell.unknown .frame-inner { display: none; }
+.view-present .cell.has-selected .frame { stroke: var(--pv-on); stroke-width: 2.8; stroke-dasharray: none; }
+.view-present .cell.ghost .frame { fill: #8ea5c7; stroke: var(--pv-band); stroke-width: 1.2; stroke-dasharray: 5 3; }
+.view-present .card:hover .col-bg { fill: rgb(255 255 255 / 0.08); }
+.view-present .card.selected .col-bg, .view-present .card.selected:hover .col-bg { fill: rgb(255 209 102 / 0.2); }
+/* 남녀 띠: 카드 왼쪽 가장자리 대신 이름 옆의 짧은 알약 */
+.gender-pill { display: none; }
+.view-present .card:not(.spouse) > .gender-bar { display: none; }
+.view-present .gender-pill { display: inline; fill: transparent; }
+.view-present .card.male .gender-pill { fill: var(--male); }
+.view-present .card.female .gender-pill { fill: var(--female); }
+.view-present .card.unknown .gender-pill { opacity: 0.5; }
+.view-present .card.spouse .gender-bar { x: 2px; rx: 1px; }
+
+/* 카드 위 글씨: 이름은 흰색, 호칭·맏이는 노란색, 나머지는 옅은 하늘색 */
+.view-present .card .name { fill: var(--pv-on); font-family: var(--f-ui); font-weight: 800; letter-spacing: -0.02em; }
+.view-present .card .hanja-lg { fill: var(--pv-on); font-family: var(--f-display); font-weight: 700; }
+.view-present .card .hangul { fill: var(--pv-on-2); font-family: var(--f-ui); font-weight: 600; }
+.view-present .card .term, .view-present .card.ego .term { fill: var(--pv-gold); font-family: var(--f-ui); font-weight: 700; }
+.view-present .card .chon, .view-present .card .years { fill: var(--pv-on-2); opacity: 1; font-family: var(--f-ui); }
+.view-present .card .order { fill: var(--pv-on-2); opacity: 1; font-family: var(--f-ui); }
+.view-present .card .order.firstborn { fill: var(--pv-gold); font-weight: 800; }
+.view-present .card.unknown .name, .view-present .card.unknown .hanja-lg, .view-present .card.unknown .hangul { fill: #e6ebf3; }
+.view-present .card .seal { fill: var(--pv-gold); }
+.view-present .card .seal-text { fill: var(--pv-ego-bottom); font-family: var(--f-display); }
+.view-present .mark-heir rect { fill: #3fd6bd; }
+.view-present .mark-heir text { fill: var(--pv-ego-bottom); }
+.view-present .mark-notable rect { fill: none; stroke: var(--pv-gold); }
+.view-present .mark-notable text { fill: var(--pv-gold); }
+.view-present .card.spouse .col-bg { fill: rgb(6 22 48 / 0.22); }
+.view-present .card.spouse .spouse-name { fill: var(--pv-on); font-family: var(--f-ui); font-weight: 700; }
+.view-present .card.spouse .spouse-name .hangul { fill: var(--pv-on-2); }
+.view-present .card.spouse .spouse-term { fill: var(--pv-gold); font-family: var(--f-ui); }
+.view-present .card.spouse.concubine .spouse-term { fill: var(--pv-on-2); }
+.view-present .card.spouse .spouse-meta { fill: var(--pv-on-2); opacity: 1; }
+.view-present .card.spouse.lineal .spouse-name { fill: var(--pv-gold); }
+.view-present .cell .spouse-more { fill: var(--pv-on-2); font-family: var(--f-ui); }
+
+/* 선과 이름표: 지면 위라 남색 계열. 쪽 표시는 제목 띠와 같은 남색 알약에 흰 글씨. */
+.view-present .edge { stroke: #8496b3; stroke-width: 1.3; }
+.view-present .edge.lineal { stroke-width: 2.4; }
+.view-present .union-dot { fill: #8496b3; }
+.view-present .edge-label { fill: var(--ink-2); font-family: var(--f-ui); font-weight: 600; }
+.view-present .page-ref-bg { fill: var(--pv-band); stroke: none; rx: 7.5px; opacity: 1; }
+.view-present .page-ref { fill: var(--pv-on); font-family: var(--f-ui); font-weight: 700; }
+.view-present .fold-btn text { fill: var(--indigo); font-family: var(--f-ui); }
 
 /* 인쇄: 장마다 A4 가로 한 쪽. 쪽 크기는 @media 밖에 두고 장마다 이름 붙은 쪽(sheet)으로도 못박아,
    브라우저가 세로 용지를 기본으로 잡아도 가로로 나온다. 위의 좁은 화면 규칙은 screen에만 걸린다

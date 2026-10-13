@@ -24,7 +24,11 @@ node tools/check-dataset.cjs <id> [--list]  # 데이터 검사: 참조 오류, 1
   쪽 나눔은 두 방식을 고른다(`state.pageMode`). `book`(기본, `js/pagebook.js`, 테스트 `tests/pagebook.test.mjs`)은 족보식이다:
   세대 경계에서 끊어 앞 장 마지막 세대를 다음 장 첫 줄에 사본(흐린 점선 칸)으로 다시 싣고, 가로는 가지 경계에서 나누며
   한 장보다 넓은 가지는 자녀 가지로 쪼개 쪼갠 장마다 부모 사본을 세운다. 쪽을 건너는 선은 판면 안에서 끝내고 見上·見下 쪽 번호를 단다.
-  `clip`은 이전 방식(전체 배치를 판면 크기로 잘라 이어 붙임)이다.
+  `clip`(연이어 계속)은 이전 방식(전체 배치를 판면 크기로 잘라 이어 붙임)이다.
+  보기도 고른다(`state.viewMode`). `default`는 `:root` 값 그대로(흰 지면·먹·겹테두리), `present`(강조 보기)는 `#tree`·`#printBook`에
+  `.view-present` 클래스를 붙여 CSS 변수와 규칙만으로 발표 자료 꼴(머리말은 기본 보기의 책자 꼴 그대로, 쪽빛 그라데이션 카드에 흰·노란 글씨)로 바꾼다.
+  새 보기는 `css/lineage.css`의 '보기' 절에 같은 방식으로 더한다. JS에는 색을 넣지 않는다.
+  '계보'의 '모두 펼치기' 토글(`state.expandAll`)은 기본으로 켜져 있고, 끄면 직계만 남는다. 칸 하나를 접으면 토글이 꺼진다.
 - `events.html` + `js/events.js` + `css/events.css` + `data/events.js`: 인물과 사건(3D). css/bubble.css를 함께 쓰고(사건 이름표·상세 목록 스타일은 bubble.css에 있다),
   셰이더·후처리 함수는 js/bubble.js에서 복사해 왔다(한쪽을 고치면 다른 쪽도 맞출 것). 사건 데이터는 `npm test`가 검사한다.
 - `gwangmyeong.html` + `data/gwangmyeong.js`: 광명의 명사. 엔진은 `js/world.js`+`js/fx3d.js`+`css/world.css`(lonycell/videojs-simpleoverlay의
